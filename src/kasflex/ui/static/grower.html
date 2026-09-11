@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>KasFlex</title>
+<link rel="stylesheet" href="/grower.css">
+</head>
+<body>
+<a href="#main" class="skip" data-i18n="nav.today">Skip to content</a>
+
+<!-- Onboarding. Shown until a setup exists; everything behind it is inert. -->
+<div id="onboarding" class="onboarding" hidden>
+  <div class="onboarding-inner">
+    <div id="progress" class="progress" hidden></div>
+    <p id="step-label" class="step-label" hidden></p>
+    <div id="step-body"></div>
+    <div id="step-actions" class="actions button-row"></div>
+  </div>
+</div>
+
+<header class="topbar">
+  <span class="brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8v9H3Z"/><path d="M9 20v-7h6v7"/></svg>
+    KasFlex
+  </span>
+  <span class="spacer"></span>
+  <label class="visually-hidden" for="language" data-i18n="settings.language">Language</label>
+  <select id="language" aria-label="Language"></select>
+</header>
+
+<div id="sim-notice" class="notice" role="note">
+  <b>Simulation.</b>
+  <span>No equipment is connected. Not validated for operational use.</span>
+</div>
+
+<main id="main" tabindex="-1">
+  <div id="error" class="error" role="alert" hidden></div>
+
+  <!-- ------------------------------------------------------------ today -->
+  <section id="view-today" class="view">
+    <div id="today-empty" class="card">
+      <div class="empty">
+        <div class="mark" aria-hidden="true">🌱</div>
+        <h2 data-i18n="plan.empty.title">No plan yet</h2>
+        <p class="muted" data-i18n="plan.empty.body">Make a plan to see what tomorrow could cost.</p>
+      </div>
+      <button id="make-plan" class="primary big" data-i18n="plan.make">Make tomorrow's plan</button>
+    </div>
+
+    <div id="today-loading" hidden>
+      <div class="card loading">
+        <div class="spinner" aria-hidden="true"></div>
+        <span data-i18n="plan.making">Working out the best plan…</span>
+      </div>
+    </div>
+
+    <div id="today-result" hidden>
+      <p id="data-basis" class="small muted center" style="margin-bottom:14px"></p>
+
+      <div class="card headline-card">
+        <p class="headline-label" data-i18n="plan.headline.cost">Tomorrow's energy bill</p>
+        <p id="headline-cost" class="headline-figure">—</p>
+        <p id="headline-date" class="headline-sub"></p>
+        <p id="headline-saving" class="saving" hidden></p>
+      </div>
+
+      <div class="signals" style="margin-bottom:16px">
+        <div id="signal-crop" class="signal">
+          <span class="icon" aria-hidden="true">🌿</span>
+          <span><span class="label" data-i18n="plan.headline.crop">Your crop</span><br>
+          <span class="value" id="signal-crop-value">—</span></span>
+        </div>
+        <div id="signal-safety" class="signal">
+          <span class="icon" aria-hidden="true">✓</span>
+          <span><span class="label" data-i18n-static>Safety check</span><br>
+          <span class="value" id="signal-safety-value">—</span></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="plan.story.title" style="margin-bottom:16px">What happens tomorrow</h2>
+        <div id="story" class="story"></div>
+        <details class="more">
+          <summary data-i18n="plan.details.show">Show hour by hour</summary>
+          <div class="tablewrap">
+            <table class="hours">
+              <thead><tr>
+                <th data-i18n="common.hour">Hour</th>
+                <th data-i18n="term.price">Price</th>
+                <th data-i18n-static>Heat from</th>
+                <th data-i18n="asset.lights">Lights</th>
+                <th data-i18n="asset.battery">Battery</th>
+              </tr></thead>
+              <tbody id="hours-body"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <div class="card">
+        <div class="button-row">
+          <button id="approve" class="primary" data-i18n="plan.approve">This looks good</button>
+          <button id="concerns" data-i18n="plan.concerns">I have concerns</button>
+        </div>
+        <p id="decision-note" class="small muted center" role="status" style="margin-top:14px"></p>
+      </div>
+
+      <div class="center">
+        <button id="remake-plan" class="quiet" data-i18n="plan.make">Make tomorrow's plan</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------- chat -->
+  <section id="view-chat" class="view" hidden>
+    <div class="card">
+      <h2 data-i18n="chat.title" style="margin-bottom:8px">Ask about this plan</h2>
+      <p class="muted small" data-i18n="chat.intro" style="margin-bottom:18px"></p>
+      <div id="suggestions" class="suggestions"></div>
+      <div id="chat-log" class="chat-log" aria-live="polite"></div>
+      <form id="chat-form" class="chat-form">
+        <label class="visually-hidden" for="chat-input" data-i18n="chat.placeholder">Your question</label>
+        <textarea id="chat-input" rows="2" data-i18n-placeholder="chat.placeholder"></textarea>
+        <button type="submit" class="primary" data-i18n="chat.send">Ask</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------ preferences -->
+  <section id="view-prefs" class="view" hidden>
+    <div class="card">
+      <h2 data-i18n="prefs.title" style="margin-bottom:8px">What you've told KasFlex</h2>
+      <p class="muted small" data-i18n="prefs.intro"></p>
+    </div>
+    <div id="prefs-list"></div>
+    <div class="card">
+      <button id="add-pref" class="big" data-i18n="prefs.add">Add something</button>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------- settings -->
+  <section id="view-settings" class="view" hidden>
+    <div class="card">
+      <h2 data-i18n="settings.ai" style="margin-bottom:16px">AI model</h2>
+      <div id="model-settings"></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="settings.data" style="margin-bottom:16px">Prices and weather</h2>
+      <div id="data-settings"></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n-static style="margin-bottom:16px">Your setup</h2>
+      <div id="profile-settings"></div>
+    </div>
+    <div class="card center stack">
+      <a href="/advanced" class="small" data-i18n="nav.research">Research mode</a>
+      <button id="restart-onboarding" class="quiet" data-i18n="settings.reset">Start over</button>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Sections">
+  <button data-view="today" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8v9H3Z"/><path d="M9 20v-7h6v7"/></svg>
+    <span data-i18n="nav.today">Today</span>
+  </button>
+  <button data-view="chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+    <span data-i18n="nav.chat">Ask why</span>
+  </button>
+  <button data-view="prefs">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span data-i18n="nav.preferences">Preferences</span>
+  </button>
+  <button data-view="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H7a1.7 1.7 0 0 0 1-1.5V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 15 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V7a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+    <span data-i18n="nav.settings">Settings</span>
+  </button>
+</nav>
+
+<dialog id="sheet"></dialog>
+<script src="/grower.js"></script>
+</body></html>

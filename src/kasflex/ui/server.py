@@ -910,8 +910,14 @@ class _Handler(BaseHTTPRequestHandler):
             raise ApiError("request body must be a JSON object")
         return data
 
+    #: The grower page is the front door; the researcher interface is a step aside
+    #: from it. A grower who has been told "just open KasFlex" must not land in a
+    #: screen built for someone comparing planners.
+    _PAGES = {"": "grower.html", "/": "grower.html",
+              "/advanced": "index.html", "/research": "index.html"}
+
     def _static(self, path: str) -> None:
-        name = "index.html" if path in ("/", "") else path.lstrip("/")
+        name = self._PAGES.get(path.rstrip("/") or "/") or path.lstrip("/")
         target = (STATIC_DIR / name).resolve()
         if not target.is_file() or STATIC_DIR.resolve() not in target.parents:
             self._send(404, b"not found", "text/plain")
