@@ -62,11 +62,53 @@ validated. They show the measurement works, which is what this stage owes.
 kasflex ui
 ```
 
+Two front doors onto the same engine.
+
+**`/` — for growers.** One number, two signals, and the day told as five or six
+phases instead of twenty-four rows. Plain language, Dutch or English, usable on a
+phone. Instead of *approve* and *reject* it offers **this looks good** and **I have
+concerns** — and a concern opens a box that asks what you would do instead, and
+why.
+
+**`/advanced` — for researchers.** The full instrument: every hour editable, the
+checker verdict, planner comparison, all metrics. An edited plan cannot be approved
+until it has been re-verified. With the checker switched off the verdict reads *not
+verified*, never *accepted*.
+
 ![The interface](docs/ui.png)
 
-Change the scenario, plan the day, edit any hour, approve or reject. An edited plan
-cannot be approved until it has been re-verified. With the checker switched off the
-verdict reads *not verified*, never *accepted*.
+## Talking to the planner
+
+The grower interface can explain itself, and can learn.
+
+**Ask why.** *"Why is the CHP on at three in the morning?"* — answered from the
+actual plan and the actual prices, in the grower's language. If it cannot tell why,
+it says so rather than guessing.
+
+**Disagree, and be remembered.** Say *"I don't trust the CHP overnight, it jammed
+last February"* and KasFlex proposes a standing instruction, shows it to you, and
+keeps it only if you agree. Every later plan accounts for it, and says so when it
+has to go against one.
+
+**Find the middle.** Where grower and planner disagree, it looks for a third
+position — *run the CHP only after six* — priced, so the compromise is a choice
+rather than a guess. Where none exists, it says that too.
+
+Everything is append-only: what was stated, when, why, and how each disagreement
+ended. That record is the study's primary observation, and it exports as JSON-LD
+with a codebook, or as a flat CSV.
+
+## Which AI
+
+| Service | Account | Where your data goes |
+|---|---|---|
+| Anthropic Claude, OpenAI, Google Gemini | yes | that vendor |
+| **Ollama** | **no** | **nowhere — your own machine** |
+| Any OpenAI-compatible endpoint | depends | wherever you point it |
+
+Switching is a configuration change and nothing else. **KasFlex also runs with no
+AI at all** — planning, checking and review do not need one; you lose the
+conversation, and an objection you type is still recorded word for word.
 
 ## Run it every day
 
@@ -82,6 +124,7 @@ and offline-safe. See [deploy/](deploy/README.md) for cron and systemd.
 
 | | |
 |---|---|
+| **[Guide](docs/GUIDE.md)** | **What it does in plain terms, then the same thing in depth** |
 | [MVP plan](docs/MVP_PLAN.md) | Build order, requirement coverage, risks |
 | [Architecture](docs/ARCHITECTURE.md) | How the pieces fit, and why |
 | [Decisions](docs/DECISIONS.md) | Why things are the way they are |
