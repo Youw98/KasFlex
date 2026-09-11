@@ -210,6 +210,8 @@ table would measure nothing.
 | `kasflex.oversight` | Approval, edits, append-only audit log. |
 | `kasflex.llm_providers` | Pluggable model transports: Anthropic, OpenAI, Gemini, Ollama, any OpenAI-compatible endpoint. |
 | `kasflex.memory` | Grower preferences, human/AI conflicts and conversation, append-only. |
+| `kasflex.conversation` | Explaining a plan, extracting a preference from an objection, proposing a compromise. |
+| `kasflex.i18n` | English and Dutch for the interface, the model prompts and number formatting. |
 | `kasflex.ui.server` | Local JSON API over the same functions the CLI uses. |
 | `kasflex.ui.static` | The single page: settings, plan, approval, comparison. |
 | `kasflex.resources` | Where files live when frozen into an executable. |

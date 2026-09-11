@@ -62,7 +62,15 @@ class ScenarioConfig:
     data_source: str = "synthetic"
     """``synthetic`` or ``cache``. Never a live API call at run time (R30)."""
     winter: bool = True
+    language: str = "en"
+    """``en`` or ``nl``. Sets the interface and the language the model explains in."""
+    llm_provider: str = "anthropic"
+    """Which model vendor answers. See :mod:`kasflex.llm_providers`."""
     llm_model: str = "claude-opus-5"
+    llm_base_url: str = ""
+    """Override for a self-hosted or proxied endpoint. Empty uses the vendor default."""
+    memory_path: str = "results/grower_memory.sqlite3"
+    """Preferences, conflicts and conversation. Shared across runs by design."""
     latitude: float = 51.99
     longitude: float = 4.25
     """Site location for the weather request. Defaults to Westland, the Dutch
