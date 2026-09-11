@@ -212,6 +212,8 @@ table would measure nothing.
 | `kasflex.memory` | Grower preferences, human/AI conflicts and conversation, append-only. |
 | `kasflex.conversation` | Explaining a plan, extracting a preference from an objection, proposing a compromise. |
 | `kasflex.i18n` | English and Dutch for the interface, the model prompts and number formatting. |
+| `kasflex.profiles` | Saved greenhouse setups, on this computer or in a portable file. |
+| `kasflex.fair` | FAIR research export: JSON-LD bundle, codebook, conflict CSV. |
 | `kasflex.ui.server` | Local JSON API over the same functions the CLI uses. |
 | `kasflex.ui.static` | The single page: settings, plan, approval, comparison. |
 | `kasflex.resources` | Where files live when frozen into an executable. |
