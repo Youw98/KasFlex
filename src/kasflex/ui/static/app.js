@@ -184,11 +184,12 @@ const num = (v, d = 0) => Number(v).toLocaleString("en-GB",
 function busy(on) {
   document.body.classList.toggle("busy", on);
   $("run").textContent = on ? "Generating…" : "Generate daily plan";
-  document.querySelectorAll('#run,#start-plan,#compare,#reverify,#approve,#reject,#apply-settings,#reset,#export-plan').forEach(el => {
+  $("loading-overlay").hidden = !on;
+  document.querySelectorAll('#run,#start-plan,#compare,#reverify,#approve,#reject,#apply-settings,#reset,#export-plan,#export-pdf').forEach(el => {
     if (on) { el.dataset.wasDisabled = String(el.disabled); el.disabled = true; }
     else if (el.dataset.wasDisabled !== undefined) { el.disabled = el.dataset.wasDisabled === "true"; delete el.dataset.wasDisabled; }
   });
-  if (!on && state.hasRun) { $("export-plan").disabled = false; $("reverify").disabled = !state.dirty; $("approve").disabled = state.dirty || !state.approvable || Boolean(state.decision); $("reject").disabled = Boolean(state.decision); }
+  if (!on && state.hasRun) { $("export-plan").disabled = false; $("export-pdf").disabled = false; $("reverify").disabled = !state.dirty; $("approve").disabled = state.dirty || !state.approvable || Boolean(state.decision); $("reject").disabled = Boolean(state.decision); }
   $("run").setAttribute("aria-busy", String(on));
 }
 
@@ -210,6 +211,7 @@ function renderOutcome(r) {
 
   state.reference = {run_id:r.run_id, revision:r.revision, plan_hash:r.plan_hash};
   state.decision = null;
+  state.originalPlan = null;
   state.runOverrides = { ...r.overrides };
   state.runSettings = r.configuration || Object.fromEntries(state.fields.map(f => [f.path, state.runOverrides[f.path] ?? state.defaults[f.path]]));
   state.hasRun = true;
@@ -259,6 +261,8 @@ function renderOutcome(r) {
 
   renderPlan(r.plan);
   renderChart(r.plan);
+  renderWeatherChart(r.plan);
+  renderSocChart(r.plan, r.battery_config);
   renderDispatch();
   renderAssetCards(r.plan);
   renderNarrative(r.plan);
@@ -288,15 +292,18 @@ function select(options, value, onChange) {
 
 function renderPlan(plan) {
   state.plan = plan.map((p) => ({ ...p }));
+  if (!state.originalPlan) state.originalPlan = plan.map((p) => ({ ...p }));
   const body = document.querySelector("#plan tbody");
   body.innerHTML = "";
 
   state.plan.forEach((row, i) => {
     const tr = document.createElement("tr");
+    const orig = state.originalPlan[i];
     const touched = () => {
       tr.classList.add("edited");
       markVerified(false);
       renderDispatch();
+      highlightChanges(tr, row, orig);
     };
 
     const cell = (html, cls) => {
@@ -610,7 +617,9 @@ async function run() {
   busy(true);
   try {
     if (!validateSettings()) { moveSheet(true); return; }
-    renderOutcome(await api("/api/run", { overrides: overrides() }));
+    const result = await api("/api/run", { overrides: overrides() });
+    renderOutcome(result);
+    try { localStorage.setItem('kasflex.lastRun.v1', JSON.stringify(result)); } catch {}
     navigate("overview");
     $("comparison").hidden = true;
   } catch (e) { showError(e); } finally { busy(false); }
@@ -737,7 +746,13 @@ $("reset").addEventListener("click", async () => {
   buildSettings(await api("/api/settings"));
 });
 
-api("/api/settings").then(buildSettings).catch(showError);
+api("/api/settings").then(s => {
+  buildSettings(s);
+  try {
+    const saved = localStorage.getItem('kasflex.lastRun.v1');
+    if (saved) { renderOutcome(JSON.parse(saved)); }
+  } catch {}
+}).catch(showError);
 $("export-plan").disabled = true;
 
 function renderChart(plan) {
@@ -1015,7 +1030,7 @@ async function loadReviewHistory() {
       open.addEventListener('click',async()=>{
         open.disabled=true;
         try {
-          const saved=await api(`/api/reviews/${r.run_id}`);renderOutcome(saved.result);state.decision=saved.decision?.decision||null;
+          const saved=await api(`/api/reviews/${r.run_id}`);renderOutcome(saved.result);try{localStorage.setItem('kasflex.lastRun.v1',JSON.stringify(saved.result));}catch{}state.decision=saved.decision?.decision||null;
           if(state.decision){$('approve').disabled=true;$('reject').disabled=true;$('decision-note').textContent=`This revision was ${state.decision==='approve'?'approved':state.decision==='reject'?'rejected':'marked for editing'} at ${saved.decision.timestamp}. Edit and re-verify to create a new revision.`;}
           navigate('review');
         }catch(e){$('history-status').textContent=e.message;}finally{open.disabled=false;}
@@ -1025,3 +1040,134 @@ async function loadReviewHistory() {
   }catch(e){$('history-status').textContent=e.message;}
 }
 $('refresh-history').addEventListener('click',loadReviewHistory);
+
+/* --------------------------------------------------------- weather chart */
+
+function renderWeatherChart(plan) {
+  const root = $('weather-chart');
+  if (!root || !plan || !plan.length) return;
+  const temps = plan.map(p => p.outdoor_temp_c ?? 0);
+  const rads = plan.map(p => p.irradiance_w_m2 ?? 0);
+  const tLo = Math.min(...temps) - 2, tHi = Math.max(...temps) + 2;
+  const rHi = Math.max(...rads, 1);
+  const W = 790, H = 170, PAD = 52, R = W - 12;
+  const x = i => PAD + i * (R - PAD) / Math.max(1, plan.length - 1);
+  const yT = v => 10 + (1 - (v - tLo) / (tHi - tLo)) * (H - 30);
+  const yR = v => 10 + (1 - v / rHi) * (H - 30);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H + 20}" role="img" aria-label="Weather conditions">`;
+  for (let i = 0; i < 3; i++) {
+    const v = tLo + (tHi - tLo) * i / 2;
+    svg += `<text x="0" y="${yT(v) + 4}" fill="#86868b" font-size="10">${v.toFixed(0)}°</text>`;
+    svg += `<path d="M${PAD} ${yT(v)}H${R}" stroke="#f0f0f4" stroke-dasharray="3 5"/>`;
+  }
+  // Radiation bars
+  plan.forEach((p, i) => {
+    const bw = (R - PAD) / plan.length * 0.6;
+    svg += `<rect x="${x(i) - bw / 2}" y="${yR(rads[i])}" width="${bw}" height="${H - 20 - yR(rads[i])}" fill="#f5dfa0" rx="2"><title>${String(p.hour).padStart(2,'0')}:00 · ${rads[i]} W/m²</title></rect>`;
+  });
+  // Temperature line
+  const tPts = temps.map((v, i) => `${x(i)},${yT(v)}`).join(' ');
+  svg += `<polyline points="${tPts}" fill="none" stroke="#e8593f" stroke-width="2.5"/>`;
+  temps.forEach((v, i) => {
+    svg += `<circle cx="${x(i)}" cy="${yT(v)}" r="3" fill="#e8593f" stroke="#fff" stroke-width="1.5"><title>${String(plan[i].hour).padStart(2,'0')}:00 · ${v.toFixed(1)}°C · ${rads[i]} W/m²</title></circle>`;
+  });
+  // Radiation axis on right
+  svg += `<text x="${R + 4}" y="${yR(rHi) + 4}" fill="#b08d2b" font-size="9">${Math.round(rHi)}</text>`;
+  svg += `<text x="${R + 4}" y="${H - 16}" fill="#b08d2b" font-size="9">0</text>`;
+  // Hour labels
+  plan.forEach((p, i) => { if (i % 4 === 0 || i === plan.length - 1) svg += `<text x="${x(i)}" y="${H + 12}" text-anchor="middle" fill="#86868b" font-size="10">${String(p.hour).padStart(2,'0')}:00</text>`; });
+  root.innerHTML = svg + '</svg>';
+}
+
+/* ----------------------------------------------------- battery SOC chart */
+
+function renderSocChart(plan, battConfig) {
+  const root = $('soc-chart');
+  if (!root || !plan || !plan.length) return;
+  const cap = battConfig?.capacity_kwh || 2000;
+  const initSoc = battConfig?.soc_init_kwh ?? cap * 0.5;
+  const eff = 0.95;
+  const soc = [initSoc];
+  for (const iv of plan) {
+    let prev = soc[soc.length - 1];
+    if (iv.battery === 'charge') prev += iv.battery_power_kw * eff;
+    else if (iv.battery === 'discharge') prev -= iv.battery_power_kw / eff;
+    soc.push(Math.max(0, Math.min(cap, prev)));
+  }
+  const W = 790, H = 170, PAD = 52, R = W - 12;
+  const x = i => PAD + i * (R - PAD) / Math.max(1, plan.length);
+  const lo = 0, hi = cap;
+  const y = v => 10 + (1 - (v - lo) / (hi - lo)) * (H - 30);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H + 20}" role="img" aria-label="Battery state of charge">`;
+  for (let i = 0; i <= 4; i++) {
+    const v = hi * i / 4;
+    svg += `<text x="0" y="${y(v) + 4}" fill="#86868b" font-size="10">${Math.round(v)}</text>`;
+    svg += `<path d="M${PAD} ${y(v)}H${R}" stroke="#f0f0f4" stroke-dasharray="3 5"/>`;
+  }
+  // Fill area
+  const pts = soc.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+  svg += `<polygon points="${x(0)},${y(0)} ${pts} ${x(soc.length - 1)},${y(0)}" fill="#e6f4ea"/>`;
+  svg += `<polyline points="${pts}" fill="none" stroke="#34a853" stroke-width="2.5"/>`;
+  soc.forEach((v, i) => {
+    const label = i < plan.length ? `${String(plan[i].hour).padStart(2,'0')}:00` : 'End';
+    const mode = i < plan.length ? plan[i].battery : '';
+    svg += `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="#34a853" stroke="#fff" stroke-width="1.5"><title>${label} · SOC: ${Math.round(v)} kWh (${Math.round(v / cap * 100)}%)${mode ? ' · ' + mode : ''}</title></circle>`;
+  });
+  plan.forEach((p, i) => { if (i % 4 === 0 || i === plan.length - 1) svg += `<text x="${x(i)}" y="${H + 12}" text-anchor="middle" fill="#86868b" font-size="10">${String(p.hour).padStart(2,'0')}:00</text>`; });
+  root.innerHTML = svg + '</svg>';
+}
+
+/* ---------------------------------------------------------- PDF export */
+
+$('export-pdf').addEventListener('click', () => {
+  if (!state.hasRun) return;
+  const cfg = state.runSettings;
+  const m = document.querySelector('#metrics')?.innerHTML || '';
+  const planRows = state.plan.map(p =>
+    `<tr><td>${String(p.hour).padStart(2,'0')}</td><td>€${p.power_price_eur_kwh.toFixed(3)}</td><td>${p.heat_source}</td><td>${(p.lighting_level*100).toFixed(0)}%</td><td>${p.battery}</td><td>${p.chp_mode.replace(/_/g,' ')}</td><td>${p.reasoning||''}</td></tr>`
+  ).join('');
+  const violations = document.querySelector('.violation-list')?.innerHTML || '<p>No violations.</p>';
+  const badge = $('verdict-badge');
+  const verdictStatus = badge ? badge.textContent : '';
+  const cost = $('stat-cost')?.textContent || '';
+  const growth = $('stat-growth')?.textContent || '';
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>KasFlex Report — ${cfg.date || ''}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;color:#1d1d1f;padding:32px;max-width:900px;margin:auto}
+h1{font-size:22px;margin-bottom:4px}h2{font-size:14px;margin:20px 0 8px;color:#007aff;border-bottom:1px solid #e5e5ea;padding-bottom:4px}
+.meta{color:#6e6e73;font-size:10px;margin-bottom:16px}.stats{display:flex;gap:24px;margin:12px 0}.stat{flex:1;background:#f5f5f7;padding:14px;border-radius:8px}.stat .label{font-size:9px;color:#6e6e73;text-transform:uppercase;letter-spacing:.5px}.stat .val{font-size:22px;font-weight:600;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:10px;margin:8px 0}th{background:#f7f7fa;padding:6px 8px;text-align:left;font-size:9px;color:#6e6e73;text-transform:uppercase}td{padding:6px 8px;border-bottom:1px solid #f0f0f3}
+.verdict{padding:12px;border-radius:8px;margin:8px 0}.verdict.ok{background:#e6f4ea;color:#248a3d}.verdict.no{background:#fff0ed;color:#933e23}
+.footer{margin-top:24px;padding-top:12px;border-top:1px solid #e5e5ea;font-size:9px;color:#86868b}
+@media print{body{padding:16px}}</style></head><body>
+<h1>KasFlex Energy Plan</h1>
+<p class="meta">${cfg.date || ''} · ${cfg.planner || 'rule-based'} · ${cfg.data_source === 'cache' ? 'Real data' : 'Demo'} · Generated ${new Date().toLocaleString()}</p>
+<div class="stats"><div class="stat"><div class="label">Net cost</div><div class="val">${cost}</div></div><div class="stat"><div class="label">Crop growth</div><div class="val">${growth}</div></div><div class="stat"><div class="label">Verdict</div><div class="val">${verdictStatus}</div></div></div>
+<h2>Safety check</h2>${violations}
+<h2>Hourly plan</h2><table><thead><tr><th>Hour</th><th>Price</th><th>Heat</th><th>Lights</th><th>Battery</th><th>CHP</th><th>Reasoning</th></tr></thead><tbody>${planRows}</tbody></table>
+<h2>Metrics</h2><table>${m}</table>
+<div class="footer">KasFlex · 4TU.NIRICT · Research simulation — not validated for operational use.</div>
+</body></html>`;
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => { w.print(); };
+});
+$('export-pdf').disabled = true;
+
+/* -------------------------------------------------- edit diff highlight */
+
+function highlightChanges(tr, current, original) {
+  const fields = ['heat_source', 'lighting_level', 'battery', 'battery_power_kw', 'chp_mode', 'co2_source'];
+  const cells = tr.querySelectorAll('td');
+  // Cells: 0=hour, 1=price, 2=heat need, 3=heat source, 4=lamps, 5=battery, 6=chp, 7=co2, 8=why
+  const cellMap = [3, 4, 5, 5, 6, 7];
+  fields.forEach((f, idx) => {
+    const ci = cellMap[idx];
+    if (ci < cells.length) {
+      const changed = current[f] !== original[f];
+      cells[ci].classList.toggle('cell-changed', changed);
+    }
+  });
+}

@@ -78,6 +78,14 @@ class Preference:
     def active(self) -> bool:
         return not self.retired_at
 
+    def to_dict(self) -> dict[str, Any]:
+        """Including ``active``, which ``dataclasses.asdict`` drops as a property.
+
+        Callers serialising this for an interface need the derived field; without
+        it a retired preference is indistinguishable from a live one.
+        """
+        return {**asdict(self), "active": self.active}
+
     def prompt_line(self) -> str:
         bits = [f"- [{self.strength}] {self.rule}"]
         if self.reason:
@@ -388,7 +396,7 @@ class GrowerMemory:
             turn_rows = db.execute("SELECT * FROM turns ORDER BY turn_id").fetchall()
             events = db.execute("SELECT * FROM preference_events ORDER BY event_id").fetchall()
         return {
-            "preferences": [asdict(p) for p in
+            "preferences": [p.to_dict() for p in
                             self.preferences(active_only=False, include_unconfirmed=True)],
             "preference_events": [dict(r) for r in events],
             "conflicts": [asdict(c) for c in self.conflicts(limit=1000)],

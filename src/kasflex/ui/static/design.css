@@ -76,3 +76,18 @@
 .violation-card .violation-values{font-size:.6875rem;color:#6e6e73;margin-top:4px}
 .verdict-accepted{font-size:.8125rem;line-height:1.65;color:#248a3d;padding:16px;background:#e6f4ea;border-radius:10px}
 .verdict-disabled{font-size:.8125rem;line-height:1.65;color:#6e6e73;padding:16px;background:#f5f5f7;border-radius:10px}
+/* Loading overlay */
+.loading-overlay{position:fixed;inset:0;z-index:100;background:rgba(245,245,247,.88);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.loading-spinner{width:40px;height:40px;border:3px solid #e5e5ea;border-top-color:#007aff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:.875rem;color:#6e6e73;font-weight:500;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* Weather chart */
+.weather-temp{background:#e8593f!important;border-radius:50%!important}
+.weather-rad{background:#f5b731!important;border-radius:2px!important}
+#weather-chart svg,#soc-chart svg{width:100%;display:block;min-height:160px;margin-top:12px}
+/* SOC chart */
+.soc-line{background:#34a853!important;border-radius:50%!important}
+/* Edit diff */
+td.cell-changed{background:#e6f4ea!important;position:relative}
+td.cell-changed::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:#34a853;border-radius:0 2px 2px 0}

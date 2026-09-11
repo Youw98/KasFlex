@@ -31,14 +31,26 @@ from dataclasses import dataclass, field
 from datetime import date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlsplit
 
+from kasflex import i18n
 from kasflex.api_connections import ApiConnections
 from kasflex.checker.rules import SafetyChecker
 from kasflex.config import ConfigError, ScenarioConfig
+from kasflex.conversation import (
+    PlanContext,
+    PlanExplainer,
+    detect_conflicts,
+    extract_preference,
+    propose_compromise,
+)
+from kasflex.fair import DatasetMetadata, build_bundle, conflict_table, to_csv
 from kasflex.forecast.cost import project_cost
 from kasflex.intent import IntentSchemaError, IntervalIntent, Plan
+from kasflex.llm_providers import PROVIDERS, LlmError, build_call_fn, check_provider, provider_status
+from kasflex.memory import STRENGTHS, GrowerMemory
 from kasflex.oversight import AuditLog
+from kasflex.profiles import ProfileStore
 from kasflex.resources import resolve_output, static_dir
 from kasflex.ui.reviews import ReviewConflict, ReviewStore
 
@@ -58,9 +70,19 @@ _FAVICON = (
 #: ``(path, label, kind, minimum, maximum, step, help)`` where ``path`` is a
 #: dotted path into the scenario config.
 ADJUSTABLE: tuple[dict[str, Any], ...] = (
+    {"path": "language", "label": "Language", "kind": "choice",
+     "choices": ["en", "nl"],
+     "help": "Sets the interface and the language the assistant explains in."},
     {"path": "data_source", "label": "Data mode", "kind": "choice",
      "choices": ["synthetic", "cache"],
      "help": "Demo uses generated inputs. Real data reads downloaded prices and weather."},
+    {"path": "llm_provider", "label": "AI service", "kind": "choice",
+     "choices": sorted(PROVIDERS),
+     "help": "Which model explains plans and answers questions. Ollama runs locally."},
+    {"path": "llm_model", "label": "AI model", "kind": "text",
+     "help": "The model name at that service, for example claude-opus-5 or llama3.1."},
+    {"path": "llm_base_url", "label": "AI server address", "kind": "text",
+     "help": "Only for a local or self-hosted model. Leave blank for the default."},
     {"path": "latitude", "label": "Latitude", "kind": "number",
      "min": -90, "max": 90, "step": 0.001},
     {"path": "longitude", "label": "Longitude", "kind": "number",
@@ -319,6 +341,8 @@ def _plan_payload(plan: Plan, conditions) -> list[dict[str, Any]]:
             "reasoning": iv.reasoning,
             "power_price_eur_kwh": conditions[i].power_price_eur_kwh,
             "heat_demand_kw": round(conditions[i].heat_demand_kw, 1),
+            "outdoor_temp_c": round(getattr(conditions[i], "outdoor_temp_c", 0), 1),
+            "irradiance_w_m2": round(getattr(conditions[i], "irradiance_w_m2", 0), 0),
         }
         for i, iv in enumerate(plan.intervals)
     ]
@@ -333,12 +357,278 @@ class UiServer:
     base: ScenarioConfig = field(init=False)
     connections: ApiConnections = field(init=False)
     reviews: ReviewStore = field(init=False)
+    memory: GrowerMemory = field(init=False)
+    profiles: ProfileStore = field(init=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.base = ScenarioConfig.from_yaml(self.config_path)
         self.connections = ApiConnections(resolve_output(".env"))
         self.reviews = ReviewStore(resolve_output("results/reviews.sqlite3"))
+        self.memory = GrowerMemory(resolve_output(self.base.memory_path))
+        self.profiles = ProfileStore(resolve_output("results/profiles"))
+
+    # -- the model that talks to the grower --------------------------------
+
+    def _model_settings(self, overrides: dict[str, Any]) -> tuple[str, str, str, str]:
+        """(provider, model, base_url, language) after applying UI overrides."""
+        config = _apply_overrides(self.base, overrides or {})
+        return (config.llm_provider, config.llm_model, config.llm_base_url,
+                i18n.normalise(config.language))
+
+    def _explainer(self, overrides: dict[str, Any]) -> tuple[PlanExplainer, str]:
+        """Build an explainer, or say plainly that no model is configured.
+
+        Raises:
+            ApiError: when the chosen provider has no key. The message is the one
+                shown to the grower, so it says what to do rather than what failed.
+        """
+        provider, model, base_url, language = self._model_settings(overrides)
+        if provider not in PROVIDERS:
+            raise ApiError(i18n.translate("chat.no_model", language))
+        spec = PROVIDERS[provider]
+        if spec.env_var and not os.environ.get(spec.env_var):
+            raise ApiError(i18n.translate("chat.no_model", language))
+        try:
+            call_fn = build_call_fn(provider, base_url=base_url or None)
+        except LlmError as exc:
+            raise ApiError(str(exc)) from exc
+        return PlanExplainer(call_fn, model, self.memory), language
+
+    def _plan_context(self, payload: dict[str, Any], language: str) -> PlanContext:
+        plan = payload.get("plan") or []
+        if not isinstance(plan, list) or not plan:
+            raise ApiError("Generate a plan before asking about it.", 409)
+        return PlanContext(
+            run_id=str(payload.get("run_id") or "unsaved"),
+            date=str(payload.get("date") or self.base.date),
+            plan=plan,
+            metrics=payload.get("metrics") or {},
+            language=language,
+            cost_forecast=payload.get("cost_forecast"),
+            verdict_note=str(payload.get("verdict_note") or ""),
+            data_source=str(payload.get("data_source") or self.base.data_source),
+        )
+
+    # -- conversation -------------------------------------------------------
+
+    def explain(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Answer one grower question about a plan."""
+        # Validate the request before checking configuration: a grower with no plan
+        # and no model should be told to make a plan, not sent to set up an AI.
+        language = self._model_settings(payload.get("overrides", {}))[3]
+        context = self._plan_context(payload, language)
+        explainer, _ = self._explainer(payload.get("overrides", {}))
+        hour = payload.get("hour")
+        try:
+            return explainer.ask(context, str(payload.get("question", "")),
+                                 hour=int(hour) if hour is not None else None)
+        except ValueError as exc:
+            raise ApiError(str(exc)) from exc
+        except LlmError as exc:
+            raise ApiError(str(exc), status=502) from exc
+
+    def conversation(self, run_id: str) -> dict[str, Any]:
+        return {"run_id": run_id, "turns": self.memory.turns(run_id)}
+
+    def suggested_questions(self, overrides: dict[str, Any]) -> dict[str, Any]:
+        language = self._model_settings(overrides)[3]
+        return {"questions": PlanExplainer(lambda *a: "", "").opening_questions(language)}
+
+    # -- preferences --------------------------------------------------------
+
+    def list_preferences(self) -> dict[str, Any]:
+        return {
+            "preferences": [p.to_dict() for p in
+                            self.memory.preferences(include_unconfirmed=True)],
+            "statistics": self.memory.statistics(),
+            "strengths": list(STRENGTHS),
+        }
+
+    def add_preference(self, payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            pref = self.memory.add_preference(
+                str(payload.get("rule", "")),
+                str(payload.get("reason", "")),
+                strength=str(payload.get("strength", "preference")),
+                scope=payload.get("scope") or {},
+                source=str(payload.get("source", "grower")),
+                origin_run_id=str(payload.get("run_id", "")),
+                origin_revision=int(payload.get("revision", 0) or 0),
+                confirmed=payload.get("confirmed", True) is not False,
+            )
+        except ValueError as exc:
+            raise ApiError(str(exc)) from exc
+        return pref.to_dict()
+
+    def change_preference(self, payload: dict[str, Any]) -> dict[str, Any]:
+        pref_id = str(payload.get("pref_id", ""))
+        action = str(payload.get("action", ""))
+        try:
+            if action == "retire":
+                pref = self.memory.retire_preference(pref_id, str(payload.get("reason", "")))
+            elif action == "confirm":
+                pref = self.memory.confirm_preference(pref_id)
+            else:
+                raise ApiError("Unknown action for a preference.")
+        except KeyError as exc:
+            raise ApiError("That preference no longer exists.", 404) from exc
+        return pref.to_dict()
+
+    def preference_from_objection(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Turn a grower's objection into a rule they can confirm."""
+        explainer, language = self._explainer(payload.get("overrides", {}))
+        context = None
+        if payload.get("plan"):
+            context = self._plan_context(payload, language)
+        hour = payload.get("hour")
+        try:
+            proposal = extract_preference(
+                explainer.call_fn, explainer.model, str(payload.get("objection", "")),
+                language=language, plan_context=context,
+                hour=int(hour) if hour is not None else None)
+        except ValueError as exc:
+            raise ApiError(str(exc)) from exc
+        except LlmError as exc:
+            raise ApiError(str(exc), status=502) from exc
+        run_id = str(payload.get("run_id") or "unsaved")
+        self.memory.add_turn(run_id, "grower", str(payload.get("objection", "")),
+                             hour=proposal.get("scope", {}).get("hours", [None])[0]
+                             if proposal.get("scope", {}).get("hours") else None,
+                             meta={"kind": "objection"})
+        stored = self.memory.add_preference(
+            proposal["rule"], proposal["reason"], strength=proposal["strength"],
+            scope=proposal["scope"], source="inferred", origin_run_id=run_id,
+            confirmed=False)
+        return {**proposal, "pref_id": stored.pref_id}
+
+    # -- conflict and compromise -------------------------------------------
+
+    def record_conflicts(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Store every field the grower changed, against what the planner chose."""
+        original, edited = payload.get("original") or [], payload.get("edited") or []
+        if not original or not edited:
+            raise ApiError("Nothing to compare.", 409)
+        run_id = str(payload.get("run_id") or "unsaved")
+        revision = int(payload.get("revision", 0) or 0)
+        reason = str(payload.get("reason", ""))
+        stored = []
+        for found in detect_conflicts(original, edited):
+            conflict = self.memory.record_conflict(
+                run_id=run_id, revision=revision, grower_reason=reason, **found)
+            stored.append(dataclasses.asdict(conflict))
+        return {"conflicts": stored, "count": len(stored)}
+
+    def list_conflicts(self, run_id: str = "") -> dict[str, Any]:
+        return {"conflicts": [dataclasses.asdict(c) for c in self.memory.conflicts(run_id)],
+                "statistics": self.memory.statistics()}
+
+    def resolve_conflict(self, payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            conflict = self.memory.resolve_conflict(
+                str(payload.get("conflict_id", "")),
+                str(payload.get("resolution", "")),
+                str(payload.get("resolved_value", "")),
+                str(payload.get("note", "")))
+        except KeyError as exc:
+            raise ApiError("That disagreement is no longer on record.", 404) from exc
+        except ValueError as exc:
+            raise ApiError(str(exc)) from exc
+        return dataclasses.asdict(conflict)
+
+    def find_compromise(self, payload: dict[str, Any]) -> dict[str, Any]:
+        explainer, language = self._explainer(payload.get("overrides", {}))
+        context = self._plan_context(payload, language)
+        try:
+            result = propose_compromise(
+                explainer.call_fn, explainer.model, context=context,
+                hour=int(payload.get("hour", 0)),
+                field_name=str(payload.get("field_name", "")),
+                ai_value=str(payload.get("ai_value", "")),
+                grower_value=str(payload.get("grower_value", "")),
+                grower_reason=str(payload.get("grower_reason", "")),
+                safety_blocked=bool(payload.get("safety_blocked")),
+                cost_delta_eur=float(payload.get("cost_delta_eur", 0) or 0))
+        except LlmError as exc:
+            raise ApiError(str(exc), status=502) from exc
+        return result
+
+    # -- saved setups -------------------------------------------------------
+
+    def list_profiles(self) -> dict[str, Any]:
+        return {"profiles": [dataclasses.asdict(p) for p in self.profiles.list()]}
+
+    def save_profile(self, payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            profile = self.profiles.create(
+                str(payload.get("name", "")), payload.get("settings") or {},
+                equipment=payload.get("equipment") or {},
+                language=str(payload.get("language", "en")),
+                notes=str(payload.get("notes", "")))
+        except ValueError as exc:
+            raise ApiError(str(exc)) from exc
+        return dataclasses.asdict(profile)
+
+    def delete_profile(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self.profiles.delete(str(payload.get("profile_id", "")))
+        return self.list_profiles()
+
+    def import_profile(self, payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            profile = self.profiles.import_text(str(payload.get("text", "")))
+        except ValueError as exc:
+            raise ApiError(str(exc)) from exc
+        return dataclasses.asdict(profile)
+
+    def export_profile(self, profile_id: str) -> str:
+        try:
+            return self.profiles.export_text(profile_id)
+        except KeyError as exc:
+            raise ApiError("That setup no longer exists.", 404) from exc
+
+    # -- models -------------------------------------------------------------
+
+    def model_status(self) -> dict[str, Any]:
+        provider, model, base_url, language = self._model_settings({})
+        return {"providers": provider_status(), "selected": {
+            "provider": provider, "model": model, "base_url": base_url},
+            "language": language}
+
+    def test_model(self, payload: dict[str, Any]) -> dict[str, Any]:
+        provider = str(payload.get("provider") or self.base.llm_provider)
+        model = str(payload.get("model") or self.base.llm_model)
+        if provider not in PROVIDERS:
+            raise ApiError("Choose one of the listed AI services.")
+        return check_provider(provider, model,
+                              base_url=str(payload.get("base_url") or "") or None)
+
+    # -- language -----------------------------------------------------------
+
+    def translations(self, language: str) -> dict[str, Any]:
+        code = i18n.normalise(language)
+        return {"language": code, "languages": i18n.language_options(),
+                "strings": i18n.catalog_for(code)}
+
+    # -- research export ----------------------------------------------------
+
+    def fair_bundle(self, anonymous: bool = True) -> dict[str, Any]:
+        from kasflex.data.cache import DataCache  # noqa: PLC0415
+
+        try:
+            provenance = {k: dataclasses.asdict(v) for k, v in DataCache().entries().items()}
+        except OSError:
+            provenance = {}
+        return build_bundle(
+            metadata=DatasetMetadata(language=i18n.normalise(self.base.language)),
+            memory_export=self.memory.export(),
+            runs=self.reviews.history(limit=100),
+            data_provenance=provenance,
+            software={"scenario": self.base.name, "planner": self.base.planner,
+                      "greenhouse_model": self.base.greenhouse,
+                      "llm_provider": self.base.llm_provider,
+                      "llm_model": self.base.llm_model},
+            anonymous=anonymous,
+        )
 
     # -- endpoints ---------------------------------------------------------
 
@@ -465,6 +755,10 @@ class UiServer:
             "data_source": config.data_source,
             "actuals_available": getattr(day, "actuals_available", False),
             "series_origin": getattr(day, "sources", {}),
+            "battery_config": {
+                "capacity_kwh": config.hub.battery.capacity_kwh,
+                "soc_init_kwh": config.hub.battery.soc_init_kwh,
+            },
         }
         snapshot = {"config": dataclasses.asdict(config),
                     "forecast": [dataclasses.asdict(c) for c in day.forecast],
@@ -637,6 +931,34 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(self.ui.reviews.get(self.path.removeprefix("/api/reviews/")))
             elif self.path.startswith("/api/settings"):
                 self._json(self.ui.get_settings())
+            elif self.path.startswith("/api/i18n"):
+                query = dict(parse_qsl(urlsplit(self.path).query))
+                self._json(self.ui.translations(query.get("lang", "")))
+            elif self.path == "/api/models":
+                self._json(self.ui.model_status())
+            elif self.path == "/api/preferences":
+                self._json(self.ui.list_preferences())
+            elif self.path.startswith("/api/conflicts"):
+                query = dict(parse_qsl(urlsplit(self.path).query))
+                self._json(self.ui.list_conflicts(query.get("run_id", "")))
+            elif self.path.startswith("/api/conversation/"):
+                self._json(self.ui.conversation(
+                    self.path.removeprefix("/api/conversation/").split("?")[0]))
+            elif self.path == "/api/profiles":
+                self._json(self.ui.list_profiles())
+            elif self.path.startswith("/api/profiles/export/"):
+                profile_id = self.path.removeprefix("/api/profiles/export/").split("?")[0]
+                body = self.ui.export_profile(profile_id).encode("utf-8")
+                self._send(200, body, "application/json; charset=utf-8")
+            elif self.path.startswith("/api/export/fair"):
+                query = dict(parse_qsl(urlsplit(self.path).query))
+                bundle = self.ui.fair_bundle(query.get("anonymous", "1") != "0")
+                if query.get("format") == "csv":
+                    body = to_csv(conflict_table({
+                        "conflicts": bundle.get("kasflex:conflicts", [])})).encode("utf-8")
+                    self._send(200, body, "text/csv; charset=utf-8")
+                else:
+                    self._json(bundle)
             elif self.path.startswith("/favicon.ico"):
                 # Answer rather than 404: a browser asks for this unprompted, and a
                 # console full of red on first load makes a working page look broken.
@@ -696,6 +1018,38 @@ class _Handler(BaseHTTPRequestHandler):
                     overrides,
                     body.get("planners") or ["rule-based", "learned", "naive"],
                 ))
+            elif self.path == "/api/explain":
+                self._json(self.ui.explain(body))
+            elif self.path == "/api/suggested-questions":
+                self._json(self.ui.suggested_questions(overrides))
+            elif self.path == "/api/preferences":
+                with self.ui._lock:
+                    self._json(self.ui.add_preference(body))
+            elif self.path == "/api/preferences/change":
+                with self.ui._lock:
+                    self._json(self.ui.change_preference(body))
+            elif self.path == "/api/preferences/from-objection":
+                with self.ui._lock:
+                    self._json(self.ui.preference_from_objection(body))
+            elif self.path == "/api/conflicts":
+                with self.ui._lock:
+                    self._json(self.ui.record_conflicts(body))
+            elif self.path == "/api/conflicts/resolve":
+                with self.ui._lock:
+                    self._json(self.ui.resolve_conflict(body))
+            elif self.path == "/api/compromise":
+                self._json(self.ui.find_compromise(body))
+            elif self.path == "/api/models/test":
+                self._json(self.ui.test_model(body))
+            elif self.path == "/api/profiles":
+                with self.ui._lock:
+                    self._json(self.ui.save_profile(body))
+            elif self.path == "/api/profiles/delete":
+                with self.ui._lock:
+                    self._json(self.ui.delete_profile(body))
+            elif self.path == "/api/profiles/import":
+                with self.ui._lock:
+                    self._json(self.ui.import_profile(body))
             else:
                 self._json({"error": f"no such endpoint: {self.path}"}, 404)
         except ReviewConflict as exc:
