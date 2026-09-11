@@ -208,6 +208,8 @@ table would measure nothing.
 | `kasflex.data.sources` | ENTSO-E and Open-Meteo fetchers; parsers pure and testable. |
 | `kasflex.data.pipeline` | The daily job: cache-first, offline-safe, idempotent. |
 | `kasflex.oversight` | Approval, edits, append-only audit log. |
+| `kasflex.llm_providers` | Pluggable model transports: Anthropic, OpenAI, Gemini, Ollama, any OpenAI-compatible endpoint. |
+| `kasflex.memory` | Grower preferences, human/AI conflicts and conversation, append-only. |
 | `kasflex.ui.server` | Local JSON API over the same functions the CLI uses. |
 | `kasflex.ui.static` | The single page: settings, plan, approval, comparison. |
 | `kasflex.resources` | Where files live when frozen into an executable. |
