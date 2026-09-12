@@ -165,6 +165,24 @@ main { padding: var(--pad); max-width: 860px; margin: 0 auto; }
 
 .saving { display: inline-block; margin-top: 14px; padding: 9px 18px; border-radius: 999px; background: var(--good-soft); color: var(--good); font-weight: 650; }
 
+/* Uncertainty sits directly under the figure it qualifies. Placing it in a
+ * separate panel lets a reader take the number and leave before meeting the
+ * range, which is the opposite of the point. */
+.uncertainty { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); text-align: left; }
+.uncertainty-headline { font-weight: 650; }
+.uncertainty-detail { color: var(--ink-soft); font-size: .95rem; margin-top: 4px; }
+.uncertainty[data-confidence="unknown"] .uncertainty-headline { color: var(--warn); }
+.uncertainty[data-confidence="low"] .uncertainty-headline { color: var(--warn); }
+#uncertainty-caveats { margin: 6px 0 0; padding-left: 20px; }
+#uncertainty-caveats li { margin-bottom: 4px; }
+
+/* Ask-first: the grower's own view, before the plan is revealed. */
+.confidence-scale { display: grid; gap: 8px; }
+.confidence-scale label { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: var(--radius); cursor: pointer; }
+.confidence-scale label:hover { background: var(--ground); }
+.confidence-scale input { width: 20px; height: 20px; accent-color: var(--brand); flex: none; }
+.confidence-scale label:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); }
+
 /* --------------------------------------------------------- status signals */
 
 .signals { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }

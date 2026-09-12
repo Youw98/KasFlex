@@ -28,6 +28,7 @@ const state = {
   run: null,
   originalPlan: null,
   decision: null,
+  elicitation: null,
   busy: false,
 };
 
@@ -412,9 +413,19 @@ async function runPlan() {
     state.run = result;
     state.originalPlan = (result.plan || []).map((row) => ({ ...row }));
     state.decision = null;
+    state.elicitation = null;
     LS.set("kasflex.grower.lastRun", result);
+
+    // The grower's own view is taken before the plan is on screen. Asking after
+    // it measures nothing: by then the answer is the plan's answer.
+    if (state.settings.ask_first !== false) {
+      $("today-loading").hidden = true;
+      await askBeforeReveal();
+    }
+
     renderPlan(result);
     $("today-result").hidden = false;
+    await revealToElicitation(result);
   } catch (error) {
     showError(error);
     $("today-empty").hidden = false;
@@ -422,6 +433,107 @@ async function runPlan() {
     $("today-loading").hidden = true;
     state.busy = false;
   }
+}
+
+/* --------------------------------------------------- asking first (RQ1) */
+
+const HEAT_OPTIONS = ["boiler", "chp", "mix"];
+
+/** The plan's dominant heat source, so the comparison is like for like. */
+function dominantHeatSource(plan) {
+  const counts = {};
+  for (const row of plan || []) counts[row.heat_source] = (counts[row.heat_source] || 0) + 1;
+  const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  if (!ranked.length) return "mix";
+  const [top, count] = ranked[0];
+  if (count < (plan.length || 1) * 0.6) return "mix";
+  return HEAT_OPTIONS.includes(top) ? top : "mix";
+}
+
+function askBeforeReveal() {
+  return new Promise((resolve) => {
+    const sheet = $("sheet");
+    let choice = "";
+    let confidence = 0;
+
+    const options = el("div", { className: "choice-list" });
+    for (const value of HEAT_OPTIONS) {
+      const input = el("input", { type: "radio", name: "elicit-heat", value });
+      input.addEventListener("change", () => { choice = value; submit.disabled = !(choice && confidence); });
+      options.append(el("label", { className: "choice-item" }, input,
+        el("span", {}, el("span", { className: "title", textContent: t(`elicit.option.${value}`) }))));
+    }
+
+    const scale = el("div", { className: "confidence-scale" });
+    for (let level = 1; level <= 5; level += 1) {
+      const input = el("input", { type: "radio", name: "elicit-confidence", value: String(level) });
+      input.addEventListener("change", () => { confidence = level; submit.disabled = !(choice && confidence); });
+      scale.append(el("label", {}, input,
+        el("span", { textContent: `${level} — ${t(`elicit.confidence.${level}`)}` })));
+    }
+
+    const finish = async (record) => {
+      sheet.close();
+      if (record && choice && confidence) {
+        try {
+          state.elicitation = await api("/api/elicit", {
+            run_id: state.run ? state.run.run_id : "unsaved",
+            question: "heat_source@day", grower_choice: choice,
+            confidence, condition: state.settings.condition || "",
+          });
+        } catch { state.elicitation = null; }  // never block the plan on measurement
+      }
+      resolve();
+    };
+
+    const submit = el("button", {
+      className: "primary", textContent: t("elicit.submit"), disabled: true,
+      onclick: () => finish(true),
+    });
+
+    sheet.replaceChildren(el("div", { style: "padding:24px;max-width:520px" },
+      el("h2", { textContent: t("elicit.title"), style: "margin-bottom:8px" }),
+      el("p", { className: "muted small", textContent: t("elicit.why"), style: "margin-bottom:18px" }),
+      el("div", { className: "field" },
+        el("label", { textContent: t("elicit.heat.question") }), options),
+      el("div", { className: "field" },
+        el("label", { textContent: t("elicit.confidence") }), scale),
+      el("div", { className: "button-row end" },
+        el("button", { className: "quiet", textContent: t("elicit.skip"), onclick: () => finish(false) }),
+        submit)));
+    sheet.showModal();
+  });
+}
+
+/** Record what the planner chose, at the moment the grower sees it. */
+async function revealToElicitation(result) {
+  if (!state.elicitation) return;
+  const theirs = dominantHeatSource(result.plan);
+  try {
+    state.elicitation = await api("/api/elicit/step", {
+      elicitation_id: state.elicitation.elicitation_id, action: "reveal",
+      ai_choice: theirs,
+      ai_confidence: (result.uncertainty && result.uncertainty.confidence) || "",
+    });
+  } catch { return; }
+
+  const recap = $("elicit-recap");
+  const mine = state.elicitation.grower_choice;
+  $("elicit-recap-text").textContent = mine === theirs
+    ? t("elicit.agreed")
+    : t("elicit.differed", { yours: t(`elicit.option.${mine}`), theirs: t(`elicit.option.${theirs}`) });
+  recap.hidden = false;
+}
+
+/** Close the loop when the grower commits, so reliance can be classified. */
+async function resolveElicitation(finalChoice) {
+  if (!state.elicitation || !state.elicitation.ai_choice) return;
+  try {
+    state.elicitation = await api("/api/elicit/step", {
+      elicitation_id: state.elicitation.elicitation_id,
+      action: "resolve", final_choice: finalChoice,
+    });
+  } catch { /* measurement must never block the decision itself */ }
 }
 
 function money(value) {
@@ -455,6 +567,7 @@ function renderPlan(result) {
   setSignal($("signal-safety"), safe ? "good" : "bad",
     t(safe ? "plan.safety.ok" : "plan.safety.bad"));
 
+  renderUncertainty(result.uncertainty);
   renderStory(result.plan || []);
   renderHours(result.plan || []);
 
@@ -462,6 +575,27 @@ function renderPlan(result) {
   $("concerns").disabled = false;
   $("decision-note").textContent = "";
   renderChatSuggestions();
+}
+
+/* The server decides whether a range is defensible. The interface's job is to
+ * honour that answer, including when the answer is "I can't tell you" -- an
+ * invented band looks exactly like a real one, which is why this never
+ * substitutes a friendlier message of its own. */
+function renderUncertainty(uncertainty) {
+  const root = $("uncertainty");
+  if (!uncertainty || !uncertainty.words) { root.hidden = true; return; }
+
+  root.hidden = false;
+  root.dataset.confidence = uncertainty.confidence || "unknown";
+  $("uncertainty-headline").textContent = uncertainty.words.headline;
+  $("uncertainty-detail").textContent = uncertainty.words.detail;
+  $("uncertainty-why").textContent = uncertainty.words.why;
+
+  const caveats = $("uncertainty-caveats");
+  caveats.replaceChildren();
+  for (const caveat of uncertainty.caveats || []) {
+    caveats.append(el("li", { textContent: caveat }));
+  }
 }
 
 /* Group consecutive hours that share a mode into readable chapters. Twenty-four
@@ -538,10 +672,16 @@ $("approve").addEventListener("click", async () => {
     $("decision-note").textContent = t("plan.approved");
     $("approve").disabled = true;
     $("concerns").disabled = true;
+    // Approving is going with the planner, whatever the grower said beforehand.
+    resolveElicitation(dominantHeatSource(state.run.plan));
   } catch (error) { showError(error); }
 });
 
-$("concerns").addEventListener("click", () => openObjectionSheet());
+$("concerns").addEventListener("click", () => {
+  // Raising a concern is keeping their own position on the decision we asked about.
+  if (state.elicitation) resolveElicitation(state.elicitation.grower_choice);
+  openObjectionSheet();
+});
 
 /* A concern is the most valuable thing a grower gives us, so the sheet asks for
  * prose rather than a rating, and offers to remember it afterwards. */

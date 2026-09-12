@@ -161,6 +161,42 @@ CATALOG: dict[str, dict[str, str]] = {
     "plan.real_notice": {"en": "Using real electricity prices and the weather forecast.",
                          "nl": "Met echte stroomprijzen en de weersverwachting."},
 
+    # -- how certain the plan is ---------------------------------------------
+    "uncertain.label": {"en": "How certain is this?", "nl": "Hoe zeker is dit?"},
+    "uncertain.high": {"en": "Fairly certain", "nl": "Redelijk zeker"},
+    "uncertain.medium": {"en": "Reasonably certain", "nl": "Tamelijk zeker"},
+    "uncertain.low": {"en": "Not very certain", "nl": "Niet erg zeker"},
+    "uncertain.unknown": {"en": "Can't say yet", "nl": "Nog niet te zeggen"},
+    "uncertain.why": {"en": "Why do you say that?", "nl": "Waarom zegt u dat?"},
+    "uncertain.caveats": {"en": "What this range does not cover",
+                          "nl": "Wat deze marge niet meeneemt"},
+
+    # -- asking first (before the plan is shown) ------------------------------
+    "elicit.title": {"en": "Before you see the plan", "nl": "Voordat u het plan ziet"},
+    "elicit.why": {
+        "en": "Your own view first. It helps us see where you and KasFlex agree, "
+              "and it is not scored or shared.",
+        "nl": "Eerst uw eigen beeld. Zo zien we waar u en KasFlex het eens zijn. "
+              "Het wordt niet beoordeeld of gedeeld."},
+    "elicit.heat.question": {"en": "How would you heat tomorrow?",
+                             "nl": "Hoe zou u morgen verwarmen?"},
+    "elicit.option.boiler": {"en": "Mostly the boiler", "nl": "Vooral de ketel"},
+    "elicit.option.chp": {"en": "Mostly the CHP", "nl": "Vooral de WKK"},
+    "elicit.option.mix": {"en": "A mix, depending on the hour",
+                          "nl": "Een mix, afhankelijk van het uur"},
+    "elicit.confidence": {"en": "How sure are you?", "nl": "Hoe zeker bent u?"},
+    "elicit.confidence.1": {"en": "Guessing", "nl": "Gok"},
+    "elicit.confidence.2": {"en": "Not very sure", "nl": "Niet erg zeker"},
+    "elicit.confidence.3": {"en": "Reasonably sure", "nl": "Redelijk zeker"},
+    "elicit.confidence.4": {"en": "Quite sure", "nl": "Vrij zeker"},
+    "elicit.confidence.5": {"en": "Certain", "nl": "Zeker"},
+    "elicit.submit": {"en": "Show me the plan", "nl": "Laat het plan zien"},
+    "elicit.skip": {"en": "Just show the plan", "nl": "Laat gewoon het plan zien"},
+    "elicit.agreed": {"en": "You and KasFlex agree on this.",
+                      "nl": "U en KasFlex zijn het hierover eens."},
+    "elicit.differed": {"en": "You said {yours}. KasFlex chose {theirs}.",
+                        "nl": "U zei {yours}. KasFlex koos {theirs}."},
+
     # -- equipment in plain words --------------------------------------------
     "asset.chp": {"en": "CHP", "nl": "WKK"},
     "asset.boiler": {"en": "boiler", "nl": "ketel"},
