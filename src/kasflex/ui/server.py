@@ -37,6 +37,8 @@ from kasflex import i18n
 from kasflex.api_connections import ApiConnections
 from kasflex.checker.rules import SafetyChecker
 from kasflex.config import ConfigError, ScenarioConfig
+from kasflex.consent import SCOPES as CONSENT_SCOPES
+from kasflex.consent import ConsentLog
 from kasflex.conversation import (
     PlanContext,
     PlanExplainer,
@@ -80,10 +82,25 @@ _FAVICON = (
 #: not every field in the configuration. Each entry is
 #: ``(path, label, kind, minimum, maximum, step, help)`` where ``path`` is a
 #: dotted path into the scenario config.
+#: Fields carrying ``"scope": "researcher"`` are hidden from the grower interface
+#: and editable only from the setup screen. A grower who can retune the checker or
+#: reassign their own experiment condition is not a participant in a controlled
+#: study, and a grower who is *shown* those controls is being handed a way to break
+#: their own session.
 ADJUSTABLE: tuple[dict[str, Any], ...] = (
     {"path": "language", "label": "Language", "kind": "choice",
      "choices": ["en", "nl"],
      "help": "Sets the interface and the language the assistant explains in."},
+    {"path": "participant_id", "label": "Participant", "kind": "text",
+     "scope": "researcher",
+     "help": "Pseudonymous identifier for this session. Never a name."},
+    {"path": "condition", "label": "Experiment condition", "kind": "text",
+     "scope": "researcher",
+     "help": "Which condition this session is assigned to. Reported per condition."},
+    {"path": "consent_version", "label": "Consent text version", "kind": "text",
+     "scope": "researcher",
+     "help": "Set this to run as a study: consent is then required before anything "
+             "is recorded, and re-asked whenever this string changes."},
     {"path": "data_source", "label": "Data mode", "kind": "choice",
      "choices": ["synthetic", "cache"],
      "help": "Demo uses generated inputs. Real data reads downloaded prices and weather."},
@@ -223,23 +240,16 @@ def _apply_overrides(config: ScenarioConfig, overrides: dict[str, Any]) -> Scena
     # error that says nothing about where it came from.
     overrides = {path: _coerce(spec[path], value) for path, value in overrides.items()}
 
+    # Enumerated from the dataclass rather than listed by hand. A hand-written list
+    # silently drops any field added later: the value loaded from YAML disappears
+    # and the dataclass default takes its place, which looks like the setting never
+    # worked rather than like a bug here.
     payload: dict[str, Any] = {
-        "name": config.name,
-        "date": config.date,
-        "seed": config.seed,
-        "winter": config.winter,
-        "planner": config.planner,
-        "greenhouse": config.greenhouse,
-        "data_source": config.data_source,
-        "brief": config.brief,
-        "llm_model": config.llm_model,
-        "history_days": config.history_days,
-        "latitude": config.latitude,
-        "longitude": config.longitude,
-        "entsoe_zone": config.entsoe_zone,
-        "gas_price_eur_kwh": config.gas_price_eur_kwh,
-        "trace_path": config.trace_path,
-        "audit_path": config.audit_path,
+        f.name: getattr(config, f.name)
+        for f in dataclasses.fields(ScenarioConfig)
+        if f.name not in ("hub", "checker")
+    }
+    payload |= {
         "checker": {
             "enabled": config.checker.enabled,
             "explain": config.checker.explain,
@@ -370,6 +380,7 @@ class UiServer:
     reviews: ReviewStore = field(init=False)
     memory: GrowerMemory = field(init=False)
     reliance: RelianceLog = field(init=False)
+    consent: ConsentLog = field(init=False)
     profiles: ProfileStore = field(init=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
@@ -379,6 +390,7 @@ class UiServer:
         self.reviews = ReviewStore(resolve_output("results/reviews.sqlite3"))
         self.memory = GrowerMemory(resolve_output(self.base.memory_path))
         self.reliance = RelianceLog(resolve_output(self.base.memory_path))
+        self.consent = ConsentLog(resolve_output("results/consent.sqlite3"))
         self.profiles = ProfileStore(resolve_output("results/profiles"))
 
     # -- uncertainty --------------------------------------------------------
@@ -484,9 +496,15 @@ class UiServer:
         context = self._plan_context(payload, language)
         explainer, _ = self._explainer(payload.get("overrides", {}))
         hour = payload.get("hour")
+        # Without consent for verbatim storage the grower still gets their answer;
+        # what stops is the transcript. Refusing to answer would punish someone for
+        # declining, which is how consent stops being freely given.
+        record = self._may_record(payload.get("overrides", {}), "quotes")
         try:
-            return explainer.ask(context, str(payload.get("question", "")),
-                                 hour=int(hour) if hour is not None else None)
+            return {**explainer.ask(context, str(payload.get("question", "")),
+                                    hour=int(hour) if hour is not None else None,
+                                    record=record),
+                    "recorded": record}
         except ValueError as exc:
             raise ApiError(str(exc)) from exc
         except LlmError as exc:
@@ -617,10 +635,67 @@ class UiServer:
             raise ApiError(str(exc), status=502) from exc
         return result
 
+    # -- consent -------------------------------------------------------------
+
+    def _may_record(self, overrides: dict[str, Any], scope: str) -> bool:
+        """Whether this scope may be written to for the current participant.
+
+        With no ``consent_version`` configured no study is running, so nothing is
+        gated -- the ordinary case of one person using the tool on their own
+        machine. Once a version is set, absence of consent means no.
+        """
+        config = _apply_overrides(self.base, overrides or {})
+        if not config.consent_version:
+            return True
+        return self.consent.allows(config.participant_id, scope)
+
+    def consent_status(self, overrides: dict[str, Any]) -> dict[str, Any]:
+        config = _apply_overrides(self.base, overrides or {})
+        current = self.consent.current(config.participant_id)
+        return {
+            "study_active": bool(config.consent_version),
+            "version": config.consent_version,
+            "participant_id": config.participant_id,
+            "condition": config.condition,
+            "needs_consent": bool(config.consent_version)
+                             and self.consent.needs_consent(config.participant_id,
+                                                            config.consent_version),
+            "current": current.to_dict() if current else None,
+            "scopes": dict(CONSENT_SCOPES),
+            "summary": self.consent.summary(),
+        }
+
+    def grant_consent(self, payload: dict[str, Any]) -> dict[str, Any]:
+        config = _apply_overrides(self.base, payload.get("overrides", {}))
+        participant = str(payload.get("participant_id") or config.participant_id)
+        version = str(payload.get("version") or config.consent_version)
+        try:
+            consent = self.consent.grant(participant, payload.get("scopes") or {},
+                                         version=version,
+                                         note=str(payload.get("note", "")))
+        except ValueError as exc:
+            raise ApiError(str(exc)) from exc
+        return consent.to_dict()
+
+    def withdraw_consent(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Withdraw, and erase the participant's data unless asked not to."""
+        config = _apply_overrides(self.base, payload.get("overrides", {}))
+        participant = str(payload.get("participant_id") or config.participant_id)
+        try:
+            consent = self.consent.withdraw(participant, str(payload.get("reason", "")))
+            deleted = ({} if payload.get("erase") is False
+                       else self.consent.erase(participant,
+                                               [resolve_output(self.base.memory_path)]))
+        except KeyError as exc:
+            raise ApiError("No consent record for that participant.", 404) from exc
+        return {**consent.to_dict(), "deleted": deleted}
+
     # -- reliance measurement -----------------------------------------------
 
     def elicit(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Record what the grower would do, before any suggestion is shown."""
+        if not self._may_record(payload.get("overrides", {}), "research"):
+            raise ApiError("This has not been consented to.", 403)
         try:
             item = self.reliance.elicit(
                 run_id=str(payload.get("run_id") or "unsaved"),
@@ -664,6 +739,8 @@ class UiServer:
 
     def record_outcome(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Record what a day actually cost, against what was predicted."""
+        if not self._may_record(payload.get("overrides", {}), "outcomes"):
+            raise ApiError("This has not been consented to.", 403)
         try:
             outcome = self.reliance.record_outcome(
                 run_id=str(payload.get("run_id") or "unsaved"),
@@ -742,6 +819,18 @@ class UiServer:
 
     def fair_bundle(self, anonymous: bool = True) -> dict[str, Any]:
         from kasflex.data.cache import DataCache  # noqa: PLC0415
+
+        # A study in progress exports only what people agreed to share. With no
+        # consent version configured there is no study and nothing to filter.
+        if self.base.consent_version:
+            withdrawn = [c.participant_id for c in self.consent.participants()
+                         if not c.allows("research")]
+            if withdrawn:
+                raise ApiError(
+                    "Export blocked: "
+                    f"{len(withdrawn)} participant(s) have not consented to research "
+                    "use or have withdrawn. Erase their data first, or export per "
+                    "participant.", 409)
 
         try:
             provenance = {k: dataclasses.asdict(v) for k, v in DataCache().entries().items()}
@@ -1080,6 +1169,11 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/conversation/"):
                 self._json(self.ui.conversation(
                     self.path.removeprefix("/api/conversation/").split("?")[0]))
+            elif self.path.startswith("/api/consent"):
+                query = dict(parse_qsl(urlsplit(self.path).query))
+                overrides = {k: v for k, v in query.items()
+                             if k in ("participant_id", "condition")}
+                self._json(self.ui.consent_status(overrides))
             elif self.path.startswith("/api/reliance"):
                 query = dict(parse_qsl(urlsplit(self.path).query))
                 self._json(self.ui.reliance_metrics(query.get("condition", "")))
@@ -1183,6 +1277,12 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(self.ui.find_compromise(body))
             elif self.path == "/api/models/test":
                 self._json(self.ui.test_model(body))
+            elif self.path == "/api/consent":
+                with self.ui._lock:
+                    self._json(self.ui.grant_consent(body))
+            elif self.path == "/api/consent/withdraw":
+                with self.ui._lock:
+                    self._json(self.ui.withdraw_consent(body))
             elif self.path == "/api/elicit":
                 with self.ui._lock:
                     self._json(self.ui.elicit(body))

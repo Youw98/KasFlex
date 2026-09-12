@@ -71,6 +71,18 @@ class ScenarioConfig:
     """Override for a self-hosted or proxied endpoint. Empty uses the vendor default."""
     memory_path: str = "results/grower_memory.sqlite3"
     """Preferences, conflicts and conversation. Shared across runs by design."""
+    consent_version: str = ""
+    """Identifier of the ethics-approved consent text in force.
+
+    Empty means no study is running and nothing is gated -- the ordinary case of
+    one person using the tool on their own machine. Set it and consent becomes
+    required before anything reaches the research stores, and is re-asked whenever
+    this string changes."""
+    participant_id: str = ""
+    """Pseudonymous identifier for the person at the keyboard, when a study is
+    running. Never a name."""
+    condition: str = ""
+    """Experiment condition this session is assigned to."""
     latitude: float = 51.99
     longitude: float = 4.25
     """Site location for the weather request. Defaults to Westland, the Dutch

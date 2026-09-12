@@ -43,6 +43,32 @@ def server(tmp_path, monkeypatch):
         thread.join(timeout=2)
 
 
+@pytest.fixture
+def study_server(tmp_path, monkeypatch):
+    """A server running as a study, so consent gates the research stores."""
+    import yaml
+
+    for variable in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
+                     "OPENAI_COMPATIBLE_API_KEY", "ENTSOE_API_KEY"):
+        monkeypatch.setenv(variable, "")
+    scenario = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
+    scenario["consent_version"] = "test-v1"
+    config_path = tmp_path / "study.yaml"
+    config_path.write_text(yaml.safe_dump(scenario), encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    instance = serve(config_path=str(config_path), port=0)
+    thread = threading.Thread(target=instance.serve_forever, daemon=True)
+    thread.start()
+    instance.root = f"http://127.0.0.1:{instance.server_address[1]}"  # type: ignore[attr-defined]
+    try:
+        yield instance
+    finally:
+        instance.shutdown()
+        instance.server_close()
+        thread.join(timeout=2)
+
+
 def get(server, path: str):
     with urllib.request.urlopen(server.root + path, timeout=10) as response:
         return json.loads(response.read().decode())
@@ -526,6 +552,118 @@ def test_reliance_data_reaches_the_fair_bundle(server):
     assert bundle["kasflex:relianceMetrics"]["scored"] == 1
     assert bundle["kasflex:codebook"]["elicitation.confidence"]["description"]
     assert bundle["kasflex:codebook"]["metrics.rair"]["note"].startswith("None when")
+
+
+# -- consent ----------------------------------------------------------------
+
+
+def test_settings_loaded_from_yaml_survive_an_unrelated_override(study_server):
+    """Overriding one field must not reset every other field to its default.
+
+    _apply_overrides rebuilds the config, and when it listed fields by hand any
+    field added later was silently dropped -- the YAML value vanished and the
+    dataclass default took its place.
+    """
+    status = get(study_server, "/api/consent?participant_id=grower-1")
+    assert status["version"] == "test-v1", "consent_version came from the YAML"
+    assert status["participant_id"] == "grower-1", "and the override still applied"
+
+
+def test_researcher_only_settings_are_marked_as_such(server):
+    fields = {f["path"]: f for f in get(server, "/api/settings")["fields"]}
+
+    for path in ("participant_id", "condition", "consent_version"):
+        assert fields[path].get("scope") == "researcher", path
+    assert fields["language"].get("scope") != "researcher", "growers pick their language"
+
+
+def test_no_study_configured_means_nothing_is_gated(server):
+    """The ordinary case: one person on their own machine, not a participant."""
+    status = get(server, "/api/consent")
+    assert status["study_active"] is False
+    assert status["needs_consent"] is False
+
+    # Recording still works, because there is no study to consent to.
+    item = post(server, "/api/elicit", {"run_id": "r1", "grower_choice": "boiler",
+                                        "confidence": 3})
+    assert item["grower_choice"] == "boiler"
+
+
+def test_a_study_requires_consent_before_recording(study_server):
+    status = get(study_server, "/api/consent?participant_id=grower-1")
+    assert status["study_active"] is True
+    assert status["needs_consent"] is True
+
+    body = post_expecting(study_server, "/api/elicit", {
+        "run_id": "r1", "grower_choice": "boiler", "confidence": 3,
+        "overrides": {"participant_id": "grower-1"}}, 403)
+    assert "consented" in body["error"]
+
+
+def test_granting_consent_unlocks_recording(study_server):
+    post(study_server, "/api/consent", {
+        "participant_id": "grower-1", "version": "test-v1",
+        "scopes": {"research": True, "quotes": True, "outcomes": True}})
+
+    assert get(study_server, "/api/consent?participant_id=grower-1")["needs_consent"] is False
+    item = post(study_server, "/api/elicit", {
+        "run_id": "r1", "grower_choice": "boiler", "confidence": 3,
+        "overrides": {"participant_id": "grower-1"}})
+    assert item["grower_choice"] == "boiler"
+
+
+def test_declining_outcomes_blocks_only_outcomes(study_server):
+    post(study_server, "/api/consent", {
+        "participant_id": "grower-1", "version": "test-v1",
+        "scopes": {"research": True, "quotes": True, "outcomes": False}})
+
+    post(study_server, "/api/elicit", {
+        "run_id": "r1", "grower_choice": "boiler", "confidence": 3,
+        "overrides": {"participant_id": "grower-1"}})
+    post_expecting(study_server, "/api/outcomes", {
+        "run_id": "r1", "predicted_cost_eur": 1, "actual_cost_eur": 2,
+        "overrides": {"participant_id": "grower-1"}}, 403)
+
+
+def test_withdrawal_erases_the_participants_data(study_server):
+    post(study_server, "/api/consent", {
+        "participant_id": "grower-1", "version": "test-v1",
+        "scopes": {"research": True, "quotes": True, "outcomes": True}})
+    post(study_server, "/api/outcomes", {
+        "run_id": "run-grower-1", "predicted_cost_eur": 1, "actual_cost_eur": 2,
+        "overrides": {"participant_id": "grower-1"}})
+    assert get(study_server, "/api/reliance")["outcomes"] == 1
+
+    result = post(study_server, "/api/consent/withdraw", {
+        "participant_id": "grower-1", "reason": "wish to be removed"})
+
+    assert result["active"] is False
+    assert result["deleted"]["outcomes"] == 1
+    assert get(study_server, "/api/reliance")["outcomes"] == 0
+
+
+def test_a_changed_consent_version_asks_again(study_server):
+    post(study_server, "/api/consent", {
+        "participant_id": "grower-1", "version": "older-text",
+        "scopes": {"research": True}})
+    status = get(study_server, "/api/consent?participant_id=grower-1")
+
+    assert status["needs_consent"] is True, "agreeing to an earlier text is not agreeing to this one"
+
+
+def test_withdrawing_an_unknown_participant_is_a_404(study_server):
+    post_expecting(study_server, "/api/consent/withdraw",
+                   {"participant_id": "nobody"}, 404)
+
+
+def test_export_is_blocked_while_someone_has_not_consented(study_server):
+    post(study_server, "/api/consent", {
+        "participant_id": "grower-1", "version": "test-v1", "scopes": {"research": False}})
+
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        get(study_server, "/api/export/fair")
+    assert exc.value.code == 409
+    assert "consented" in json.loads(exc.value.read().decode())["error"]
 
 
 def test_dot_env_is_never_served(server):
