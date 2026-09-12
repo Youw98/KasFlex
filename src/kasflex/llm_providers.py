@@ -242,9 +242,22 @@ def _ollama(model: str, system: str, prompt: str, *, api_key: str | None,
             timeout,
         )
     except LlmError as exc:
-        raise LlmError(
-            f"{exc} Is Ollama running? Start it, then `ollama pull {model}`."
-        ) from exc
+        # Only suggest starting Ollama when it genuinely did not answer. A server
+        # that replied with an error is running, and telling someone to start it
+        # sends them looking in the wrong place -- which is exactly what happened
+        # the first time this was pointed at a generate-only model.
+        detail = str(exc)
+        if "does not support chat" in detail:
+            hint = (f" The model {model!r} has no chat template, so it cannot hold a "
+                    f"conversation. Pull an instruct build, for example "
+                    f"`ollama pull qwen2.5:3b-instruct`.")
+        elif "could not reach" in detail:
+            hint = f" Is Ollama running? Start it, then `ollama pull {model}`."
+        elif "HTTP 404" in detail:
+            hint = f" Ollama does not have that model yet: `ollama pull {model}`."
+        else:
+            hint = ""
+        raise LlmError(f"{detail}{hint}") from exc
     return data.get("message", {}).get("content", "") or ""
 
 

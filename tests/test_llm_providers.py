@@ -183,6 +183,32 @@ def test_unreachable_local_model_suggests_starting_ollama(monkeypatch):
         lp.build_call_fn("ollama")("llama3.1", "s", "p")
 
 
+def test_a_running_ollama_is_not_told_to_start_itself(monkeypatch):
+    """A generate-only model answers with a 400. Ollama is plainly running."""
+    def refuse(request, timeout=None):
+        raise urllib.error.HTTPError(
+            request.full_url, 400, "Bad Request", {},
+            BytesIO(b'{"error":"\\"base-model\\" does not support chat"}'))
+
+    monkeypatch.setattr(lp.urllib.request, "urlopen", refuse)
+    with pytest.raises(lp.LlmError) as exc:
+        lp.build_call_fn("ollama")("base-model", "s", "p")
+
+    assert "Is Ollama running" not in str(exc.value)
+    assert "no chat template" in str(exc.value)
+    assert "instruct" in str(exc.value)
+
+
+def test_a_missing_ollama_model_says_to_pull_it(monkeypatch):
+    def missing(request, timeout=None):
+        raise urllib.error.HTTPError(request.full_url, 404, "Not Found", {},
+                                     BytesIO(b'{"error":"model not found"}'))
+
+    monkeypatch.setattr(lp.urllib.request, "urlopen", missing)
+    with pytest.raises(lp.LlmError, match="ollama pull nope"):
+        lp.build_call_fn("ollama")("nope", "s", "p")
+
+
 def test_empty_anthropic_reply_is_an_error_not_an_empty_plan(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
 
