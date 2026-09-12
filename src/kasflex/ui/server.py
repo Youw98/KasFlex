@@ -51,8 +51,19 @@ from kasflex.llm_providers import PROVIDERS, LlmError, build_call_fn, check_prov
 from kasflex.memory import STRENGTHS, GrowerMemory
 from kasflex.oversight import AuditLog
 from kasflex.profiles import ProfileStore
+from kasflex.reliance import RelianceLog
 from kasflex.resources import resolve_output, static_dir
 from kasflex.ui.reviews import ReviewConflict, ReviewStore
+from kasflex.uncertainty import (
+    ASSUMED_IRRADIANCE_RMSE_W_M2,
+    ASSUMED_TEMP_RMSE_C,
+    ForecastError,
+    day_novelty,
+    history_from_conditions,
+    measured_forecast_error,
+)
+from kasflex.uncertainty import describe as describe_uncertainty
+from kasflex.uncertainty import estimate as uncertainty_estimate
 
 STATIC_DIR = static_dir()
 
@@ -358,6 +369,7 @@ class UiServer:
     connections: ApiConnections = field(init=False)
     reviews: ReviewStore = field(init=False)
     memory: GrowerMemory = field(init=False)
+    reliance: RelianceLog = field(init=False)
     profiles: ProfileStore = field(init=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
@@ -366,7 +378,59 @@ class UiServer:
         self.connections = ApiConnections(resolve_output(".env"))
         self.reviews = ReviewStore(resolve_output("results/reviews.sqlite3"))
         self.memory = GrowerMemory(resolve_output(self.base.memory_path))
+        self.reliance = RelianceLog(resolve_output(self.base.memory_path))
         self.profiles = ProfileStore(resolve_output("results/profiles"))
+
+    # -- uncertainty --------------------------------------------------------
+
+    def _novelty_history(self, config: ScenarioConfig) -> list[dict[str, float]]:
+        """Past days to judge today against, from whichever source this run uses.
+
+        Returns an empty list rather than inventing a comparison set; the caller
+        then reports epistemic uncertainty as unknown, which is the honest answer.
+        """
+        try:
+            if config.data_source == "cache":
+                from kasflex.data.cache import DataCache  # noqa: PLC0415
+                from kasflex.data.pipeline import cached_days, ensure_day  # noqa: PLC0415
+
+                cache = DataCache()
+                days = cached_days(cache, config.latitude, config.longitude)[-90:]
+                series = []
+                for iso in days:
+                    data = ensure_day(date.fromisoformat(iso), cache=cache,
+                                      latitude=config.latitude, longitude=config.longitude,
+                                      gas_price_eur_kwh=config.gas_price_eur_kwh,
+                                      entsoe_zone=config.entsoe_zone,
+                                      allow_network=False, want_actuals=False)
+                    series.append(data.conditions()[0])
+                return history_from_conditions(series)
+
+            from kasflex.data.synthetic import synthetic_history  # noqa: PLC0415
+
+            weather = synthetic_history(config.history_days, seed=config.seed + 9_000,
+                                        floor_area_m2=config.hub.floor_area_m2,
+                                        winter=config.winter)
+            return history_from_conditions([day.forecast for day in weather.days])
+        except Exception:  # noqa: BLE001 - absence of history is not an error
+            return []
+
+    def _uncertainty(self, config: ScenarioConfig, plan, conditions,
+                     greenhouse) -> dict[str, Any]:
+        """Cost band and novelty for one plan, with its basis stated."""
+        from kasflex.data.cache import DataCache  # noqa: PLC0415
+
+        try:
+            error = measured_forecast_error(DataCache(), config.latitude, config.longitude)
+        except Exception:  # noqa: BLE001 - fall back to the labelled assumption
+            error = ForecastError(temp_rmse_c=ASSUMED_TEMP_RMSE_C,
+                                  irradiance_rmse_w_m2=ASSUMED_IRRADIANCE_RMSE_W_M2)
+        novelty = day_novelty(conditions, self._novelty_history(config))
+        estimate = uncertainty_estimate(plan, config.hub, conditions, greenhouse,
+                                        forecast_error=error, novelty=novelty,
+                                        seed=config.seed)
+        return {**estimate.to_dict(),
+                "words": describe_uncertainty(estimate, config.language)}
 
     # -- the model that talks to the grower --------------------------------
 
@@ -553,6 +617,71 @@ class UiServer:
             raise ApiError(str(exc), status=502) from exc
         return result
 
+    # -- reliance measurement -----------------------------------------------
+
+    def elicit(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Record what the grower would do, before any suggestion is shown."""
+        try:
+            item = self.reliance.elicit(
+                run_id=str(payload.get("run_id") or "unsaved"),
+                question=str(payload.get("question", "day_overall")),
+                grower_choice=str(payload.get("grower_choice", "")),
+                confidence=payload.get("confidence", 0),
+                hour=(int(payload["hour"]) if payload.get("hour") is not None else None),
+                condition=str(payload.get("condition", "")),
+                note=str(payload.get("note", "")))
+        except ValueError as exc:
+            raise ApiError(str(exc)) from exc
+        return item.to_dict()
+
+    def elicitation_step(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Advance one elicitation: ``reveal``, ``resolve`` or ``score``."""
+        elicitation_id = str(payload.get("elicitation_id", ""))
+        action = str(payload.get("action", ""))
+        try:
+            if action == "reveal":
+                item = self.reliance.reveal(elicitation_id,
+                                            str(payload.get("ai_choice", "")),
+                                            str(payload.get("ai_confidence", "")))
+            elif action == "resolve":
+                item = self.reliance.resolve(elicitation_id,
+                                             str(payload.get("final_choice", "")),
+                                             str(payload.get("note", "")))
+            elif action == "score":
+                item = self.reliance.score(elicitation_id,
+                                           str(payload.get("better_choice", "")),
+                                           str(payload.get("note", "")))
+            else:
+                raise ApiError("Unknown step for an elicitation.")
+        except KeyError as exc:
+            raise ApiError("That decision is no longer on record.", 404) from exc
+        except ValueError as exc:
+            raise ApiError(str(exc)) from exc
+        return item.to_dict()
+
+    def list_elicitations(self, run_id: str = "") -> dict[str, Any]:
+        return {"elicitations": [e.to_dict() for e in self.reliance.elicitations(run_id)]}
+
+    def record_outcome(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Record what a day actually cost, against what was predicted."""
+        try:
+            outcome = self.reliance.record_outcome(
+                run_id=str(payload.get("run_id") or "unsaved"),
+                predicted_cost_eur=float(payload.get("predicted_cost_eur", 0) or 0),
+                actual_cost_eur=float(payload.get("actual_cost_eur", 0) or 0),
+                ai_plan_cost_eur=(None if payload.get("ai_plan_cost_eur") is None
+                                  else float(payload["ai_plan_cost_eur"])),
+                final_plan_cost_eur=(None if payload.get("final_plan_cost_eur") is None
+                                     else float(payload["final_plan_cost_eur"])),
+                within_predicted_band=payload.get("within_predicted_band"),
+                note=str(payload.get("note", "")))
+        except (TypeError, ValueError) as exc:
+            raise ApiError("An outcome needs numeric costs.") from exc
+        return outcome.to_dict()
+
+    def reliance_metrics(self, condition: str = "") -> dict[str, Any]:
+        return self.reliance.metrics(condition)
+
     # -- saved setups -------------------------------------------------------
 
     def list_profiles(self) -> dict[str, Any]:
@@ -620,7 +749,7 @@ class UiServer:
             provenance = {}
         return build_bundle(
             metadata=DatasetMetadata(language=i18n.normalise(self.base.language)),
-            memory_export=self.memory.export(),
+            memory_export={**self.memory.export(), **self.reliance.export()},
             runs=self.reviews.history(limit=100),
             data_provenance=provenance,
             software={"scenario": self.base.name, "planner": self.base.planner,
@@ -748,6 +877,7 @@ class UiServer:
             "realised_hard": hard,
             "realised_projected": len(result.realised_violations) - hard,
             "metrics": result.metrics,
+            "uncertainty": self._uncertainty(config, result.plan, conditions, greenhouse),
             "cost_forecast": project_cost(result.plan, config.hub, day.forecast, greenhouse),
             "plan": _plan_payload(result.plan, conditions),
             "elapsed_s": round(time.time() - started, 2),
@@ -950,6 +1080,12 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/conversation/"):
                 self._json(self.ui.conversation(
                     self.path.removeprefix("/api/conversation/").split("?")[0]))
+            elif self.path.startswith("/api/reliance"):
+                query = dict(parse_qsl(urlsplit(self.path).query))
+                self._json(self.ui.reliance_metrics(query.get("condition", "")))
+            elif self.path.startswith("/api/elicitations"):
+                query = dict(parse_qsl(urlsplit(self.path).query))
+                self._json(self.ui.list_elicitations(query.get("run_id", "")))
             elif self.path == "/api/profiles":
                 self._json(self.ui.list_profiles())
             elif self.path.startswith("/api/profiles/export/"):
@@ -1047,6 +1183,15 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(self.ui.find_compromise(body))
             elif self.path == "/api/models/test":
                 self._json(self.ui.test_model(body))
+            elif self.path == "/api/elicit":
+                with self.ui._lock:
+                    self._json(self.ui.elicit(body))
+            elif self.path == "/api/elicit/step":
+                with self.ui._lock:
+                    self._json(self.ui.elicitation_step(body))
+            elif self.path == "/api/outcomes":
+                with self.ui._lock:
+                    self._json(self.ui.record_outcome(body))
             elif self.path == "/api/profiles":
                 with self.ui._lock:
                     self._json(self.ui.save_profile(body))

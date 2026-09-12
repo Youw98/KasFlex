@@ -361,6 +361,173 @@ def test_conversation_starts_empty(server):
     assert get(server, "/api/conversation/r1")["turns"] == []
 
 
+# -- uncertainty ------------------------------------------------------------
+
+
+def test_a_run_reports_its_own_uncertainty(server):
+    result = post(server, "/api/run", {"overrides": {"planner": "rule-based"}})
+    uncertainty = result["uncertainty"]
+
+    assert uncertainty["forecast_error"]["basis"] in {"measured", "assumed"}
+    assert uncertainty["novelty"]["band"] in {"typical", "unusual",
+                                             "unlike anything seen", "unknown"}
+    assert uncertainty["confidence"] in {"high", "medium", "low", "unknown"}
+    assert uncertainty["words"]["headline"]
+    assert any("unvalidated" in c for c in uncertainty["caveats"])
+
+
+def test_an_indefensible_band_is_not_dressed_up_as_one(server):
+    """With no cached weather the error is assumed; the words must admit it."""
+    result = post(server, "/api/run", {"overrides": {"planner": "rule-based"}})
+    uncertainty = result["uncertainty"]
+
+    if not uncertainty["is_defensible"]:
+        assert uncertainty["confidence"] == "unknown"
+        assert "can't tell you" in uncertainty["words"]["headline"]
+
+
+def test_uncertainty_words_follow_the_language(server):
+    result = post(server, "/api/run", {"overrides": {"planner": "rule-based",
+                                                     "language": "nl"}})
+    headline = result["uncertainty"]["words"]["headline"]
+    assert "Waarschijnlijk tussen" in headline or "niet zeggen" in headline
+
+
+# -- reliance ---------------------------------------------------------------
+
+
+def test_reliance_starts_empty_with_none_rates(server):
+    metrics = get(server, "/api/reliance")
+    assert metrics["elicitations"] == 0
+    assert metrics["appropriate_reliance_rate"] is None
+    assert metrics["rair"] is None
+
+
+def test_an_opinion_is_recorded_before_any_suggestion(server):
+    item = post(server, "/api/elicit", {
+        "run_id": "r1", "question": "heat_source@03", "grower_choice": "boiler",
+        "confidence": 4, "hour": 3, "condition": "uncertainty_shown"})
+
+    assert item["grower_choice"] == "boiler"
+    assert item["confidence"] == 4
+    assert item["ai_choice"] == ""
+    assert item["verdict"] == ""
+
+
+def test_confidence_outside_the_scale_is_refused(server):
+    body = post_expecting(server, "/api/elicit", {
+        "run_id": "r1", "grower_choice": "boiler", "confidence": 9}, 400)
+    assert "between 1 and 5" in body["error"]
+
+
+def test_an_empty_opinion_is_refused(server):
+    post_expecting(server, "/api/elicit",
+                   {"run_id": "r1", "grower_choice": "", "confidence": 3}, 400)
+
+
+def test_resolving_before_revealing_is_refused(server):
+    item = post(server, "/api/elicit", {
+        "run_id": "r1", "grower_choice": "boiler", "confidence": 3})
+    body = post_expecting(server, "/api/elicit/step", {
+        "elicitation_id": item["elicitation_id"], "action": "resolve",
+        "final_choice": "boiler"}, 400)
+    assert "nothing to have relied on" in body["error"]
+
+
+def test_a_full_decision_classifies_as_over_reliance(server):
+    item = post(server, "/api/elicit", {
+        "run_id": "r1", "grower_choice": "boiler", "confidence": 5, "hour": 3})
+    eid = item["elicitation_id"]
+
+    post(server, "/api/elicit/step", {"elicitation_id": eid, "action": "reveal",
+                                      "ai_choice": "chp", "ai_confidence": "medium"})
+    post(server, "/api/elicit/step", {"elicitation_id": eid, "action": "resolve",
+                                      "final_choice": "chp"})
+    scored = post(server, "/api/elicit/step", {"elicitation_id": eid, "action": "score",
+                                               "better_choice": "boiler"})
+
+    assert scored["verdict"] == "over_reliance"
+    assert scored["switched"] is True
+
+    metrics = get(server, "/api/reliance")
+    assert metrics["over_reliance"] == 1
+    assert metrics["appropriate_reliance_rate"] == 0
+
+
+def test_metrics_can_be_filtered_by_condition(server):
+    for condition, final in (("shown", "chp"), ("hidden", "boiler")):
+        item = post(server, "/api/elicit", {
+            "run_id": "r1", "grower_choice": "boiler", "confidence": 3,
+            "condition": condition})
+        eid = item["elicitation_id"]
+        post(server, "/api/elicit/step", {"elicitation_id": eid, "action": "reveal",
+                                          "ai_choice": "chp"})
+        post(server, "/api/elicit/step", {"elicitation_id": eid, "action": "resolve",
+                                          "final_choice": final})
+        post(server, "/api/elicit/step", {"elicitation_id": eid, "action": "score",
+                                          "better_choice": "chp"})
+
+    assert get(server, "/api/reliance?condition=shown")["appropriate_ai"] == 1
+    assert get(server, "/api/reliance?condition=hidden")["under_reliance"] == 1
+
+
+def test_an_unknown_step_is_refused(server):
+    item = post(server, "/api/elicit", {
+        "run_id": "r1", "grower_choice": "boiler", "confidence": 3})
+    post_expecting(server, "/api/elicit/step", {
+        "elicitation_id": item["elicitation_id"], "action": "teleport"}, 400)
+
+
+def test_stepping_an_unknown_decision_is_a_404(server):
+    post_expecting(server, "/api/elicit/step",
+                   {"elicitation_id": "nope", "action": "reveal", "ai_choice": "chp"}, 404)
+
+
+def test_elicitations_are_listed_per_run(server):
+    post(server, "/api/elicit", {"run_id": "a", "grower_choice": "boiler", "confidence": 3})
+    post(server, "/api/elicit", {"run_id": "b", "grower_choice": "chp", "confidence": 3})
+
+    assert len(get(server, "/api/elicitations?run_id=a")["elicitations"]) == 1
+    assert len(get(server, "/api/elicitations")["elicitations"]) == 2
+
+
+def test_an_outcome_records_calibration(server):
+    outcome = post(server, "/api/outcomes", {
+        "run_id": "r1", "predicted_cost_eur": 10000, "actual_cost_eur": 10450,
+        "ai_plan_cost_eur": 10200, "final_plan_cost_eur": 10450,
+        "within_predicted_band": True})
+
+    assert outcome["prediction_error_eur"] == 450
+    assert outcome["ai_plan_was_better"] is True
+    assert get(server, "/api/reliance")["band_coverage"] == 1.0
+
+
+def test_an_outcome_needs_numbers(server):
+    post_expecting(server, "/api/outcomes",
+                   {"run_id": "r1", "predicted_cost_eur": "lots"}, 400)
+
+
+def test_reliance_data_reaches_the_fair_bundle(server):
+    item = post(server, "/api/elicit", {
+        "run_id": "r1", "grower_choice": "boiler", "confidence": 2})
+    eid = item["elicitation_id"]
+    post(server, "/api/elicit/step", {"elicitation_id": eid, "action": "reveal",
+                                      "ai_choice": "chp"})
+    post(server, "/api/elicit/step", {"elicitation_id": eid, "action": "resolve",
+                                      "final_choice": "chp"})
+    post(server, "/api/elicit/step", {"elicitation_id": eid, "action": "score",
+                                      "better_choice": "chp"})
+    post(server, "/api/outcomes", {"run_id": "r1", "predicted_cost_eur": 1,
+                                   "actual_cost_eur": 2})
+
+    bundle = get(server, "/api/export/fair")
+    assert bundle["kasflex:elicitations"][0]["verdict"] == "appropriate_ai"
+    assert bundle["kasflex:outcomes"][0]["prediction_error_eur"] == 1
+    assert bundle["kasflex:relianceMetrics"]["scored"] == 1
+    assert bundle["kasflex:codebook"]["elicitation.confidence"]["description"]
+    assert bundle["kasflex:codebook"]["metrics.rair"]["note"].startswith("None when")
+
+
 def test_dot_env_is_never_served(server):
     for path in ("/.env", "/api/../.env"):
         with pytest.raises(urllib.error.HTTPError) as exc:

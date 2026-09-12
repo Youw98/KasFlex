@@ -123,6 +123,67 @@ CODEBOOK: dict[str, dict[str, str]] = {
         "note": "synthetic runs use generated prices and weather and must not be "
                 "reported as findings about real operation.",
     },
+    "elicitation.grower_choice": {
+        "type": "string",
+        "description": "What the grower said they would do for this decision.",
+        "note": "Captured BEFORE the planner's suggestion was shown. This ordering "
+                "is enforced by the schema and is what keeps the answer unanchored.",
+    },
+    "elicitation.confidence": {
+        "type": "integer",
+        "description": "Self-reported confidence, 1 (guessing) to 5 (certain).",
+        "note": "Stated at elicitation time, before seeing the suggestion.",
+    },
+    "elicitation.ai_choice": {
+        "type": "string",
+        "description": "The planner's choice, recorded at the moment it was revealed.",
+    },
+    "elicitation.final_choice": {
+        "type": "string",
+        "description": "What the grower settled on once both were on the table.",
+    },
+    "elicitation.better_choice": {
+        "type": "string",
+        "description": "Which choice the realised outcome favoured. Empty if unscored.",
+        "note": "An unscored decision has no verdict and is excluded from all rates.",
+    },
+    "elicitation.verdict": {
+        "type": "enum",
+        "description": "appropriate_ai | over_reliance | under_reliance | appropriate_self",
+        "note": "Empty when the decision is unscored, or when grower and planner "
+                "agreed and so no reliance decision arose.",
+    },
+    "outcome.within_predicted_band": {
+        "type": "boolean",
+        "description": "Whether realised cost fell inside the range shown to the grower.",
+        "note": "Calibration evidence: a well-calibrated 80% band should contain "
+                "roughly 80% of outcomes.",
+    },
+    "uncertainty.forecast_error.basis": {
+        "type": "enum",
+        "description": "measured | assumed",
+        "note": "assumed means the band rests on a configured placeholder rather "
+                "than this site's measured forecast error. Bands whose basis is "
+                "assumed, with no novelty history, are not shown to growers at all.",
+    },
+    "uncertainty.novelty.band": {
+        "type": "enum",
+        "description": "typical | unusual | unlike anything seen | unknown",
+        "note": "Epistemic. unknown means there was too little history to judge, "
+                "which is distinct from typical.",
+    },
+    "metrics.rair": {
+        "type": "number",
+        "description": "Relative AI reliance: of the occasions where following the "
+                       "planner would have helped, the share on which the grower did.",
+        "note": "None when no such occasion arose. Not zero.",
+    },
+    "metrics.rsr": {
+        "type": "number",
+        "description": "Relative self-reliance: of the occasions where holding firm "
+                       "would have helped, the share on which the grower did.",
+        "note": "None when no such occasion arose. Not zero.",
+    },
 }
 
 LIMITATIONS = [
@@ -134,6 +195,12 @@ LIMITATIONS = [
     "Preference wording is assistant-generated from a grower objection. The "
     "grower's verbatim reason is the authoritative record of intent.",
     "Compromise proposals come from a language model and are not optimality claims.",
+    "Cost bands describe weather-forecast uncertainty propagated through an "
+    "unvalidated greenhouse model. The model's own error is not included, so the "
+    "true interval is wider than the one reported.",
+    "Reliance verdicts depend on scoring a decision against a realised outcome. "
+    "Unscored decisions are excluded from every rate rather than counted as "
+    "failures, so rates computed early in a study rest on few observations.",
 ]
 
 
@@ -242,6 +309,9 @@ def build_bundle(
         "kasflex:preferenceEvents": memory_export.get("preference_events", []),
         "kasflex:conflicts": memory_export.get("conflicts", []),
         "kasflex:conversation": memory_export.get("conversation", []),
+        "kasflex:elicitations": memory_export.get("elicitations", []),
+        "kasflex:outcomes": memory_export.get("outcomes", []),
+        "kasflex:relianceMetrics": memory_export.get("metrics", {}),
         "kasflex:runs": runs,
         "prov:wasDerivedFrom": data_provenance or {},
         "kasflex:software": software or {},

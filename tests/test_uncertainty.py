@@ -293,6 +293,21 @@ def test_an_unusual_day_is_described_as_needing_care(hub, plan, conditions):
 # -- serialisation ----------------------------------------------------------
 
 
+def test_to_dict_survives_a_json_round_trip_unchanged(hub, plan, conditions):
+    """Stored reviews are compared against what the client was sent.
+
+    A tuple that becomes a list on the way back through JSON makes the two differ,
+    which surfaces far away from here as a review that will not verify.
+    """
+    import json
+
+    payload = unc.estimate(plan, hub, conditions, SurrogateGreenhouse(),
+                           forecast_error=MEASURED,
+                           novelty=unc.Novelty(score=2.0, known=True, sample_days=30,
+                                               drivers=("temperature",))).to_dict()
+    assert json.loads(json.dumps(payload)) == payload
+
+
 def test_to_dict_is_json_safe_and_keeps_the_basis(hub, plan, conditions):
     import json
 

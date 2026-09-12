@@ -94,7 +94,10 @@ class Novelty:
         return "unusual" if self.score < 3.0 else "unlike anything seen"
 
     def to_dict(self) -> dict[str, Any]:
-        return {**dataclasses.asdict(self), "band": self.band}
+        # drivers is a tuple; JSON has no tuples, so emit a list. Otherwise a
+        # payload stored and read back no longer equals the one sent.
+        return {**dataclasses.asdict(self), "drivers": list(self.drivers),
+                "band": self.band}
 
 
 @dataclass(frozen=True)
