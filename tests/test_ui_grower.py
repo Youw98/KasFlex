@@ -577,6 +577,14 @@ def test_researcher_only_settings_are_marked_as_such(server):
     assert fields["language"].get("scope") != "researcher", "growers pick their language"
 
 
+def test_the_consent_regime_cannot_be_switched_off_from_a_request(study_server):
+    """Otherwise a participant could disable the gating that governs their own data."""
+    body = post_expecting(study_server, "/api/elicit", {
+        "run_id": "r1", "grower_choice": "boiler", "confidence": 3,
+        "overrides": {"participant_id": "grower-1", "consent_version": ""}}, 403)
+    assert "scenario file" in body["error"]
+
+
 def test_no_study_configured_means_nothing_is_gated(server):
     """The ordinary case: one person on their own machine, not a participant."""
     status = get(server, "/api/consent")

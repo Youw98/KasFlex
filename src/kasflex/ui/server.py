@@ -98,9 +98,11 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
      "scope": "researcher",
      "help": "Which condition this session is assigned to. Reported per condition."},
     {"path": "consent_version", "label": "Consent text version", "kind": "text",
-     "scope": "researcher",
-     "help": "Set this to run as a study: consent is then required before anything "
-             "is recorded, and re-asked whenever this string changes."},
+     "scope": "researcher", "readonly": True,
+     "help": "Set this in the scenario file to run as a study: consent is then "
+             "required before anything is recorded, and re-asked whenever this "
+             "string changes. Deliberately not settable from a browser, so that "
+             "nobody can switch the consent regime off from the page."},
     {"path": "data_source", "label": "Data mode", "kind": "choice",
      "choices": ["synthetic", "cache"],
      "help": "Demo uses generated inputs. Real data reads downloaded prices and weather."},
@@ -233,6 +235,13 @@ def _apply_overrides(config: ScenarioConfig, overrides: dict[str, Any]) -> Scena
     unknown = set(overrides) - set(spec)
     if unknown:
         raise ApiError(f"not adjustable from the interface: {sorted(unknown)}")
+
+    # Some fields are shown but never accepted from a request. consent_version is
+    # the reason this exists: a participant who could set it from the browser could
+    # switch off the consent gating that governs their own data.
+    locked = sorted(p for p in overrides if spec[p].get("readonly"))
+    if locked:
+        raise ApiError(f"set only in the scenario file, not from a request: {locked}", 403)
 
     # Coerce and range-check against the metadata the interface already publishes.
     # Dataclasses do not validate types, so without this a value of "three" for a
@@ -1133,7 +1142,8 @@ class _Handler(BaseHTTPRequestHandler):
     #: from it. A grower who has been told "just open KasFlex" must not land in a
     #: screen built for someone comparing planners.
     _PAGES = {"": "grower.html", "/": "grower.html",
-              "/advanced": "index.html", "/research": "index.html"}
+              "/advanced": "index.html", "/research": "index.html",
+              "/setup": "setup.html"}
 
     def _static(self, path: str) -> None:
         name = self._PAGES.get(path.rstrip("/") or "/") or path.lstrip("/")
