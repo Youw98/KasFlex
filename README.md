@@ -130,6 +130,7 @@ and offline-safe. See [deploy/](deploy/README.md) for cron and systemd.
 | [Decisions](docs/DECISIONS.md) | Why things are the way they are |
 | [Usage](docs/USAGE.md) | Every command |
 | [Data](docs/DATA.md) | Datasets, DOIs, licences, provenance |
+| [Parameters](docs/PARAMETERS.md) | Every asset default, its source, and where we disagree with it |
 | [FAIR](docs/FAIR.md) | FAIR assessment, including the gaps |
 | [Packaging](packaging/README.md) | Building the double-clickable application |
 
