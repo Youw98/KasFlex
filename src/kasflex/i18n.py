@@ -50,6 +50,7 @@ CATALOG: dict[str, dict[str, str]] = {
     "common.loading": {"en": "One moment…", "nl": "Een moment…"},
     "common.error": {"en": "Something went wrong", "nl": "Er ging iets mis"},
     "common.retry": {"en": "Try again", "nl": "Opnieuw proberen"},
+    "common.undo": {"en": "Undo", "nl": "Ongedaan maken"},
     "common.yes": {"en": "Yes", "nl": "Ja"},
     "common.no": {"en": "No", "nl": "Nee"},
     "common.hour": {"en": "Hour", "nl": "Uur"},

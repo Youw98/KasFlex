@@ -69,11 +69,17 @@ from kasflex.uncertainty import estimate as uncertainty_estimate
 
 STATIC_DIR = static_dir()
 
-_FAVICON = (
-    b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">'
-    b'<rect width="16" height="16" rx="3" fill="#2c5f2d"/>'
-    b'<path d="M8 3.2 12.4 7v5.8H3.6V7z" fill="#97bc62"/></svg>'
-)
+def _favicon() -> bytes:
+    """The mark, served as the tab icon.
+
+    Read from the same file the pages use, so the icon cannot drift from the
+    logo. Falls back to a plain badge if the file is missing from a build.
+    """
+    try:
+        return (STATIC_DIR / "mark.svg").read_bytes()
+    except OSError:
+        return (b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">'
+                b'<rect width="16" height="16" rx="3" fill="#1d4220"/></svg>')
 
 #: The settings the interface exposes. Everything else stays in the scenario file.
 #:
@@ -1208,7 +1214,7 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/favicon.ico"):
                 # Answer rather than 404: a browser asks for this unprompted, and a
                 # console full of red on first load makes a working page look broken.
-                self._send(200, _FAVICON, "image/svg+xml")
+                self._send(200, _favicon(), "image/svg+xml")
             else:
                 self._static(self.path.split("?")[0])
         except ReviewConflict as exc:

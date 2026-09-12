@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="KasFlex">
+  <title>KasFlex</title>
+  <!-- Filled shapes, not strokes: thin strokes disappear first at favicon size,
+       and weight loss compounds contrast loss for older eyes. -->
+  <rect width="64" height="64" rx="15" fill="#1d4220"/>
+  <!-- The glasshouse: a gable that reads as a building at 16px. -->
+  <path d="M32 11 L55 29.5 V55 H9 V29.5 Z" fill="#ffffff"/>
+  <!-- Leaf and bolt in one shape. The notch on the right edge is the bolt; the
+       midrib keeps it legible as a leaf when the notch is too small to see. -->
+  <path d="M32 22.5c7.5 5 7.5 17.5 0 24.5-7.5-7-7.5-19.5 0-24.5Z" fill="#3d8b3f"/>
+  <path d="M32 24.5v20.5" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M36.4 31.2l-5.2 5.6h4.3l-4.6 5.4" fill="none" stroke="#ffffff"
+        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

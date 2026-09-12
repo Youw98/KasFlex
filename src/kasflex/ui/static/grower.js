@@ -409,19 +409,29 @@ async function runPlan() {
   $("today-result").hidden = true;
   $("today-loading").hidden = false;
   try {
-    const result = await api("/api/run", { overrides: overrides() });
+    // The request goes out first and runs while the grower answers, so the wait
+    // happens behind the question instead of in front of it. Asking afterwards
+    // would measure nothing anyway -- by then the answer is the plan's answer.
+    const pendingRun = api("/api/run", { overrides: overrides() });
+    pendingRun.catch(() => {});   // handled below; this only silences the race
+
+    let answer = null;
+    if (state.settings.ask_first !== false) {
+      $("today-loading").hidden = true;
+      answer = await askBeforeReveal();
+      $("today-loading").hidden = false;
+    }
+
+    const result = await pendingRun;
     state.run = result;
     state.originalPlan = (result.plan || []).map((row) => ({ ...row }));
     state.decision = null;
-    state.elicitation = null;
     LS.set("kasflex.grower.lastRun", result);
 
-    // The grower's own view is taken before the plan is on screen. Asking after
-    // it measures nothing: by then the answer is the plan's answer.
-    if (state.settings.ask_first !== false) {
-      $("today-loading").hidden = true;
-      await askBeforeReveal();
-    }
+    // Posted now rather than when it was typed, because only now is there a
+    // run to attach it to. The ordering that matters is still intact: the
+    // answer was given, and the reveal below happens strictly after it.
+    state.elicitation = answer ? await recordElicitation(answer, result.run_id) : null;
 
     renderPlan(result);
     $("today-result").hidden = false;
@@ -472,18 +482,9 @@ function askBeforeReveal() {
         el("span", { textContent: `${level} — ${t(`elicit.confidence.${level}`)}` })));
     }
 
-    const finish = async (record) => {
+    const finish = (record) => {
       sheet.close();
-      if (record && choice && confidence) {
-        try {
-          state.elicitation = await api("/api/elicit", {
-            run_id: state.run ? state.run.run_id : "unsaved",
-            question: "heat_source@day", grower_choice: choice,
-            confidence, condition: state.settings.condition || "",
-          });
-        } catch { state.elicitation = null; }  // never block the plan on measurement
-      }
-      resolve();
+      resolve(record && choice && confidence ? { choice, confidence } : null);
     };
 
     const submit = el("button", {
@@ -503,6 +504,19 @@ function askBeforeReveal() {
         submit)));
     sheet.showModal();
   });
+}
+
+/** Store the answer against the run it belongs to. Never blocks the plan. */
+async function recordElicitation(answer, runId) {
+  try {
+    return await api("/api/elicit", {
+      run_id: runId || "unsaved", question: "heat_source@day",
+      grower_choice: answer.choice, confidence: answer.confidence,
+      condition: state.settings.condition || "",
+    });
+  } catch {
+    return null;   // measurement failing must never cost the grower their plan
+  }
 }
 
 /** Record what the planner chose, at the moment the grower sees it. */
@@ -567,6 +581,11 @@ function renderPlan(result) {
   setSignal($("signal-safety"), safe ? "good" : "bad",
     t(safe ? "plan.safety.ok" : "plan.safety.bad"));
 
+  // Cleared here, refilled by revealToElicitation. Otherwise a recap from the
+  // previous run survives into a plan it does not describe.
+  $("elicit-recap").hidden = true;
+  $("elicit-recap-text").textContent = "";
+
   renderUncertainty(result.uncertainty);
   renderStory(result.plan || []);
   renderHours(result.plan || []);
@@ -628,12 +647,23 @@ function renderStory(plan) {
     if (first.battery === "charge") parts.push(t("action.charge"));
     else if (first.battery === "discharge") parts.push(t("action.discharge"));
 
+    // Scan anchors: a grower looking for "when does the CHP run" finds it by
+    // shape, then reads the line. The words still carry the meaning.
+    const marks = [];
+    if (first.heat_source === "chp") marks.push("⚙");
+    else if (first.heat_source === "boiler") marks.push("🔥");
+    else if (first.heat_source === "buffer") marks.push("♨");
+    if ((first.lighting_level || 0) > 0) marks.push("💡");
+    if (first.battery === "charge") marks.push("🔌");
+    else if (first.battery === "discharge") marks.push("🔋");
+
     const average = phase.rows.reduce((sum, r) => sum + (r.power_price_eur_kwh || 0), 0) / phase.rows.length;
     const priceWord = state.lang === "nl"
       ? `Gemiddelde ${t("term.price")}: € ${average.toFixed(3).replace(".", ",")}/kWh`
       : `Average ${t("term.price")}: €${average.toFixed(3)}/kWh`;
 
     root.append(el("div", { className: "chapter" },
+      el("div", { className: "marks", "aria-hidden": "true", textContent: marks.join("") }),
       el("div", { className: "when", textContent: when }),
       el("div", {},
         el("div", { className: "what", textContent: parts.join(" · ") || t("action.idle") }),
@@ -661,20 +691,91 @@ $("remake-plan").addEventListener("click", runPlan);
 
 /* ------------------------------------------------------------- decision */
 
-$("approve").addEventListener("click", async () => {
+/* ------------------------------------------------------------------ undo */
+
+/* A decision is shown as done immediately and sent after a delay, during which
+ * it can be taken back. The alternative -- a confirm dialog before every action
+ * -- makes the common case slower to protect against the rare one, and people
+ * learn to dismiss it without reading.
+ *
+ * The send also fires on page hide, so closing the tab commits rather than
+ * silently dropping the decision. */
+const UNDO_SECONDS = 10;
+let pending = null;
+
+function commitPending() {
+  if (!pending) return;
+  const job = pending;
+  pending = null;
+  clearInterval(job.ticker);
+  job.bar.remove();
+  job.send().catch(showError);
+}
+
+function cancelPending() {
+  if (!pending) return;
+  clearInterval(pending.ticker);
+  pending.bar.remove();
+  pending.revert();
+  pending = null;
+}
+
+function deferWithUndo({ label, send, revert }) {
+  commitPending();
+
+  const count = el("span", { className: "count" });
+  const bar = el("div", { className: "undo-bar", role: "status" },
+    el("span", { textContent: label }),
+    el("button", { type: "button", textContent: t("common.undo"), onclick: cancelPending }),
+    count);
+  document.body.append(bar);
+
+  let left = UNDO_SECONDS;
+  count.textContent = `${left}s`;
+  const ticker = setInterval(() => {
+    left -= 1;
+    count.textContent = `${left}s`;
+    if (left <= 0) commitPending();
+  }, 1000);
+
+  pending = { send, revert, bar, ticker };
+}
+
+window.addEventListener("pagehide", commitPending);
+
+/* --------------------------------------------------------------- decision */
+
+function lockDecision(noteKey) {
+  $("decision-note").textContent = t(noteKey);
+  $("approve").disabled = true;
+  $("concerns").disabled = true;
+}
+
+function unlockDecision() {
+  state.decision = null;
+  $("decision-note").textContent = "";
+  $("approve").disabled = false;
+  $("concerns").disabled = false;
+}
+
+$("approve").addEventListener("click", () => {
   if (!state.run) return;
-  try {
-    await api("/api/decision", {
-      run_id: state.run.run_id, revision: state.run.revision,
-      plan_hash: state.run.plan_hash, decision: "approve", comment: "",
-    });
-    state.decision = "approve";
-    $("decision-note").textContent = t("plan.approved");
-    $("approve").disabled = true;
-    $("concerns").disabled = true;
-    // Approving is going with the planner, whatever the grower said beforehand.
-    resolveElicitation(dominantHeatSource(state.run.plan));
-  } catch (error) { showError(error); }
+  const run = state.run;
+  state.decision = "approve";
+  lockDecision("plan.approved");
+
+  deferWithUndo({
+    label: t("plan.approved"),
+    revert: unlockDecision,
+    send: async () => {
+      await api("/api/decision", {
+        run_id: run.run_id, revision: run.revision,
+        plan_hash: run.plan_hash, decision: "approve", comment: "",
+      });
+      // Approving is going with the planner, whatever they said beforehand.
+      resolveElicitation(dominantHeatSource(run.plan));
+    },
+  });
 });
 
 $("concerns").addEventListener("click", () => {
