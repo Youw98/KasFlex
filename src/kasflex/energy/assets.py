@@ -62,8 +62,11 @@ class Battery:
     soc_min_frac: float = 0.10
     soc_max_frac: float = 0.90
     soc_init_frac: float = 0.50
-    charge_efficiency: float = 0.95
-    discharge_efficiency: float = 0.95
+    charge_efficiency: float = 0.92
+    discharge_efficiency: float = 0.92
+    """System level, not cell level: an 85% round trip includes the inverter and
+    auxiliaries, where a cell-level 97% would silently credit the plan with energy
+    the installation actually consumes."""
     c_rate_max: float = 0.5
 
     @property
@@ -94,8 +97,9 @@ class Chp:
     """
 
     electrical_capacity_kw: float = 1500.0
-    heat_to_power_ratio: float = 1.2
-    electrical_efficiency: float = 0.40
+    heat_to_power_ratio: float = 1.1
+    electrical_efficiency: float = 0.375
+    """Higher heating value, for an engine of this size. Larger units do better."""
     min_load_frac: float = 0.50
     min_run_hours: int = 2
     min_down_hours: int = 2
@@ -103,7 +107,9 @@ class Chp:
     """A greenhouse gas engine reaches full load within minutes, so over a
     one-hour planning interval it can traverse its whole range. The limit is kept
     explicit because larger units and steam turbines cannot."""
-    co2_kg_per_kwh_e: float = 0.45
+    co2_kg_per_kwh_e: float = 0.50
+    """Follows from the gas emission factor and ``electrical_efficiency`` above;
+    change that and this has to move with it."""
     initially_running: bool = False
     hours_in_current_state: int = 99
 
@@ -144,13 +150,18 @@ class Boiler:
 class HeatBuffer:
     """Stratified hot-water buffer: the cheapest flexibility a greenhouse owns."""
 
-    capacity_kwh: float = 8000.0
+    capacity_kwh: float = 43_600.0
+    """1,500 m3 of water over a 25 K working swing, which is the buffer a 5 ha site
+    would actually have."""
     max_charge_kw: float = 3000.0
+    """Limited by pipework and heat exchangers rather than tank volume, so these do
+    not scale with capacity."""
     max_discharge_kw: float = 3000.0
     level_min_frac: float = 0.05
     level_max_frac: float = 0.95
     level_init_frac: float = 0.50
     standing_loss_frac_per_hour: float = 0.005
+    """A placeholder. Derivable from the tank's U-value and geometry; not yet done."""
 
     @property
     def level_min_kwh(self) -> float:
@@ -192,9 +203,14 @@ class CropLimits:
     """Target is for *supplemental* light only, not total light including sunlight.
     A 185 umol/m2/s lamp field delivers 0.67 mol/m2 per lit hour, so a supplemental
     target much above 12 mol/m2 cannot be met inside a normal lighting window at
-    all, and would reject every plan for a reason no planner could act on."""
+    all, and would reject every plan for a reason no planner could act on.
+
+    A crop's *total* light optimum is far higher. This default therefore describes
+    a partially lit crop, and any result quoting it has to say so.
+    """
     temp_min_c: float = 15.0
-    temp_max_c: float = 34.0
+    temp_max_c: float = 32.0
+    """The point above which tomato pollen viability and fruit set start to suffer."""
     rh_max_pct: float = 85.0
     co2_min_ppm: float = 300.0
     co2_max_ppm: float = 1600.0
