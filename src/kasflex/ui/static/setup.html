@@ -7,29 +7,29 @@
 <style>
   main { max-width: 980px; }
   .setup-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
-  .setup-head h1 { font-size: 1.7rem; }
+  .setup-head h1 { font-size: 28px; }
   .group { margin-bottom: 10px; }
   .group > summary { cursor: pointer; font-weight: 650; padding: 14px 0; display: flex; align-items: center; gap: 10px; }
-  .group > summary .count { color: var(--ink-faint); font-weight: 500; font-size: .9rem; }
+  .group > summary .count { color: var(--ink-muted); font-weight: 500; font-size: 16px; }
   .setting { display: grid; grid-template-columns: 1fr 260px; gap: 16px; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
   @media (max-width: 640px) { .setting { grid-template-columns: 1fr; } }
   .setting .label { font-weight: 600; }
-  .setting .path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; color: var(--ink-faint); }
-  .setting .help { color: var(--ink-soft); font-size: .9rem; margin-top: 3px; }
-  .setting input, .setting select, .setting textarea { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--line); min-height: 44px; background: var(--paper); color: var(--ink); }
+  .setting .path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; color: var(--ink-muted); }
+  .setting .help { color: var(--ink-soft); font-size: 16px; margin-top: 3px; }
+  .setting input, .setting select, .setting textarea { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--line-strong); min-height: 44px; background: var(--paper); color: var(--ink); }
   .setting input[type="checkbox"] { width: 22px; height: 22px; min-height: 0; accent-color: var(--brand); }
-  .setting.changed { background: #fffdf2; }
+  .setting.changed { background: var(--warn-soft); }
   .setting.changed .label::after { content: " •"; color: var(--warn); }
-  .researcher-only { display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 999px; background: #eef2ff; color: #3b4fa8; font-size: .72rem; font-weight: 650; vertical-align: middle; }
+  .researcher-only { display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 999px; background: var(--info-soft); color: var(--info); font-size: 16px; font-weight: 650; vertical-align: middle; }
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-  .metric { padding: 14px; border: 1.5px solid var(--line); border-radius: var(--radius); }
-  .metric .n { font-size: 1.5rem; font-weight: 700; }
-  .metric .k { font-size: .8rem; color: var(--ink-soft); }
-  .metric .k small { display: block; color: var(--ink-faint); font-weight: 400; }
+  .metric { padding: 14px; border: 2px solid var(--line-strong); border-radius: var(--radius); }
+  .metric .n { font-size: 27px; font-weight: 700; }
+  .metric .k { font-size: 16px; color: var(--ink-soft); }
+  .metric .k small { display: block; color: var(--ink-muted); font-weight: 400; }
   .bar { position: sticky; bottom: 0; background: rgba(255,255,255,.96); backdrop-filter: blur(10px); border-top: 1px solid var(--line); padding: 14px var(--pad); display: flex; gap: 12px; align-items: center; justify-content: flex-end; }
-  .bar .status { margin-right: auto; color: var(--ink-soft); font-size: .92rem; }
-  table.people { width: 100%; border-collapse: collapse; font-size: .92rem; }
-  table.people th { text-align: left; padding: 9px 8px; border-bottom: 2px solid var(--line); font-size: .78rem; color: var(--ink-soft); text-transform: uppercase; }
+  .bar .status { margin-right: auto; color: var(--ink-soft); font-size: 16px; }
+  table.people { width: 100%; border-collapse: collapse; font-size: 16px; }
+  table.people th { text-align: left; padding: 9px 8px; border-bottom: 2px solid var(--line-strong); font-size: 16px; color: var(--ink-soft); text-transform: uppercase; }
   table.people td { padding: 9px 8px; border-bottom: 1px solid var(--line); }
 </style>
 </head>
@@ -37,19 +37,23 @@
 <a href="#main" class="skip">Skip to content</a>
 
 <header class="topbar">
-  <span class="brand">
-    <img src="/mark.svg" alt="" width="36" height="36">
-    KasFlex setup
-  </span>
-  <span class="spacer"></span>
-  <a href="/" class="small">Grower view</a>
-  <a href="/advanced" class="small" style="margin-left:14px">Research workspace</a>
-</header>
+  <div class="identity">
+    <img src="/mark.svg" alt="" width="40" height="40">
+    <span>
+      <b>KasFlex setup</b>
+      <small>Researcher configuration</small>
+    </span>
+  </div>
 
-<div id="sim-notice" class="notice" role="note">
-  <b>Simulation.</b>
-  <span>No equipment is connected. Not validated for operational use.</span>
-</div>
+  <div id="sim-notice" class="sim-badge" role="note">
+    <b>Simulation.</b>
+    <span>No equipment is connected. Not validated for operational use.</span>
+  </div>
+
+  <div class="context">
+    <a href="/">Grower view</a> &nbsp; <a href="/advanced">Research workspace</a>
+  </div>
+</header>
 
 <main id="main" tabindex="-1">
   <div id="error" class="error" role="alert" hidden></div>

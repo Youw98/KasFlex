@@ -1,19 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="KasFlex">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 64" role="img" aria-label="KasFlex">
   <title>KasFlex</title>
-  <!-- Greenhouse, flow and daylight in a few broad shapes. No leaf, no bolt:
-       both are ruled out by the brand guideline.
-       The silhouette is deliberately two lobed: a low landscape hill on the
-       left falling into a valley, rising into a glasshouse dome on the right.
-       That valley is what stops it reading as a generic mountain and sun, so it
-       is cut deep enough to survive at 24px. -->
   <defs>
-    <clipPath id="kf-frame"><rect width="64" height="64" rx="15"/></clipPath>
+    <clipPath id="kf-logo-light-frame"><rect width="64" height="64" rx="15"/></clipPath>
   </defs>
-  <g clip-path="url(#kf-frame)">
+  <g clip-path="url(#kf-logo-light-frame)">
     <rect width="64" height="64" fill="#FCFAF6"/>
-
-    <!-- Warm sun rising behind the glasshouse. Never a solar device. -->
-    <circle cx="46" cy="21" r="13" fill="#F6B943"/>
+<circle cx="46" cy="21" r="13" fill="#F6B943"/>
 
     <!-- The ribbon. One continuous flowing form, not two objects. The left hill
          carries real weight so the silhouette is two lobes rather than a dome
@@ -32,4 +24,8 @@
     <path d="M-3 67V54c8-6 16.5-7.5 25-4.5 8 2.8 11.5 7.5 18.5 5 8-2.8 17-3 26.5.5V67Z"
           fill="#BDD8C1"/>
   </g>
+  <text x="82" y="39" font-family="Manrope, 'Nunito Sans', -apple-system, 'Segoe UI', Arial, sans-serif"
+        font-size="31" font-weight="800" letter-spacing="-0.4" fill="#FCFAF6">KasFlex</text>
+  <text x="83" y="54" font-family="Manrope, 'Nunito Sans', -apple-system, 'Segoe UI', Arial, sans-serif"
+        font-size="9.5" font-weight="600" letter-spacing="1.7" fill="#BDD8C1">GROW TODAY FOR A BRIGHTER TOMORROW</text>
 </svg>
