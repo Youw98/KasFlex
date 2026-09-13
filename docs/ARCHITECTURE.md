@@ -217,6 +217,7 @@ table would measure nothing.
 | `kasflex.uncertainty` | Aleatoric cost bands and epistemic novelty, with an explicit basis. |
 | `kasflex.reliance` | Confidence-first elicitation, outcome scoring, appropriate-reliance metrics. |
 | `kasflex.consent` | Granular informed consent, and the erasure that withdrawal triggers. |
+| `kasflex.actions` | What a plan changes against normal settings, named for a grower. |
 | `kasflex.ui.server` | Local JSON API over the same functions the CLI uses. |
 | `kasflex.ui.static` | The single page: settings, plan, approval, comparison. |
 | `kasflex.resources` | Where files live when frozen into an executable. |

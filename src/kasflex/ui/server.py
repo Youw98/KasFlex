@@ -34,6 +34,8 @@ from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
 from kasflex import i18n
+from kasflex.actions import derive_actions
+from kasflex.actions import summarise as summarise_actions
 from kasflex.api_connections import ApiConnections
 from kasflex.checker.rules import SafetyChecker
 from kasflex.config import ConfigError, ScenarioConfig
@@ -345,6 +347,22 @@ def _day_for(config: ScenarioConfig):
     )
 
 
+def _normal_settings(config: ScenarioConfig, greenhouse, conditions):
+    """The same day under normal settings, and what it would cost.
+
+    "Normal settings" is the rule-based planner: the conventional control a grower
+    already has. Every action shown answers "instead of what?", and the
+    keep-normal-settings choice needs something real to fall back to, so this is
+    computed on every run rather than described in the abstract.
+    """
+    from kasflex.controllers.base import PlanningContext  # noqa: PLC0415
+    from kasflex.controllers.rule_based import RuleBasedPlanner  # noqa: PLC0415
+
+    plan = RuleBasedPlanner().plan(
+        PlanningContext(date=config.date, forecast=tuple(conditions), hub=config.hub))
+    return plan, project_cost(plan, config.hub, tuple(conditions), greenhouse)
+
+
 def _conditions_for(config: ScenarioConfig, greenhouse, base):
     """Attach the greenhouse's heat and CO2 demand to a weather series."""
     from kasflex.controllers.base import PlanningContext
@@ -407,6 +425,38 @@ class UiServer:
         self.reliance = RelianceLog(resolve_output(self.base.memory_path))
         self.consent = ConsentLog(resolve_output("results/consent.sqlite3"))
         self.profiles = ProfileStore(resolve_output("results/profiles"))
+
+    # -- what this plan changes, against normal settings --------------------
+
+    def _against_normal(self, config: ScenarioConfig, result, conditions,
+                        greenhouse) -> dict[str, Any]:
+        """Actions, the saving, and the fallback plan, for the Tomorrow screen.
+
+        Returns empty-but-present fields rather than omitting them on failure: the
+        interface can say "nothing needs to change" honestly, but it cannot render
+        a key that is sometimes missing.
+        """
+        try:
+            baseline, baseline_cost = _normal_settings(config, greenhouse, conditions)
+            normal_total = float((baseline_cost.get("totals") or {}).get("net_cost_eur", 0.0))
+            planned_total = float(result.metrics.get("net_cost_eur", 0.0))
+            saving = normal_total - planned_total
+            baseline_rows = _plan_payload(baseline, conditions)
+            actions = derive_actions(
+                _plan_payload(result.plan, conditions), baseline_rows,
+                language=config.language,
+                saving_eur=saving if saving > 0 else None)
+            return {
+                "actions": [a.to_dict() for a in actions],
+                "actions_summary": summarise_actions(actions, config.language),
+                "normal_settings": {
+                    "plan": baseline_rows,
+                    "net_cost_eur": normal_total,
+                    "saving_eur": saving,
+                },
+            }
+        except Exception:  # noqa: BLE001 - a plan is still usable without the comparison
+            return {"actions": [], "actions_summary": "", "normal_settings": None}
 
     # -- uncertainty --------------------------------------------------------
 
@@ -984,6 +1034,7 @@ class UiServer:
             "metrics": result.metrics,
             "uncertainty": self._uncertainty(config, result.plan, conditions, greenhouse),
             "cost_forecast": project_cost(result.plan, config.hub, day.forecast, greenhouse),
+            **self._against_normal(config, result, conditions, greenhouse),
             "plan": _plan_payload(result.plan, conditions),
             "elapsed_s": round(time.time() - started, 2),
             "overrides": overrides,

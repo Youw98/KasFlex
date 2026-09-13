@@ -6,9 +6,9 @@
 <link rel="stylesheet" href="/grower.css">
 </head>
 <body>
-<a href="#main" class="skip" data-i18n="nav.today">Skip to content</a>
+<a href="#main" class="skip">Skip to content</a>
 
-<!-- Onboarding. Shown until a setup exists; everything behind it is inert. -->
+<!-- First run only. Everything behind it is inert until a setup exists. -->
 <div id="onboarding" class="onboarding" hidden>
   <div class="onboarding-inner">
     <div id="progress" class="progress" hidden></div>
@@ -19,178 +19,179 @@
 </div>
 
 <header class="topbar">
-  <span class="brand">
-    <img src="/mark.svg" alt="" width="36" height="36">
-    KasFlex
-  </span>
-  <span class="spacer"></span>
-  <label class="visually-hidden" for="language" data-i18n="settings.language">Language</label>
+  <div class="identity">
+    <img src="/mark.svg" alt="" width="40" height="40">
+    <span>
+      <b>KasFlex</b>
+      <small data-i18n="app.subtitle">Greenhouse energy planning</small>
+    </span>
+  </div>
+
+  <!-- R31: permanently visible, never hidden. Blue rather than red -- clear
+       without being alarming, per the specification. -->
+  <div id="sim-notice" class="sim-badge" role="note">
+    <b>Simulation.</b>
+    <span>No physical equipment connected. Not validated for operational use.</span>
+  </div>
+
+  <div class="context">
+    <b id="site-name">Greenhouse</b>
+    <small><span id="plan-date"></span> · <span data-i18n="shell.plan_for">Plan for tomorrow</span></small>
+  </div>
+
+  <label class="visually-hidden" for="language">Language</label>
   <select id="language" aria-label="Language"></select>
-  <button id="open-settings" class="icon-button" data-view="settings">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.9 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9.4 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.88 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.88.34H9.4a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.88V9.4a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg>
-    <span data-i18n="nav.settings">Settings</span>
-  </button>
 </header>
 
-<div id="sim-notice" class="notice" role="note">
-  <b>Simulation.</b>
-  <span>No equipment is connected. Not validated for operational use.</span>
-</div>
+<nav class="mainnav" aria-label="Sections">
+  <button data-view="tomorrow" aria-current="page"><span data-i18n="nav.tomorrow">Tomorrow</span></button>
+  <button data-view="plan"><span data-i18n="nav.plan">Plan</span></button>
+  <button data-view="goals"><span data-i18n="nav.goals">Goals</span></button>
+  <button data-view="results"><span data-i18n="nav.results">Results</span></button>
+  <button data-view="more"><span data-i18n="nav.more">More</span></button>
+</nav>
 
 <main id="main" tabindex="-1">
   <div id="error" class="error" role="alert" hidden></div>
 
-  <!-- ------------------------------------------------------------ today -->
-  <section id="view-today" class="view">
-    <div id="today-empty" class="card">
-      <div class="empty">
-        <div class="mark" aria-hidden="true">🌱</div>
-        <h2 data-i18n="plan.empty.title">No plan yet</h2>
-        <p class="muted" data-i18n="plan.empty.body">Make a plan to see what tomorrow could cost.</p>
-      </div>
-      <button id="make-plan" class="primary big" data-i18n="plan.make">Make tomorrow's plan</button>
+  <!-- ------------------------------------------------------- 1. Tomorrow -->
+  <section id="view-tomorrow" class="view">
+    <div id="tiles" class="tiles"></div>
+
+    <div id="tomorrow-empty" class="card center">
+      <h2 data-i18n="today.title" style="margin-bottom:10px">KasFlex plan for tomorrow</h2>
+      <p class="muted" data-i18n="plan.empty.body" style="margin-bottom:22px"></p>
+      <button id="make-plan" class="primary" data-i18n="today.make">Make tomorrow's plan</button>
     </div>
 
-    <div id="today-loading" hidden>
+    <div id="tomorrow-loading" hidden>
       <div class="card loading">
         <div class="spinner" aria-hidden="true"></div>
         <span data-i18n="plan.making">Working out the best plan…</span>
       </div>
     </div>
 
-    <div id="today-result" hidden>
-      <p id="data-basis" class="small muted center" style="margin-bottom:14px"></p>
+    <div id="tomorrow-result" hidden>
+      <article class="card">
+        <h2 data-i18n="today.title">KasFlex plan for tomorrow</h2>
+        <p id="actions-summary" class="lede"></p>
+        <p id="saving-line" class="saving" hidden></p>
+        <div id="action-list" class="action-list"></div>
+      </article>
 
-      <div class="card headline-card">
-        <p class="headline-label" data-i18n="plan.headline.cost">Tomorrow's energy bill</p>
-        <p id="headline-cost" class="headline-figure">—</p>
-        <p id="headline-date" class="headline-sub"></p>
-        <p id="headline-saving" class="saving" hidden></p>
-        <div id="uncertainty" class="uncertainty" hidden>
-          <p id="uncertainty-headline" class="uncertainty-headline"></p>
-          <p id="uncertainty-detail" class="uncertainty-detail"></p>
-          <details class="more">
-            <summary data-i18n="uncertain.why">Why do you say that?</summary>
-            <p id="uncertainty-why" class="small muted"></p>
-            <p class="small muted" data-i18n="uncertain.caveats" style="margin-top:10px;font-weight:650"></p>
-            <ul id="uncertainty-caveats" class="small muted"></ul>
-          </details>
+      <article class="card">
+        <div class="decide">
+          <button id="approve" class="primary" data-i18n="btn.approve">Approve plan</button>
+          <button id="review" data-view="plan" data-i18n="btn.review">Review changes</button>
+          <button id="keep-normal" data-i18n="btn.normal">Keep normal settings</button>
         </div>
-      </div>
+        <p class="muted small center" data-i18n="btn.approve.note" style="margin-top:14px"></p>
+        <p id="decision-note" class="decision-note center" role="status"></p>
+      </article>
 
-      <div id="elicit-recap" class="card" hidden>
-        <p id="elicit-recap-text"></p>
-      </div>
+      <article class="card">
+        <h3 data-i18n="preview.title" style="margin-bottom:16px">24-hour preview</h3>
+        <div id="preview"></div>
+      </article>
 
-      <div class="signals" style="margin-bottom:16px">
-        <div id="signal-crop" class="signal">
-          <span class="icon" aria-hidden="true">🌿</span>
-          <span><span class="label" data-i18n="plan.headline.crop">Your crop</span><br>
-          <span class="value" id="signal-crop-value">—</span></span>
-        </div>
-        <div id="signal-safety" class="signal">
-          <span class="icon" aria-hidden="true">✓</span>
-          <span><span class="label" data-i18n-static>Safety check</span><br>
-          <span class="value" id="signal-safety-value">—</span></span>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2 data-i18n="plan.story.title" style="margin-bottom:16px">What happens tomorrow</h2>
-        <div id="story" class="story"></div>
-        <details class="more">
-          <summary data-i18n="plan.details.show">Show hour by hour</summary>
-          <div class="tablewrap">
-            <table class="hours">
-              <thead><tr>
-                <th data-i18n="common.hour">Hour</th>
-                <th data-i18n="term.price">Price</th>
-                <th data-i18n-static>Heat from</th>
-                <th data-i18n="asset.lights">Lights</th>
-                <th data-i18n="asset.battery">Battery</th>
-              </tr></thead>
-              <tbody id="hours-body"></tbody>
-            </table>
-          </div>
-        </details>
-      </div>
-
-      <div class="card">
-        <div class="button-row">
-          <button id="approve" class="primary" data-i18n="plan.approve">This looks good</button>
-          <button id="concerns" data-i18n="plan.concerns">I have concerns</button>
-        </div>
-        <p id="decision-note" class="small muted center" role="status" style="margin-top:14px"></p>
-      </div>
-
-      <div class="center">
-        <button id="remake-plan" class="quiet" data-i18n="plan.make">Make tomorrow's plan</button>
-      </div>
+      <p class="center"><button id="remake-plan" class="quiet" data-i18n="today.make"></button></p>
     </div>
   </section>
 
-  <!-- ------------------------------------------------------------- chat -->
-  <section id="view-chat" class="view" hidden>
-    <div class="card">
-      <h2 data-i18n="chat.title" style="margin-bottom:8px">Ask about this plan</h2>
-      <p class="muted small" data-i18n="chat.intro" style="margin-bottom:18px"></p>
-      <div id="suggestions" class="suggestions"></div>
-      <div id="chat-log" class="chat-log" aria-live="polite"></div>
-      <form id="chat-form" class="chat-form">
-        <label class="visually-hidden" for="chat-input" data-i18n="chat.placeholder">Your question</label>
-        <textarea id="chat-input" rows="2" data-i18n-placeholder="chat.placeholder"></textarea>
-        <button type="submit" class="primary" data-i18n="chat.send">Ask</button>
-      </form>
+  <!-- ----------------------------------------------------------- 2. Plan -->
+  <section id="view-plan" class="view" hidden>
+    <div id="plan-empty" class="card center">
+      <h2 data-i18n="plan.empty.title">No plan yet</h2>
+      <p class="muted" data-i18n="plan.empty.body"></p>
+      <p style="margin-top:20px"><button class="primary" data-view="tomorrow" data-i18n="today.make"></button></p>
+    </div>
+
+    <div id="plan-content" class="plan-layout" hidden>
+      <div>
+        <h2 data-i18n="plan.heading" style="margin-bottom:6px">Tomorrow's plan</h2>
+        <p class="muted small" data-i18n="plan.pick" style="margin-bottom:18px"></p>
+        <div id="plan-actions" class="action-list"></div>
+      </div>
+      <aside>
+        <div id="edit-panel" class="card">
+          <h2 data-i18n="edit.heading" style="margin-bottom:12px">Selected change</h2>
+          <p class="muted" data-i18n="edit.none">Select a change on the left.</p>
+        </div>
+      </aside>
     </div>
   </section>
 
-  <!-- ------------------------------------------------------ preferences -->
-  <section id="view-prefs" class="view" hidden>
-    <div class="card">
-      <h2 data-i18n="prefs.title" style="margin-bottom:8px">What you've told KasFlex</h2>
-      <p class="muted small" data-i18n="prefs.intro"></p>
-    </div>
-    <div id="prefs-list"></div>
-    <div class="card">
-      <button id="add-pref" class="big" data-i18n="prefs.add">Add something</button>
-    </div>
+  <!-- ---------------------------------------------------------- 3. Goals -->
+  <section id="view-goals" class="view" hidden>
+    <article class="card">
+      <h2 data-i18n="goals.heading" style="margin-bottom:8px">What should KasFlex prioritise?</h2>
+      <p class="muted" data-i18n="goals.intro" style="margin-bottom:20px"></p>
+      <div id="priority" class="choice-list"></div>
+    </article>
+
+    <article class="card">
+      <h2 data-i18n="goals.limits" style="margin-bottom:16px">My crop limits</h2>
+      <div id="crop-limits"></div>
+    </article>
+
+    <article class="card">
+      <h2 data-i18n="goals.energy" style="margin-bottom:16px">Energy preferences</h2>
+      <div id="energy-prefs"></div>
+    </article>
+
+    <article class="card">
+      <h2 data-i18n="goals.brief" style="margin-bottom:8px">My brief for tomorrow</h2>
+      <p class="muted small" data-i18n="goals.brief.hint" style="margin-bottom:12px"></p>
+      <div class="field"><textarea id="brief" rows="3"></textarea></div>
+      <div class="button-row">
+        <button id="save-goals" class="primary" data-i18n="goals.save">Save preferences</button>
+      </div>
+      <p id="goals-note" class="decision-note" role="status"></p>
+    </article>
+
+    <article class="card">
+      <h2 data-i18n="goals.remembered" style="margin-bottom:8px">What KasFlex remembers</h2>
+      <p class="muted small" data-i18n="prefs.intro" style="margin-bottom:16px"></p>
+      <div id="prefs-list"></div>
+      <div class="button-row"><button id="add-pref" data-i18n="prefs.add">Add something</button></div>
+    </article>
   </section>
 
-  <!-- ---------------------------------------------------------- settings -->
-  <section id="view-settings" class="view" hidden>
-    <div class="card">
+  <!-- -------------------------------------------------------- 4. Results -->
+  <section id="view-results" class="view" hidden>
+    <article class="card">
+      <h2 data-i18n="results.heading" style="margin-bottom:10px">Results</h2>
+      <div id="results-body"><p class="muted" data-i18n="results.none"></p></div>
+    </article>
+  </section>
+
+  <!-- ----------------------------------------------------------- 5. More -->
+  <section id="view-more" class="view" hidden>
+    <article class="card">
+      <h2 data-i18n="more.heading" style="margin-bottom:16px">More</h2>
+      <div id="more-list" class="more-list"></div>
+    </article>
+    <article class="card">
       <h2 data-i18n="settings.ai" style="margin-bottom:16px">AI model</h2>
       <div id="model-settings"></div>
-    </div>
-    <div class="card">
+    </article>
+    <article class="card">
       <h2 data-i18n="settings.data" style="margin-bottom:16px">Prices and weather</h2>
       <div id="data-settings"></div>
-    </div>
-    <div class="card">
+    </article>
+    <article class="card">
       <h2 data-i18n-static style="margin-bottom:16px">Your setup</h2>
       <div id="profile-settings"></div>
-    </div>
-    <div class="card center stack">
-      <a href="/advanced" class="small" data-i18n="nav.research">Research mode</a>
-      <button id="restart-onboarding" class="quiet" data-i18n="settings.reset">Start over</button>
-    </div>
+      <div class="button-row" style="margin-top:16px">
+        <button id="restart-onboarding" class="quiet" data-i18n="settings.reset">Start over</button>
+      </div>
+    </article>
   </section>
 </main>
 
-<nav class="tabs" aria-label="Sections">
-  <button data-view="today" aria-current="page">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8v9H3Z"/><path d="M9 20v-7h6v7"/></svg>
-    <span data-i18n="nav.today">Today</span>
-  </button>
-  <button data-view="chat">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
-    <span data-i18n="nav.chat">Ask why</span>
-  </button>
-  <button data-view="prefs">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-    <span data-i18n="nav.preferences">Preferences</span>
-  </button>
-</nav>
+<footer class="footer">
+  <span data-i18n="trust.normal_available">Your normal settings remain available at any time.</span>
+</footer>
 
 <dialog id="sheet"></dialog>
 <script src="/grower.js"></script>

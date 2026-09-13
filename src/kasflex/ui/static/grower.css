@@ -1,61 +1,63 @@
 /* KasFlex grower interface.
  *
- * Audited and rebuilt against the 65+ column, because that is who this is for:
- * Dutch horticulture has an ageing workforce, the task is transactional (a plan
- * that moves real money), and most users meet it for the first time. That
- * combination is the strictest realistic target.
+ * Built to the UI/UX specification: calm, light, spacious, agricultural rather
+ * than futuristic, and trustworthy rather than AI-looking. One major decision per
+ * screen; whitespace is part of the design.
  *
- * The numbers below are floors, not aspirations:
+ * The accessibility floors below are measured, not estimated, and they survived
+ * the restyle unchanged. They come from the 65+ column, which is the right target
+ * here: Dutch horticulture has an ageing workforce, the task moves real money, and
+ * most users meet the screen for the first time.
  *
- *   Body text        18px   (16px is the floor; 18-20px is the 65+ recommendation)
+ *   Body text        18px   (16px floor; 18-20px recommended for 65+)
  *   Smallest text    16px   nothing renders below this, anywhere
- *   Text contrast    4.5:1  measured, not eyeballed
- *   Control borders  3:1    WCAG 1.4.11, which decorative hairlines do not meet
- *   Primary target   56px   ~20mm at typical desktop density
+ *   Text contrast    4.5:1  every token measured against its background
+ *   Control borders  3:1    WCAG 1.4.11 -- decorative hairlines do not meet it
+ *   Primary target   56px
  *   Any target       48px
- *   Spacing          12px   between adjacent controls
- *
- * Two measured failures in the previous build drove most of this: --ink-faint at
- * #7b8a7f was 3.63:1 against white, and the 1px #dfe5e0 borders on every button
- * and input were 1.28:1. Both looked fine to me and neither was legible to the
- * audience. Contrast is arithmetic; it does not get a design opinion.
+ *   Spacing          12px+  between adjacent controls
  */
 
 :root {
-  /* Text, all measured against --paper. */
-  --ink: #16261a;            /* 15.8:1 */
-  --ink-soft: #3f5044;       /*  9.0:1 - secondary text, still full body contrast */
+  --ink: #16261a;            /* 15.8:1 on paper */
+  --ink-soft: #3f5044;       /*  9.0:1 */
   --ink-muted: #5f6f63;      /*  5.3:1 - the lightest text permitted anywhere */
 
   --paper: #ffffff;
-  --ground: #f2f5f1;
-  --sunk: #e7ece6;
+  --ground: #f4f7f3;
+  --sunk: #eaf0e8;
 
-  /* Decorative rules may be faint. Anything bounding a control may not. */
-  --line: #d4ddd6;
-  --line-strong: #7f8f83;    /*  3.4:1 - borders on buttons, inputs, cards */
+  --line: #d9e2da;           /* decorative rules only */
+  --line-strong: #7f8f83;    /*  3.4:1 - anything bounding a control */
 
   --brand: #1d4220;          /*  9.9:1 */
-  --brand-mid: #2c5f2d;      /*  7.6:1 */
-  --brand-soft: #e4efe4;
+  --brand-mid: #2c5f2d;
+  --brand-soft: #e6f0e5;
   --brand-line: #6f9a70;
 
-  --good: #166534;           /*  7.5:1 */
-  --good-soft: #dcf1e3;
+  /* Green: safe, crop good, approved, within limits, savings. */
+  --good: #166534;
+  --good-soft: #e0f2e6;
   --good-line: #4e9767;
-  --warn: #8a5200;           /*  6.4:1 */
-  --warn-soft: #fcefdc;
-  --warn-line: #b98a3d;
-  --bad: #99231c;            /*  8.2:1 */
-  --bad-soft: #fbe6e4;
+  /* Orange: energy cost, attention. Never alarm. */
+  --warn: #8a5200;
+  --warn-soft: #fdf1de;
+  --warn-line: #c08f41;
+  /* Red: used sparingly, only for genuinely unsafe states. */
+  --bad: #99231c;
+  --bad-soft: #fbe7e5;
   --bad-line: #c1665f;
+  /* Blue: informational, simulation notice. */
+  --info: #1d4d7a;
+  --info-soft: #e5eef6;
+  --info-line: #6f9cc4;
 
   --focus: #0b3ea8;
 
   --radius: 12px;
   --radius-lg: 18px;
-  --shadow: 0 1px 2px rgba(22,38,26,.08), 0 4px 14px rgba(22,38,26,.07);
-  --pad: clamp(16px, 4vw, 36px);
+  --shadow: 0 1px 2px rgba(22,38,26,.05), 0 3px 12px rgba(22,38,26,.05);
+  --pad: clamp(20px, 4vw, 40px);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   --target: 48px;
@@ -75,237 +77,266 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Nothing below 16px. These are the sizes the rest of the sheet may use. */
-.t-small { font-size: 16px; }
-.t-body  { font-size: 18px; }
-.t-lead  { font-size: 20px; }
-
+h1 { font-size: clamp(2rem, 4.5vw, 2.4rem); }
+h2 { font-size: clamp(1.4rem, 3vw, 1.7rem); }
+h3 { font-size: 1.25rem; }
 h1, h2, h3 { line-height: 1.25; margin: 0; font-weight: 700; letter-spacing: -.01em; }
-h1 { font-size: clamp(1.75rem, 4.5vw, 2.4rem); }
-h2 { font-size: clamp(1.3rem, 3vw, 1.55rem); }
-h3 { font-size: 1.15rem; }
 p { margin: 0; }
 
+/* Inline links get the same 44px floor as buttons. A link is a target, and a
+ * 24px one is as hard to hit as a 24px button. */
 a { color: var(--brand-mid); text-underline-offset: 3px; }
-/* Seniors lose track of where they have been without this. */
 a:visited { color: #5b3a86; }
+main a:not(.more-list a) {
+  display: inline-flex; align-items: center;
+  min-height: 44px; padding: 4px 2px;
+}
 
 .skip {
   position: absolute; left: -9999px; top: 0; z-index: 999;
-  background: var(--brand); color: #fff; padding: 14px 22px; border-radius: 0 0 10px 0;
-  font-size: 18px; font-weight: 600;
+  background: var(--brand); color: #fff; padding: 14px 22px;
+  border-radius: 0 0 10px 0; font-size: 18px; font-weight: 600;
 }
 .skip:focus { left: 0; }
 
-/* Never deleted, only restyled. Thick enough to find without hunting. */
-:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
-  border-radius: 4px;
-}
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
 
 /* --------------------------------------------------------------- buttons */
 
-/* Every button carries a fill and a border. Ghost buttons and text-styled-as-
- * link cost about 22% more time and 25% more fixations in eye-tracking, and the
- * cost compounds over a session. */
+/* Every button carries a fill and a border. Weak signifiers measurably cost
+ * time and fixations, and the cost compounds across a session. */
 button {
-  font: inherit;
-  font-size: 18px;
-  font-weight: 600;
+  font: inherit; font-size: 18px; font-weight: 600;
   border-radius: var(--radius);
   border: 2px solid var(--line-strong);
-  background: var(--paper);
-  color: var(--ink);
-  padding: 12px 24px;
-  min-height: var(--target);
+  background: var(--paper); color: var(--ink);
+  padding: 12px 24px; min-height: var(--target);
   cursor: pointer;
   transition: background .12s, border-color .12s, box-shadow .12s;
 }
 button:hover:not(:disabled) { background: var(--sunk); border-color: var(--ink-muted); }
-/* Visible, not merely felt: a 1px nudge is invisible to anyone who mis-clicks. */
 button:active:not(:disabled) { background: var(--sunk); box-shadow: inset 0 2px 5px rgba(22,38,26,.18); }
 button:disabled { opacity: .5; cursor: not-allowed; }
 
 button.primary {
-  background: var(--brand);
-  color: #fff;
-  border-color: var(--brand);
-  font-size: 19px;
-  padding: 15px 32px;
-  min-height: var(--target-primary);
+  background: var(--brand); color: #fff; border-color: var(--brand);
+  font-size: 19px; padding: 15px 32px; min-height: var(--target-primary);
 }
 button.primary:hover:not(:disabled) { background: #163419; border-color: #163419; }
-
-button.big { width: 100%; }
-button.danger { color: var(--bad); border-color: var(--bad-line); background: var(--paper); }
-button.danger:hover:not(:disabled) { background: var(--bad-soft); }
-
-/* A quiet button is still a button: it keeps its border and its 48px. */
-button.quiet { background: var(--paper); border-color: var(--line-strong); color: var(--brand-mid); }
+button.quiet { color: var(--brand-mid); }
 button.quiet:hover:not(:disabled) { background: var(--brand-soft); }
+button.danger { color: var(--bad); border-color: var(--bad-line); }
+button.danger:hover:not(:disabled) { background: var(--bad-soft); }
 
 .button-row { display: flex; flex-wrap: wrap; gap: 12px; }
 .button-row.end { justify-content: flex-end; }
-.button-row.between { justify-content: space-between; align-items: center; }
 
 /* ----------------------------------------------------------------- shell */
 
 .topbar {
-  position: sticky; top: 0; z-index: 20;
-  display: flex; align-items: center; gap: 16px;
-  padding: 12px var(--pad);
-  background: var(--paper);
-  border-bottom: 2px solid var(--line);
+  display: flex; align-items: center; gap: clamp(16px, 3vw, 32px); flex-wrap: wrap;
+  padding: 14px var(--pad);
+  background: var(--paper); border-bottom: 2px solid var(--line);
 }
-.brand { display: flex; align-items: center; gap: 12px; font-weight: 700; color: var(--brand); font-size: 20px; }
-.brand img, .brand svg { width: 36px; height: 36px; display: block; }
-.topbar .spacer { flex: 1; }
+.identity { display: flex; align-items: center; gap: 12px; }
+.identity img { display: block; }
+.identity b { display: block; font-size: 21px; color: var(--brand); line-height: 1.2; }
+.identity small { display: block; font-size: 16px; color: var(--ink-soft); }
+
+/* Clear but not alarming: blue, not red. */
+.sim-badge {
+  display: flex; flex-direction: column;
+  padding: 8px 16px; border-radius: var(--radius);
+  background: var(--info-soft); border: 2px solid var(--info-line); color: var(--info);
+}
+.sim-badge b { font-size: 16px; letter-spacing: .06em; }
+.sim-badge span { font-size: 16px; }
+
+.context { margin-left: auto; text-align: right; }
+.context b { display: block; font-size: 18px; }
+.context small { display: block; font-size: 16px; color: var(--ink-soft); }
+
 .topbar select {
   font: inherit; font-size: 17px; padding: 10px 14px; border-radius: var(--radius);
   border: 2px solid var(--line-strong); background: var(--paper); color: var(--ink);
   min-height: var(--target);
 }
 
-.notice {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  padding: 12px var(--pad);
-  background: var(--warn-soft); border-bottom: 2px solid var(--warn-line);
-  font-size: 16px; color: #6b4100;
+/* Visible navigation with words, not a hidden menu behind an icon. */
+.mainnav {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 0 var(--pad); background: var(--paper);
+  border-bottom: 2px solid var(--line);
 }
-.notice b { color: #4d2f00; }
+.mainnav button {
+  border: none; border-radius: 0; background: none;
+  padding: 14px 20px; min-height: 56px; font-size: 18px; font-weight: 600;
+  color: var(--ink-soft); box-shadow: inset 0 -3px 0 transparent;
+}
+.mainnav button:hover { background: var(--sunk); }
+.mainnav button[aria-current="page"] {
+  color: var(--brand); box-shadow: inset 0 -4px 0 var(--brand);
+}
 
-main { padding: var(--pad); max-width: 820px; margin: 0 auto; }
+main { padding: var(--pad); max-width: 1020px; margin: 0 auto; }
 .view[hidden] { display: none !important; }
 
-/* ------------------------------------------------------------------ tabs */
-
-/* Settings lives in the top bar, so the bottom bar carries only the three things
- * a grower does. The cog keeps its word beside it: icon meaning is learned, and
- * a bare glyph is a guess for anyone who was not taught it. */
-.icon-button {
-  display: inline-flex; align-items: center; gap: 10px;
-  padding: 10px 18px; min-height: var(--target);
-  font-size: 17px; font-weight: 600;
+.footer {
+  padding: 20px var(--pad) 40px; text-align: center;
+  color: var(--ink-soft); font-size: 16px;
 }
-.icon-button svg { width: 24px; height: 24px; flex: none; }
-.icon-button[aria-current="page"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
-@media (max-width: 460px) { .icon-button span { display: none; } .icon-button { padding: 10px 14px; } }
-
-.tabs {
-  position: sticky; bottom: 0; z-index: 20;
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  background: var(--paper);
-  border-top: 2px solid var(--line);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-/* Labelled, never bare icons: icon meaning is learned, not innate. */
-.tabs button {
-  border: none; border-radius: 0; background: none;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 10px 6px; min-height: 68px; font-size: 16px; font-weight: 600;
-  color: var(--ink-soft);
-}
-.tabs button svg { width: 26px; height: 26px; }
-.tabs button[aria-current="page"] {
-  color: var(--brand); background: var(--brand-soft);
-  box-shadow: inset 0 -4px 0 var(--brand);
-}
-.tabs button:hover { background: var(--sunk); }
-.tabs button:active { box-shadow: inset 0 2px 6px rgba(22,38,26,.15); }
 
 /* ----------------------------------------------------------------- cards */
 
 .card {
-  background: var(--paper);
-  border: 2px solid var(--line);
+  background: var(--paper); border: 2px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: clamp(20px, 4vw, 30px);
+  padding: clamp(20px, 3vw, 28px);
   box-shadow: var(--shadow);
-  margin-bottom: 18px;
+  margin-bottom: 24px;
+}
+.lede { color: var(--ink-soft); font-size: 19px; margin-top: 8px; }
+
+/* Four calm summary blocks. Never more. */
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+@media (max-width: 860px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 460px) { .tiles { grid-template-columns: 1fr; } }
+
+.tile {
+  background: var(--paper); border: 2px solid var(--line-strong);
+  border-radius: var(--radius); padding: 18px;
+}
+.tile .k { font-size: 16px; color: var(--ink-soft); }
+.tile .v { font-size: 26px; font-weight: 700; margin-top: 4px; line-height: 1.15; }
+.tile .n { font-size: 16px; color: var(--ink-soft); margin-top: 6px; }
+.tile.good { background: var(--good-soft); border-color: var(--good-line); }
+.tile.good .v { color: var(--good); }
+.tile.warn { background: var(--warn-soft); border-color: var(--warn-line); }
+.tile.warn .v { color: var(--warn); }
+.tile.bad { background: var(--bad-soft); border-color: var(--bad-line); }
+.tile.bad .v { color: var(--bad); }
+.tile.cost .v { color: var(--warn); }
+
+.saving {
+  display: inline-block; margin-top: 14px; padding: 12px 20px;
+  border-radius: var(--radius); background: var(--good-soft);
+  border: 2px solid var(--good-line); color: var(--good);
+  font-weight: 700; font-size: 18px;
 }
 
-.headline-card { text-align: center; padding: clamp(26px, 6vw, 42px) clamp(20px, 4vw, 30px); }
-.headline-label { color: var(--ink-soft); font-size: 19px; margin-bottom: 8px; }
-.headline-figure { font-size: clamp(2.8rem, 11vw, 4.2rem); font-weight: 800; letter-spacing: -.03em; line-height: 1; }
-.headline-sub { color: var(--ink-soft); margin-top: 12px; font-size: 18px; }
-.saving { display: inline-block; margin-top: 16px; padding: 11px 20px; border-radius: var(--radius); background: var(--good-soft); border: 2px solid var(--good-line); color: var(--good); font-weight: 700; font-size: 17px; }
+/* --------------------------------------------------------------- actions */
 
-/* Directly under the figure it qualifies, inside the same card: a reader must
- * not be able to take the number and leave before meeting the range. */
-.uncertainty { margin-top: 20px; padding-top: 18px; border-top: 2px solid var(--line); text-align: left; }
-.uncertainty-headline { font-weight: 700; font-size: 19px; }
-.uncertainty-detail { color: var(--ink-soft); font-size: 17px; margin-top: 6px; }
-.uncertainty[data-confidence="unknown"] .uncertainty-headline,
-.uncertainty[data-confidence="low"] .uncertainty-headline { color: var(--warn); }
-#uncertainty-caveats { margin: 8px 0 0; padding-left: 22px; font-size: 16px; }
-#uncertainty-caveats li { margin-bottom: 6px; }
+.action-list { display: grid; gap: 14px; margin-top: 20px; }
 
-/* --------------------------------------------------------------- signals */
-
-.signals { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
-@media (max-width: 560px) { .signals { grid-template-columns: 1fr; } }
-
-/* Icon and word both, always. Colour never carries meaning alone. */
-.signal { display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: var(--radius); border: 2px solid var(--line-strong); background: var(--paper); }
-.signal .icon { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; font-weight: 700; }
-.signal .label { font-size: 16px; color: var(--ink-soft); }
-.signal .value { font-weight: 700; font-size: 18px; }
-
-.signal.good { border-color: var(--good-line); background: var(--good-soft); }
-.signal.good .icon { background: var(--good); color: #fff; }
-.signal.good .value { color: var(--good); }
-.signal.warn { border-color: var(--warn-line); background: var(--warn-soft); }
-.signal.warn .icon { background: var(--warn); color: #fff; }
-.signal.warn .value { color: var(--warn); }
-.signal.bad { border-color: var(--bad-line); background: var(--bad-soft); }
-.signal.bad .icon { background: var(--bad); color: #fff; }
-.signal.bad .value { color: var(--bad); }
-
-/* ----------------------------------------------------------------- story */
-
-.story { display: grid; gap: 16px; }
-.chapter { display: grid; grid-template-columns: auto auto 1fr; gap: 14px; align-items: start; }
-/* The icon is a scan anchor beside the words, not a replacement for them. A
- * grower looking for "when does the CHP run" finds it by shape, then reads. */
-.chapter .marks { display: flex; gap: 6px; font-size: 24px; line-height: 1.2; }
-.chapter .when { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--brand); white-space: nowrap; font-size: 17px; padding-top: 2px; }
-.chapter .what { color: var(--ink); font-size: 18px; }
-.chapter .why { color: var(--ink-soft); font-size: 16px; margin-top: 4px; }
-.chapter + .chapter { border-top: 2px solid var(--line); padding-top: 16px; }
-@media (max-width: 560px) {
-  .chapter { grid-template-columns: auto 1fr; }
-  .chapter .marks { grid-column: 1; }
+.action {
+  display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start;
+  width: 100%; text-align: left;
+  padding: 20px; border: 2px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--paper); font: inherit; min-height: var(--target);
 }
+.action:hover { background: var(--sunk); }
+.action[aria-current="true"] { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
+.action .title { font-size: 19px; font-weight: 700; }
+.action .why { color: var(--ink-soft); font-size: 17px; margin-top: 4px; }
+.action .foot { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
 
-/* ------------------------------------------------------------------ chat */
-
-.chat-log { display: grid; gap: 16px; margin-bottom: 20px; }
-.bubble { padding: 16px 20px; border-radius: var(--radius-lg); max-width: 90%; font-size: 18px; }
-.bubble.grower { background: var(--brand); color: #fff; justify-self: end; border-bottom-right-radius: 6px; }
-.bubble.assistant { background: var(--sunk); border: 2px solid var(--line-strong); justify-self: start; border-bottom-left-radius: 6px; }
-.bubble.thinking { color: var(--ink-soft); font-style: italic; }
-.bubble.error { background: var(--bad-soft); border-color: var(--bad-line); color: #6b1812; }
-
-.chat-form { display: flex; gap: 12px; align-items: flex-end; }
-.chat-form textarea {
-  flex: 1; font: inherit; font-size: 18px; padding: 14px 16px; border-radius: var(--radius);
-  border: 2px solid var(--line-strong); resize: vertical; min-height: var(--target-primary); max-height: 220px;
-  background: var(--paper); color: var(--ink);
+.pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: 999px;
+  font-size: 16px; font-weight: 700; border: 2px solid;
+  background: var(--good-soft); color: var(--good); border-color: var(--good-line);
 }
-.chat-form textarea:focus { border-color: var(--brand); }
+.pill.cost { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); }
 
-/* Tappable questions come first. Typing is a real barrier, and every avoidable
- * keystroke is one. */
-.suggestions { display: grid; gap: 12px; margin-bottom: 20px; }
-.suggestions button {
-  text-align: left; padding: 14px 18px; min-height: var(--target);
-  font-size: 17px; font-weight: 600;
-  background: var(--brand-soft); border-color: var(--brand-line); color: var(--brand);
+.decide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 760px) { .decide { grid-template-columns: 1fr; } }
+.decision-note { margin-top: 14px; font-size: 17px; color: var(--good); font-weight: 600; }
+
+/* ---------------------------------------------------------------- preview */
+
+/* Lighting, heating, CHP. No axis labels, no power values. */
+.preview-row { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; margin-bottom: 10px; }
+.preview-row .k { font-size: 17px; color: var(--ink-soft); }
+.preview-bar { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; height: 26px; }
+.preview-bar i { background: var(--sunk); border-radius: 2px; }
+.preview-bar i.on { background: var(--brand-line); }
+.preview-bar i.hi { background: var(--brand); }
+.preview-scale { display: flex; justify-content: space-between; margin-left: 134px; color: var(--ink-soft); font-size: 16px; margin-top: 6px; }
+
+/* ------------------------------------------------------------- plan/edit */
+
+.plan-layout { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+@media (max-width: 900px) { .plan-layout { grid-template-columns: 1fr; } }
+.plan-layout aside { position: sticky; top: 20px; }
+
+.stepper { display: flex; align-items: center; gap: 16px; }
+.stepper button { min-width: 64px; min-height: var(--target-primary); font-size: 24px; font-weight: 700; }
+.stepper .value { font-size: 30px; font-weight: 700; min-width: 110px; text-align: center; font-variant-numeric: tabular-nums; }
+
+.impact { padding: 18px; border-radius: var(--radius); background: var(--good-soft); border: 2px solid var(--good-line); margin: 18px 0; }
+.impact .k { font-size: 16px; color: var(--good); }
+.impact .v { font-size: 28px; font-weight: 700; color: var(--good); }
+.impact.checking { background: var(--sunk); border-color: var(--line-strong); }
+.impact.checking .k, .impact.checking .v { color: var(--ink-soft); }
+.impact.bad { background: var(--bad-soft); border-color: var(--bad-line); }
+.impact.bad .k, .impact.bad .v { color: var(--bad); }
+
+/* ----------------------------------------------------------------- forms */
+
+.field { margin-bottom: 22px; }
+.field > label { display: block; font-weight: 700; margin-bottom: 8px; font-size: 18px; }
+.field .hint { color: var(--ink-soft); font-size: 17px; margin-bottom: 10px; }
+.field input[type="text"], .field input[type="number"], .field input[type="password"],
+.field select, .field textarea {
+  width: 100%; font: inherit; font-size: 18px; padding: 14px 16px;
+  border-radius: var(--radius); border: 2px solid var(--line-strong);
+  background: var(--paper); color: var(--ink); min-height: var(--target-primary);
 }
-.suggestions button:hover:not(:disabled) { background: #d6e8d6; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--brand); }
 
-/* ----------------------------------------------------------- preferences */
+.choice-list { display: grid; gap: 14px; }
+.choice-item {
+  display: flex; align-items: flex-start; gap: 16px; padding: 20px;
+  border: 2px solid var(--line-strong); border-radius: var(--radius);
+  cursor: pointer; background: var(--paper); min-height: var(--target-primary);
+}
+.choice-item:hover { background: var(--sunk); }
+.choice-item input { margin-top: 2px; width: 26px; height: 26px; accent-color: var(--brand); flex: none; }
+/* Both are spans inside a span, so they need to be told to stack. */
+.choice-item .title { display: block; font-weight: 700; font-size: 19px; }
+.choice-item .desc { display: block; color: var(--ink-soft); font-size: 17px; margin-top: 3px; }
+.choice-item:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
+
+.switch-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px 0; border-bottom: 1px solid var(--line);
+}
+.switch-row:last-child { border-bottom: none; }
+.switch-row .k { font-size: 18px; font-weight: 600; }
+.switch-row input { width: 28px; height: 28px; accent-color: var(--brand); }
+
+.limit-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 18px; }
+.limit-row:last-child { border-bottom: none; }
+.limit-row .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.more-list { display: grid; gap: 12px; }
+.more-list a, .more-list button {
+  display: block; width: 100%; text-align: left;
+  padding: 16px 20px; border: 2px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--paper); color: var(--ink); font-size: 18px; font-weight: 600;
+  text-decoration: none; min-height: var(--target);
+}
+.more-list a:hover, .more-list button:hover { background: var(--sunk); }
+.more-list a:visited { color: var(--ink); }
+
+/* --------------------------------------------------------------- results */
+
+table.plain { width: 100%; border-collapse: collapse; font-size: 18px; }
+table.plain th { text-align: left; padding: 12px 10px; border-bottom: 3px solid var(--line-strong); font-size: 17px; color: var(--ink-soft); }
+table.plain td { padding: 12px 10px; border-bottom: 1px solid var(--line); }
+table.plain td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ preferences */
 
 .pref { border: 2px solid var(--line-strong); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; background: var(--paper); }
 .pref.retired { background: var(--ground); border-color: var(--line); }
@@ -317,59 +348,19 @@ main { padding: var(--pad); max-width: 820px; margin: 0 auto; }
 .tag.preference { background: var(--sunk); color: var(--ink-soft); border-color: var(--line-strong); }
 .tag.strong { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); }
 .tag.absolute { background: var(--bad-soft); color: var(--bad); border-color: var(--bad-line); }
-.tag.unconfirmed { background: #e8ecfb; color: #2a3d86; border-color: #7f8fd0; }
-
-/* -------------------------------------------------------------- conflict */
-
-.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
-@media (max-width: 560px) { .compare { grid-template-columns: 1fr; } }
-.side { padding: 18px; border-radius: var(--radius); border: 2px solid var(--line-strong); }
-.side .who { font-size: 16px; color: var(--ink-soft); margin-bottom: 6px; }
-.side .choice { font-size: 20px; font-weight: 700; }
-.side.ai { background: var(--sunk); }
-.side.mine { background: var(--brand-soft); border-color: var(--brand-line); }
-.side.middle { background: var(--good-soft); border-color: var(--good-line); grid-column: 1 / -1; }
-
-/* ----------------------------------------------------------------- forms */
-
-/* One thing per page is the default structure; these styles assume it. */
-.field { margin-bottom: 24px; }
-.field > label { display: block; font-weight: 700; margin-bottom: 8px; font-size: 18px; }
-.field .hint { color: var(--ink-soft); font-size: 17px; margin-bottom: 10px; }
-.field input[type="text"], .field input[type="number"], .field input[type="password"],
-.field select, .field textarea {
-  width: 100%; font: inherit; font-size: 18px; padding: 14px 16px; border-radius: var(--radius);
-  border: 2px solid var(--line-strong); background: var(--paper); color: var(--ink);
-  min-height: var(--target-primary);
-}
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--brand); }
-
-.choice-list { display: grid; gap: 12px; }
-.choice-item {
-  display: flex; align-items: flex-start; gap: 16px; padding: 18px;
-  border: 2px solid var(--line-strong); border-radius: var(--radius);
-  cursor: pointer; background: var(--paper); min-height: var(--target-primary);
-}
-.choice-item:hover { background: var(--sunk); }
-.choice-item input { margin-top: 2px; width: 26px; height: 26px; accent-color: var(--brand); flex: none; }
-.choice-item .title { font-weight: 700; font-size: 18px; }
-.choice-item .desc { color: var(--ink-soft); font-size: 17px; }
-.choice-item:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
-
-.badge-local { display: inline-block; margin-left: 10px; padding: 4px 12px; border-radius: 999px; background: var(--good-soft); border: 2px solid var(--good-line); color: var(--good); font-size: 16px; font-weight: 700; }
+.tag.unconfirmed { background: var(--info-soft); color: var(--info); border-color: var(--info-line); }
 
 /* ------------------------------------------------------------ onboarding */
 
 .onboarding { position: fixed; inset: 0; z-index: 50; background: var(--ground); overflow-y: auto; }
-.onboarding-inner { max-width: 620px; margin: 0 auto; padding: var(--pad); min-height: 100%; display: flex; flex-direction: column; justify-content: center; }
+.onboarding-inner { max-width: 640px; margin: 0 auto; padding: var(--pad); min-height: 100%; display: flex; flex-direction: column; justify-content: center; }
 .progress { display: flex; gap: 8px; margin-bottom: 24px; }
 .progress span { flex: 1; height: 8px; border-radius: 4px; background: var(--line-strong); }
 .progress span.done { background: var(--brand); }
 .step-label { color: var(--ink-soft); font-size: 17px; margin-bottom: 10px; font-weight: 600; }
 .onboarding h1 { margin-bottom: 14px; }
-.onboarding .lede { color: var(--ink-soft); font-size: 19px; margin-bottom: 28px; }
+.onboarding .lede { font-size: 19px; margin-bottom: 28px; }
 .onboarding .actions { margin-top: 30px; }
-
 .profile-item { display: flex; align-items: center; gap: 16px; padding: 18px; border: 2px solid var(--line-strong); border-radius: var(--radius); margin-bottom: 12px; background: var(--paper); }
 .profile-item .grow { flex: 1; }
 .profile-item .name { font-weight: 700; font-size: 18px; }
@@ -377,64 +368,45 @@ main { padding: var(--pad); max-width: 820px; margin: 0 auto; }
 
 /* ---------------------------------------------------------------- states */
 
-.empty { text-align: center; padding: 44px 20px; color: var(--ink-soft); font-size: 18px; }
-.empty .mark { font-size: 3rem; margin-bottom: 14px; }
-
+.empty { text-align: center; padding: 40px 20px; color: var(--ink-soft); font-size: 18px; }
 .loading { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 44px; color: var(--ink-soft); font-size: 18px; }
 .spinner { width: 30px; height: 30px; border: 4px solid var(--line-strong); border-top-color: var(--brand); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.error {
-  padding: 18px 20px; border-radius: var(--radius); font-size: 18px;
-  background: var(--bad-soft); border: 2px solid var(--bad-line); color: #6b1812; margin-bottom: 18px;
-}
+.error { padding: 18px 20px; border-radius: var(--radius); font-size: 18px; background: var(--bad-soft); border: 2px solid var(--bad-line); color: #6b1812; margin-bottom: 20px; }
 
-/* Every decision gets a window in which it can be taken back. Low software
- * confidence makes reversibility matter more, not less. */
+/* Every decision is reversible for a while. Low software confidence makes
+ * reversibility matter more, not less. */
 .undo-bar {
-  position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 40;
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 24px; z-index: 40;
   display: flex; align-items: center; gap: 16px;
-  background: var(--ink); color: #fff;
-  padding: 14px 18px; border-radius: var(--radius); box-shadow: var(--shadow);
+  background: var(--ink); color: #fff; padding: 14px 18px;
+  border-radius: var(--radius); box-shadow: var(--shadow);
   max-width: calc(100% - 32px); font-size: 17px;
 }
-.undo-bar button {
-  background: transparent; color: #fff; border-color: #7d8f82;
-  min-height: 44px; padding: 8px 18px; font-size: 17px;
-}
+.undo-bar button { background: transparent; color: #fff; border-color: #7d8f82; min-height: 44px; padding: 8px 18px; font-size: 17px; }
 .undo-bar button:hover:not(:disabled) { background: rgba(255,255,255,.14); border-color: #fff; }
 .undo-bar .count { font-variant-numeric: tabular-nums; color: #c8d6cc; font-size: 16px; }
+
+dialog#sheet { border: 2px solid var(--line-strong); border-radius: var(--radius-lg); padding: 0; max-width: 560px; width: calc(100% - 32px); color: var(--ink); }
+dialog#sheet::backdrop { background: rgba(22,38,26,.45); }
 
 .muted { color: var(--ink-soft); }
 .small { font-size: 16px; }
 .center { text-align: center; }
 .stack > * + * { margin-top: 16px; }
 
-details.more { margin-top: 18px; }
-details.more summary {
-  cursor: pointer; font-weight: 700; color: var(--brand-mid); font-size: 18px;
-  padding: 14px 0; min-height: var(--target); display: flex; align-items: center; gap: 8px;
-}
-details.more summary:hover { color: var(--brand); }
+details.more { margin-top: 16px; }
+details.more summary { cursor: pointer; font-weight: 700; color: var(--brand-mid); font-size: 18px; padding: 14px 0; min-height: var(--target); display: flex; align-items: center; }
 
-table.hours { width: 100%; border-collapse: collapse; font-size: 17px; }
-table.hours th { text-align: left; padding: 12px 10px; border-bottom: 3px solid var(--line-strong); font-size: 16px; color: var(--ink-soft); }
-table.hours td { padding: 12px 10px; border-bottom: 1px solid var(--line); }
-table.hours tr:hover td { background: var(--sunk); }
-.tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-.visually-hidden {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-}
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
 @media print {
-  .topbar, .tabs, .chat-form, .suggestions, .undo-bar, button { display: none !important; }
+  .topbar, .mainnav, .undo-bar, .footer, button { display: none !important; }
   body { background: #fff; }
   .card { box-shadow: none; break-inside: avoid; }
 }
