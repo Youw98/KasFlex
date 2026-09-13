@@ -180,9 +180,21 @@ main { padding: var(--pad); max-width: 820px; margin: 0 auto; }
 
 /* ------------------------------------------------------------------ tabs */
 
+/* Settings lives in the top bar, so the bottom bar carries only the three things
+ * a grower does. The cog keeps its word beside it: icon meaning is learned, and
+ * a bare glyph is a guess for anyone who was not taught it. */
+.icon-button {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 10px 18px; min-height: var(--target);
+  font-size: 17px; font-weight: 600;
+}
+.icon-button svg { width: 24px; height: 24px; flex: none; }
+.icon-button[aria-current="page"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+@media (max-width: 460px) { .icon-button span { display: none; } .icon-button { padding: 10px 14px; } }
+
 .tabs {
   position: sticky; bottom: 0; z-index: 20;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(3, 1fr);
   background: var(--paper);
   border-top: 2px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom);
