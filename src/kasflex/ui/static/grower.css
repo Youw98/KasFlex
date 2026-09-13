@@ -277,6 +277,17 @@ main { padding: var(--pad); max-width: 1020px; margin: 0 auto; }
 .tile.cost { border-left-color: var(--kf-sun); }
 .tile.cost .v { color: var(--warn); }
 
+/* How certain the estimate is, inside the same card as the figure. A separate
+ * panel would let a reader take the number and leave before meeting the range,
+ * which is the opposite of the point. */
+.uncertainty { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+.uncertainty-headline { font-weight: 700; font-size: 19px; }
+.uncertainty-detail { color: var(--ink-soft); font-size: 17px; margin-top: 6px; }
+.uncertainty[data-confidence="unknown"] .uncertainty-headline,
+.uncertainty[data-confidence="low"] .uncertainty-headline { color: var(--warn); }
+#uncertainty-caveats { margin: 8px 0 0; padding-left: 22px; }
+#uncertainty-caveats li { margin-bottom: 6px; }
+
 .saving {
   display: inline-block; margin-top: 14px; padding: 12px 20px;
   border-radius: var(--radius); background: var(--good-soft);

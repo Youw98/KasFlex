@@ -76,6 +76,16 @@
         <h2 data-i18n="today.title">KasFlex plan for tomorrow</h2>
         <p id="actions-summary" class="lede"></p>
         <p id="saving-line" class="saving" hidden></p>
+        <div id="uncertainty" class="uncertainty" hidden>
+          <p id="uncertainty-headline" class="uncertainty-headline"></p>
+          <p id="uncertainty-detail" class="uncertainty-detail"></p>
+          <details class="more">
+            <summary data-i18n="uncertain.why">Why do you say that?</summary>
+            <p id="uncertainty-why" class="muted small"></p>
+            <p class="muted small" data-i18n="uncertain.caveats" style="margin-top:10px;font-weight:700"></p>
+            <ul id="uncertainty-caveats" class="muted small"></ul>
+          </details>
+        </div>
         <div id="action-list" class="action-list"></div>
       </article>
 
@@ -85,6 +95,9 @@
           <button id="review" data-view="plan" data-i18n="btn.review">Review changes</button>
           <button id="keep-normal" data-i18n="btn.normal">Keep normal settings</button>
         </div>
+        <p class="center" style="margin-top:14px">
+          <button id="concerns" class="quiet" data-i18n="btn.concerns">I have concerns</button>
+        </p>
         <p class="muted small center" data-i18n="btn.approve.note" style="margin-top:14px"></p>
         <p id="decision-note" class="decision-note center" role="status"></p>
       </article>
@@ -178,6 +191,10 @@
     <article class="card">
       <h2 data-i18n="settings.data" style="margin-bottom:16px">Prices and weather</h2>
       <div id="data-settings"></div>
+    </article>
+    <article class="card">
+      <h2 data-i18n="consent.manage" style="margin-bottom:16px">Research participation</h2>
+      <div id="consent-settings"></div>
     </article>
     <article class="card">
       <h2 data-i18n-static style="margin-bottom:16px">Your setup</h2>

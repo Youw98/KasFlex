@@ -246,6 +246,7 @@ CATALOG: dict[str, dict[str, str]] = {
                          "nl": "Gebruik deze acties voor morgen."},
     "btn.review": {"en": "Review changes", "nl": "Wijzigingen bekijken"},
     "btn.normal": {"en": "Keep normal settings", "nl": "Normale instellingen houden"},
+    "btn.concerns": {"en": "I have concerns", "nl": "Ik heb bedenkingen"},
     "btn.normal.confirm": {"en": "Use your normal greenhouse settings tomorrow?",
                            "nl": "Morgen uw normale kasinstellingen gebruiken?"},
     "btn.normal.yes": {"en": "Use normal settings", "nl": "Normale instellingen gebruiken"},
@@ -350,6 +351,41 @@ CATALOG: dict[str, dict[str, str]] = {
     "more.data": {"en": "Prices and weather", "nl": "Prijzen en weer"},
     "more.setup": {"en": "Setup and experiments", "nl": "Instellingen en experimenten"},
     "more.about": {"en": "About KasFlex", "nl": "Over KasFlex"},
+
+    # -- consent -------------------------------------------------------------
+    "consent.title": {"en": "Taking part in the research",
+                      "nl": "Deelnemen aan het onderzoek"},
+    "consent.intro": {
+        "en": "KasFlex is being studied by a university. You can use it either "
+              "way: taking part is your choice, and saying no changes nothing "
+              "about how it works for you.",
+        "nl": "KasFlex wordt onderzocht door een universiteit. U kunt het hoe dan "
+              "ook gebruiken: meedoen is uw keuze, en nee zeggen verandert niets "
+              "aan hoe het voor u werkt."},
+    "consent.what": {"en": "What would be kept", "nl": "Wat er bewaard zou worden"},
+    "consent.scope.research": {"en": "My decisions", "nl": "Mijn beslissingen"},
+    "consent.scope.quotes": {"en": "My own words", "nl": "Mijn eigen woorden"},
+    "consent.scope.outcomes": {"en": "How it turned out", "nl": "Hoe het uitpakte"},
+    "consent.voluntary": {
+        "en": "You can stop at any time. If you do, everything kept about you is "
+              "deleted -- only the record that you asked to be removed is kept.",
+        "nl": "U kunt altijd stoppen. Als u dat doet wordt alles wat over u is "
+              "bewaard verwijderd -- alleen de vastlegging dat u om verwijdering "
+              "vroeg blijft bestaan."},
+    "consent.agree": {"en": "Yes, I'll take part", "nl": "Ja, ik doe mee"},
+    "consent.decline": {"en": "No thanks, just let me use KasFlex",
+                        "nl": "Nee bedankt, ik wil KasFlex alleen gebruiken"},
+    "consent.declined": {
+        "en": "Nothing will be recorded. You can change your mind in More.",
+        "nl": "Er wordt niets vastgelegd. U kunt bij Meer van gedachten veranderen."},
+    "consent.who": {"en": "Taking part as", "nl": "Deelnemen als"},
+    "consent.manage": {"en": "Research participation", "nl": "Deelname aan onderzoek"},
+    "consent.withdraw": {"en": "Stop taking part and delete my data",
+                         "nl": "Stoppen en mijn gegevens verwijderen"},
+    "consent.withdrawn": {"en": "Stopped. Your data has been deleted.",
+                          "nl": "Gestopt. Uw gegevens zijn verwijderd."},
+    "consent.active": {"en": "You are taking part.", "nl": "U doet mee."},
+    "consent.inactive": {"en": "You are not taking part.", "nl": "U doet niet mee."},
 
     # -- trust ---------------------------------------------------------------
     "trust.can_change": {"en": "You can change this.", "nl": "U kunt dit wijzigen."},

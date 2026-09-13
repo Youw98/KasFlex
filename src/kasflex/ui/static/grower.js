@@ -35,6 +35,7 @@ const state = {
   selectedAction: null,
   decision: null,
   elicitation: null,
+  consent: null,
   busy: false,
 };
 
@@ -233,6 +234,7 @@ function renderTomorrow(result) {
       : t("today.nosaving");
   }
 
+  renderUncertainty(result.uncertainty);
   renderActionList($("action-list"), result.actions || [], { selectable: false });
   renderPreview(result.plan || []);
   renderPlanScreen(result);
@@ -240,6 +242,27 @@ function renderTomorrow(result) {
   $("approve").disabled = false;
   $("keep-normal").disabled = false;
   $("decision-note").textContent = "";
+}
+
+/* How certain the estimate is, directly under the figure it qualifies.
+ *
+ * The server decides whether a range is defensible; this honours that answer,
+ * including when the answer is "I can't tell you". An invented interval looks
+ * exactly like a real one on screen, which is why this never substitutes a
+ * friendlier message of its own. */
+function renderUncertainty(uncertainty) {
+  const root = $("uncertainty");
+  if (!uncertainty || !uncertainty.words) { root.hidden = true; return; }
+
+  root.hidden = false;
+  root.dataset.confidence = uncertainty.confidence || "unknown";
+  $("uncertainty-headline").textContent = uncertainty.words.headline;
+  $("uncertainty-detail").textContent = uncertainty.words.detail;
+  $("uncertainty-why").textContent = uncertainty.words.why;
+
+  const caveats = $("uncertainty-caveats");
+  caveats.replaceChildren();
+  for (const caveat of uncertainty.caveats || []) caveats.append(el("li", { textContent: caveat }));
 }
 
 function renderActionList(root, actions, { selectable }) {
@@ -423,6 +446,9 @@ function applyEdit(hours, field, value, impact) {
       impact.querySelector(".k").textContent = ok ? t("edit.reverified") : t("edit.unsafe");
       impact.querySelector(".v").textContent =
         money((verdict.metrics || {}).net_cost_eur ?? 0);
+      // An edit is a disagreement with the plan, whether or not a concern is
+      // written afterwards, so it is recorded here rather than only on rejection.
+      recordEdits();
     } catch (error) {
       impact.className = "impact bad";
       impact.querySelector(".k").textContent = String(error.message || error);
@@ -550,6 +576,7 @@ function renderMore() {
     el("a", { href: "/advanced#history", textContent: t("more.history") }),
     el("a", { href: "/setup", textContent: t("more.setup") }));
   loadSettings();
+  renderConsentControls();
 }
 
 /* ---------------------------------------------------------- preferences */
@@ -728,6 +755,116 @@ $("keep-normal").addEventListener("click", () => {
       }))));
   sheet.showModal();
 });
+
+/* --------------------------------------------------------- I have concerns */
+
+/* The most valuable thing a grower gives us is the reason. A rejection without
+ * one records that somebody disagreed and throws away what the study is for, so
+ * this asks in prose and keeps the words verbatim.
+ *
+ * It works with no model configured: the objection is still stored, and only the
+ * assistant's wording of a rule is skipped. */
+function openObjectionSheet() {
+  const sheet = $("sheet");
+  const input = el("textarea", { rows: 4, id: "objection-text" });
+  const status = el("p", { className: "muted small", role: "status" });
+
+  const submit = el("button", {
+    className: "primary", textContent: t("common.save"),
+    onclick: async () => {
+      const objection = input.value.trim();
+      if (!objection) { input.focus(); return; }
+      submit.disabled = true;
+      status.textContent = t("chat.thinking");
+
+      const runId = state.run ? state.run.run_id : "";
+      try {
+        const proposal = await api("/api/preferences/from-objection", {
+          run_id: runId, objection,
+          plan: state.run ? state.run.plan : [],
+          metrics: state.run ? state.run.metrics : {},
+          overrides: overrides(),
+        });
+        sheet.close();
+        confirmPreference(proposal);
+      } catch (error) {
+        // No model is the ordinary first run. Keep the words rather than lose
+        // them because an AI was not set up.
+        try {
+          await api("/api/preferences", {
+            rule: objection.slice(0, 200), reason: objection,
+            strength: "preference", source: "grower", run_id: runId,
+          });
+          sheet.close();
+          noteConcernRecorded();
+        } catch (inner) {
+          status.textContent = String(inner.message || error.message);
+        }
+      } finally { submit.disabled = false; }
+    },
+  });
+
+  sheet.replaceChildren(el("div", { style: "padding:26px" },
+    el("h2", { textContent: t("chat.disagree"), style: "margin-bottom:8px" }),
+    el("p", { className: "muted", textContent: t("chat.disagree.prompt"), style: "margin-bottom:16px" }),
+    el("div", { className: "field" }, input),
+    status,
+    el("div", { className: "button-row end", style: "margin-top:16px" },
+      el("button", { textContent: t("common.cancel"), onclick: () => sheet.close() }), submit)));
+  sheet.showModal();
+}
+
+/* An inferred rule is shown before it binds. A model wording a standing
+ * instruction and applying it unseen would be worse than having no memory. */
+function confirmPreference(proposal) {
+  const sheet = $("sheet");
+  sheet.replaceChildren(el("div", { style: "padding:26px" },
+    el("h2", { textContent: t("prefs.confirm.title"), style: "margin-bottom:12px" }),
+    el("p", { textContent: proposal.restatement || proposal.rule, style: "margin-bottom:8px" }),
+    el("p", { className: "muted small", textContent: proposal.rule }),
+    el("div", { className: "button-row end", style: "margin-top:20px" },
+      el("button", {
+        textContent: t("prefs.confirm.no"),
+        onclick: async () => {
+          try { await api("/api/preferences/change", { pref_id: proposal.pref_id, action: "retire", reason: "declined" }); }
+          catch { /* already gone */ }
+          sheet.close();
+          noteConcernRecorded();
+        },
+      }),
+      el("button", {
+        className: "primary", textContent: t("prefs.confirm.yes"),
+        onclick: async () => {
+          try { await api("/api/preferences/change", { pref_id: proposal.pref_id, action: "confirm" }); }
+          catch (error) { showError(error); }
+          sheet.close();
+          noteConcernRecorded();
+        },
+      }))));
+  sheet.showModal();
+}
+
+function noteConcernRecorded() {
+  $("decision-note").textContent = t("plan.rejected");
+  // Raising a concern is keeping their own position on what we asked about.
+  if (state.elicitation) resolveElicitation(state.elicitation.grower_choice);
+  recordEdits();
+}
+
+/* Any hour the grower changed, against what the planner chose. Pure arithmetic
+ * server-side, so this is recorded even with no model configured. */
+async function recordEdits() {
+  if (!state.run || !state.editedPlan) return;
+  try {
+    await api("/api/conflicts", {
+      run_id: state.run.run_id, revision: state.run.revision,
+      original: state.run.plan, edited: state.editedPlan,
+      reason: $("objection-text") ? $("objection-text").value.trim() : "",
+    });
+  } catch { /* measurement must never cost the grower their decision */ }
+}
+
+$("concerns").addEventListener("click", openObjectionSheet);
 
 /* ------------------------------------------------- asking first (RQ1) */
 
@@ -926,6 +1063,103 @@ $("restart-onboarding").addEventListener("click", () => {
   LS.del("kasflex.grower.lastRun");
   showOnboarding(true);
 });
+
+/* -------------------------------------------------------------- consent */
+
+/* The participant's own consent screen.
+ *
+ * The server gates recording on consent and the researcher console can see it,
+ * but until now nobody ever asked the grower. A gate that cannot be satisfied is
+ * not a safeguard, it is a broken study.
+ *
+ * Declining is a real option that costs nothing: the app works identically, and
+ * only the research stores stay empty. Consent that is a condition of use is not
+ * freely given. */
+async function checkConsent() {
+  let status;
+  try {
+    const params = new URLSearchParams();
+    if (state.settings.participant_id) params.set("participant_id", state.settings.participant_id);
+    status = await api(`/api/consent?${params}`);
+  } catch { return; }
+
+  state.consent = status;
+  if (!status.study_active || !status.needs_consent) return;
+  await askConsent(status);
+}
+
+function askConsent(status) {
+  return new Promise((resolve) => {
+    const sheet = $("sheet");
+    const scopes = {};
+
+    const list = el("div", { className: "choice-list" });
+    for (const [key, description] of Object.entries(status.scopes || {})) {
+      const input = el("input", { type: "checkbox", checked: true });
+      scopes[key] = true;
+      input.addEventListener("change", () => { scopes[key] = input.checked; });
+      list.append(el("label", { className: "choice-item" }, input,
+        el("span", {}, el("span", { className: "title", textContent: t(`consent.scope.${key}`) !== `consent.scope.${key}` ? t(`consent.scope.${key}`) : key }),
+          el("span", { className: "desc", textContent: description }))));
+    }
+
+    const send = async (agreed) => {
+      try {
+        await api("/api/consent", {
+          participant_id: status.participant_id, version: status.version,
+          scopes: agreed ? scopes : {},
+        });
+      } catch (error) { showError(error); }
+      sheet.close();
+      resolve();
+    };
+
+    sheet.replaceChildren(el("div", { style: "padding:26px" },
+      el("h2", { textContent: t("consent.title"), style: "margin-bottom:10px" }),
+      el("p", { className: "muted", textContent: t("consent.intro"), style: "margin-bottom:18px" }),
+      status.participant_id
+        ? el("p", { className: "muted small", style: "margin-bottom:14px",
+                    textContent: `${t("consent.who")}: ${status.participant_id}` })
+        : null,
+      el("p", { style: "font-weight:700;margin-bottom:10px", textContent: t("consent.what") }),
+      list,
+      el("p", { className: "muted small", textContent: t("consent.voluntary"), style: "margin-top:16px" }),
+      el("div", { className: "button-row end", style: "margin-top:20px" },
+        el("button", { textContent: t("consent.decline"), onclick: () => send(false) }),
+        el("button", { className: "primary", textContent: t("consent.agree"), onclick: () => send(true) }))));
+    sheet.showModal();
+  });
+}
+
+/* Withdrawal has to be reachable without asking anyone, so it lives on More. */
+function renderConsentControls() {
+  const root = $("consent-settings");
+  if (!root) return;
+  root.replaceChildren();
+  const status = state.consent;
+  if (!status || !status.study_active) {
+    root.append(el("p", { className: "muted", textContent: t("sim.note") }));
+    return;
+  }
+
+  const taking = status.current && status.current.active && status.current.scopes
+    && status.current.scopes.research;
+  root.append(el("p", { textContent: t(taking ? "consent.active" : "consent.inactive") }));
+
+  if (taking) {
+    root.append(el("div", { className: "button-row", style: "margin-top:14px" },
+      el("button", {
+        className: "danger", textContent: t("consent.withdraw"),
+        onclick: async () => {
+          try {
+            await api("/api/consent/withdraw", { participant_id: status.participant_id });
+            root.replaceChildren(el("p", { textContent: t("consent.withdrawn") }));
+            state.consent = await api("/api/consent");
+          } catch (error) { showError(error); }
+        },
+      })));
+  }
+}
 
 /* ----------------------------------------------------------- onboarding */
 
@@ -1199,6 +1433,7 @@ async function boot() {
 
   navigate(location.hash.slice(1) || "tomorrow");
   if (needsOnboarding()) showOnboarding(true);
+  else await checkConsent();
 }
 
 boot();
