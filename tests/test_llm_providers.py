@@ -124,6 +124,32 @@ def test_google_puts_system_in_its_own_field(captured, monkeypatch):
     assert "gemini-2.0-flash:generateContent" in call["url"]
 
 
+def test_ollama_folds_the_system_prompt_when_asked(captured, monkeypatch):
+    """Local models without a system slot otherwise echo the instructions back."""
+    monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+    lp.build_call_fn("ollama", fold_system=True)("geitje", "SYSTEM", "PROMPT")
+
+    messages = captured[0]["payload"]["messages"]
+    assert [m["role"] for m in messages] == ["user"]
+    assert "SYSTEM" in messages[0]["content"]
+    assert "PROMPT" in messages[0]["content"]
+    assert messages[0]["content"].index("SYSTEM") < messages[0]["content"].index("PROMPT")
+
+
+def test_ollama_keeps_a_separate_system_message_by_default(captured, monkeypatch):
+    monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+    lp.build_call_fn("ollama")("llama3.1", "SYSTEM", "PROMPT")
+
+    assert [m["role"] for m in captured[0]["payload"]["messages"]] == ["system", "user"]
+
+
+def test_folding_does_not_leak_into_other_providers(captured, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    lp.build_call_fn("anthropic", fold_system=True)("claude-opus-5", "SYSTEM", "PROMPT")
+
+    assert captured[0]["payload"]["system"] == "SYSTEM"
+
+
 def test_ollama_runs_without_any_key(captured, monkeypatch):
     monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
     out = lp.build_call_fn("ollama")("llama3.1", "SYS", "PROMPT")

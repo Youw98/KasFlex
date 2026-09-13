@@ -83,6 +83,69 @@ def test_brief_formats_money_for_the_language(plan):
     assert "€ 10.457" in dutch.brief()
 
 
+# -- the prompt is written in the language the answer is wanted in -----------
+
+
+def test_dutch_digest_uses_dutch_headers_and_terms(plan):
+    """A Dutch table for a Dutch answer. A mixed-language prompt hurts most the
+    models chosen for their Dutch."""
+    digest = conv.plan_digest(plan, "nl")
+
+    assert digest.startswith("uur | prijs")
+    assert "warmte van" in digest and "batterij" in digest and "waarom" in digest
+    assert "ketel" in digest, "boiler"
+    assert "wkk" in digest, "chp"
+    assert "laden" in digest, "charge"
+    assert "ontladen" in digest, "discharge"
+    assert "rust" in digest, "idle"
+    assert "warmtegestuurd" in digest, "heat_led"
+
+
+def test_english_digest_is_unchanged(plan):
+    digest = conv.plan_digest(plan, "en")
+    assert digest.startswith("hour | price")
+    assert "boiler" in digest and "chp" in digest and "charge 206kW" in digest
+
+
+def test_dutch_digest_writes_numbers_the_dutch_way(plan):
+    """A model trained on Dutch text reads 0,070 as a number and 0.070 as
+    something else."""
+    digest = conv.plan_digest(plan, "nl")
+    assert "0,070" in digest
+    assert "0.070" not in digest
+
+
+def test_dutch_brief_has_no_english_labels(plan):
+    dutch = conv.PlanContext(
+        run_id="r", date="2026-09-13", plan=plan, language="nl",
+        metrics={"net_cost_eur": 12385.0, "temperature_band_hours": 24},
+        verdict_note="alles binnen de grenzen").brief()
+
+    for english in ("Date planned", "Inputs", "Whole-day net cost",
+                    "Hours inside", "The plan, hour by hour", "Safety check"):
+        assert english not in dutch, english
+    assert "Geplande dag" in dutch
+    assert "Het plan, per uur" in dutch
+
+
+def test_english_brief_has_no_dutch(plan):
+    english = conv.PlanContext(
+        run_id="r", date="2026-09-13", plan=plan, language="en",
+        metrics={"net_cost_eur": 12385.0}).brief()
+    assert "Date planned" in english
+    assert "Geplande dag" not in english
+
+
+def test_the_explainer_sends_a_dutch_table_for_a_dutch_question(context, memory):
+    context.language = "nl"
+    call = scripted("De WKK draait omdat gas goedkoop is.")
+    conv.PlanExplainer(call, "m", memory).ask(context, "Waarom de WKK?")
+
+    prompt = call.sent[0]["prompt"]
+    assert "uur | prijs" in prompt
+    assert "hour | price" not in prompt, "the table must not arrive in English"
+
+
 # -- explaining -------------------------------------------------------------
 
 

@@ -461,11 +461,11 @@ class UiServer:
 
     # -- the model that talks to the grower --------------------------------
 
-    def _model_settings(self, overrides: dict[str, Any]) -> tuple[str, str, str, str]:
-        """(provider, model, base_url, language) after applying UI overrides."""
+    def _model_settings(self, overrides: dict[str, Any]) -> tuple[str, str, str, str, bool]:
+        """(provider, model, base_url, language, fold_system) after UI overrides."""
         config = _apply_overrides(self.base, overrides or {})
         return (config.llm_provider, config.llm_model, config.llm_base_url,
-                i18n.normalise(config.language))
+                i18n.normalise(config.language), config.llm_fold_system)
 
     def _explainer(self, overrides: dict[str, Any]) -> tuple[PlanExplainer, str]:
         """Build an explainer, or say plainly that no model is configured.
@@ -474,14 +474,14 @@ class UiServer:
             ApiError: when the chosen provider has no key. The message is the one
                 shown to the grower, so it says what to do rather than what failed.
         """
-        provider, model, base_url, language = self._model_settings(overrides)
+        provider, model, base_url, language, fold = self._model_settings(overrides)
         if provider not in PROVIDERS:
             raise ApiError(i18n.translate("chat.no_model", language))
         spec = PROVIDERS[provider]
         if spec.env_var and not os.environ.get(spec.env_var):
             raise ApiError(i18n.translate("chat.no_model", language))
         try:
-            call_fn = build_call_fn(provider, base_url=base_url or None)
+            call_fn = build_call_fn(provider, base_url=base_url or None, fold_system=fold)
         except LlmError as exc:
             raise ApiError(str(exc)) from exc
         return PlanExplainer(call_fn, model, self.memory), language
@@ -810,9 +810,10 @@ class UiServer:
     # -- models -------------------------------------------------------------
 
     def model_status(self) -> dict[str, Any]:
-        provider, model, base_url, language = self._model_settings({})
+        provider, model, base_url, language, fold = self._model_settings({})
         return {"providers": provider_status(), "selected": {
-            "provider": provider, "model": model, "base_url": base_url},
+            "provider": provider, "model": model, "base_url": base_url,
+            "fold_system": fold},
             "language": language}
 
     def test_model(self, payload: dict[str, Any]) -> dict[str, Any]:

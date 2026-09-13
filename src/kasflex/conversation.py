@@ -157,6 +157,27 @@ def _clean_scope(raw: Any) -> dict[str, Any]:
     return scope
 
 
+#: Prompt vocabulary for the plan table, per language.
+#:
+#: Separate from the interface catalogue in :mod:`kasflex.i18n` on purpose: this
+#: is compact machine-facing wording for a table cell, not a label a person reads,
+#: and the two drift for good reasons.
+_DIGEST_WORDS: dict[str, dict[str, str]] = {
+    "en": {
+        "header": "hour | price EUR/kWh | heat from | lights | battery | CHP | why",
+        "boiler": "boiler", "chp": "chp", "buffer": "buffer", "none": "none",
+        "idle": "idle", "charge": "charge", "discharge": "discharge",
+        "off": "off", "heat_led": "heat-led", "max_export": "max export",
+    },
+    "nl": {
+        "header": "uur | prijs EUR/kWh | warmte van | lampen | batterij | WKK | waarom",
+        "boiler": "ketel", "chp": "wkk", "buffer": "buffer", "none": "geen",
+        "idle": "rust", "charge": "laden", "discharge": "ontladen",
+        "off": "uit", "heat_led": "warmtegestuurd", "max_export": "max. teruglevering",
+    },
+}
+
+
 def plan_digest(plan: list[dict[str, Any]], language: str = "en",
                 max_hours: int = 24) -> str:
     """One compact table of the plan, for a prompt.
@@ -164,19 +185,36 @@ def plan_digest(plan: list[dict[str, Any]], language: str = "en",
     The full plan payload carries far more than an explanation needs and would
     crowd out the question itself. This keeps the columns a grower actually asks
     about.
+
+    Written in the language the answer is wanted in. Handing a Dutch-tuned model an
+    English table while instructing it to reply in Dutch is a mixed-language prompt,
+    and the models that suffer most from it are precisely the ones chosen for their
+    Dutch. The decimal separator follows suit, since a Dutch model reading "0.090"
+    is reading a number written the way it was not trained to see it.
     """
-    lines = ["hour | price EUR/kWh | heat from | lights | battery | CHP | why"]
+    code = i18n.normalise(language)
+    words = _DIGEST_WORDS[code]
+    dutch = code == "nl"
+
+    def term(value: Any) -> str:
+        return words.get(str(value), str(value) if value is not None else "?")
+
+    def number(value: float, places: int) -> str:
+        text = f"{value:.{places}f}"
+        return text.replace(".", ",") if dutch else text
+
+    lines = [words["header"]]
     for row in plan[:max_hours]:
-        battery = str(row.get("battery", "?"))
-        if battery not in ("idle", "?"):
+        battery = term(row.get("battery", "?"))
+        if str(row.get("battery")) not in ("idle", "None", "?"):
             battery += f" {float(row.get('battery_power_kw', 0)):.0f}kW"
         lines.append(
             f"{int(row.get('hour', 0)):02d} | "
-            f"{float(row.get('power_price_eur_kwh', 0)):.3f} | "
-            f"{row.get('heat_source', '?')} | "
-            f"{float(row.get('lighting_level', 0)) * 100:.0f}% | "
+            f"{number(float(row.get('power_price_eur_kwh', 0)), 3)} | "
+            f"{term(row.get('heat_source', '?'))} | "
+            f"{number(float(row.get('lighting_level', 0)) * 100, 0)}% | "
             f"{battery} | "
-            f"{row.get('chp_mode', '?')} | "
+            f"{term(row.get('chp_mode', '?'))} | "
             f"{row.get('reasoning', '')}"
         )
     return "\n".join(lines)
@@ -197,28 +235,43 @@ class PlanContext:
     data_source: str = "synthetic"
 
     def brief(self) -> str:
+        """The plan, written in the language the answer is wanted in."""
         language = i18n.normalise(self.language)
+        dutch = language == "nl"
         cost = self.metrics.get("net_cost_eur")
+        real = self.data_source == "cache"
+
         lines = [
-            f"Date planned: {self.date}",
-            f"Inputs: {'real prices and forecast weather' if self.data_source == 'cache' else 'demonstration data, invented prices'}",
+            f"{'Geplande dag' if dutch else 'Date planned'}: {self.date}",
+            ("Invoer: " + ("echte prijzen en weersverwachting" if real
+                           else "demonstratiegegevens, verzonnen prijzen"))
+            if dutch else
+            ("Inputs: " + ("real prices and forecast weather" if real
+                           else "demonstration data, invented prices")),
         ]
         if cost is not None:
-            lines.append(f"Whole-day net cost: {i18n.format_money(float(cost), language)}")
+            label = "Netto kosten hele dag" if dutch else "Whole-day net cost"
+            lines.append(f"{label}: {i18n.format_money(float(cost), language)}")
         if self.metrics.get("temperature_band_hours") is not None:
-            lines.append(f"Hours inside the crop's comfortable band: "
-                         f"{self.metrics['temperature_band_hours']} of 24")
+            hours = self.metrics["temperature_band_hours"]
+            lines.append(
+                f"Uren binnen de comfortabele band van het gewas: {hours} van 24"
+                if dutch else
+                f"Hours inside the crop's comfortable band: {hours} of 24")
         if self.cost_forecast and self.cost_forecast.get("totals"):
             totals = self.cost_forecast["totals"]
             parts = [f"{k.replace('_', ' ')}: {i18n.format_money(float(v), language)}"
                      for k, v in totals.items() if isinstance(v, (int, float))]
             if parts:
-                lines.append("Cost split -- " + "; ".join(parts))
+                lines.append(("Kostenverdeling -- " if dutch else "Cost split -- ")
+                             + "; ".join(parts))
         if self.weather_note:
-            lines.append(f"Weather: {self.weather_note}")
+            lines.append(f"{'Weer' if dutch else 'Weather'}: {self.weather_note}")
         if self.verdict_note:
-            lines.append(f"Safety check: {self.verdict_note}")
-        lines += ["", "The plan, hour by hour:", plan_digest(self.plan, language)]
+            lines.append(f"{'Veiligheidscontrole' if dutch else 'Safety check'}: "
+                         f"{self.verdict_note}")
+        lines += ["", "Het plan, per uur:" if dutch else "The plan, hour by hour:",
+                  plan_digest(self.plan, language)]
         return "\n".join(lines)
 
 

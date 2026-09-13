@@ -227,17 +227,31 @@ def _google(model: str, system: str, prompt: str, *, api_key: str | None,
 
 
 def _ollama(model: str, system: str, prompt: str, *, api_key: str | None,
-            base_url: str | None, max_tokens: int, timeout: float) -> str:
+            base_url: str | None, max_tokens: int, timeout: float,
+            fold_system: bool = False) -> str:
+    """Call a local model.
+
+    ``fold_system`` merges the system text into the user turn instead of sending
+    it as its own message. Several local models -- Mistral derivatives especially
+    -- have no system slot in their chat template, so the text is either dropped
+    or pasted somewhere the model treats as content to continue rather than
+    instruction to follow. GEITje echoed the whole prompt back until it was folded,
+    and then produced a correctly-worded rule. Models that do support a system role
+    generally do slightly better without folding, so this stays a choice.
+    """
     provider = PROVIDERS["ollama"]
     root = _base_url(provider, base_url)
     url = root if root.endswith("/api/chat") else f"{root}/api/chat"
+    messages = (
+        [{"role": "user", "content": f"{system}\n\n---\n\n{prompt}"}] if fold_system
+        else [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
+    )
     try:
         data = _post_json(
             url,
             {"model": model, "stream": False,
              "options": {"num_predict": max_tokens},
-             "messages": [{"role": "system", "content": system},
-                          {"role": "user", "content": prompt}]},
+             "messages": messages},
             {},
             timeout,
         )
@@ -268,6 +282,7 @@ def build_call_fn(
     base_url: str | None = None,
     max_tokens: int = 8000,
     timeout: float = DEFAULT_TIMEOUT,
+    fold_system: bool = False,
 ) -> Callable[[str, str, str], str]:
     """Return a ``(model, system, prompt) -> str`` transport for one provider.
 
@@ -288,6 +303,8 @@ def build_call_fn(
     def call(model: str, system: str, prompt: str) -> str:
         kwargs = {"api_key": api_key, "base_url": base_url,
                   "max_tokens": max_tokens, "timeout": timeout}
+        if provider == "ollama":
+            return _ollama(model, system, prompt, fold_system=fold_system, **kwargs)
         if provider in dispatch:
             return dispatch[provider](model, system, prompt, **kwargs)
         return _openai_style(PROVIDERS[provider], model, system, prompt, **kwargs)

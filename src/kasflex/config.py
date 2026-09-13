@@ -69,6 +69,12 @@ class ScenarioConfig:
     llm_model: str = "claude-opus-5"
     llm_base_url: str = ""
     """Override for a self-hosted or proxied endpoint. Empty uses the vendor default."""
+    llm_fold_system: bool = False
+    """Send the system prompt inside the user turn rather than as its own message.
+
+    Needed by local models whose chat template has no system slot -- they otherwise
+    treat the instructions as text to continue and echo the prompt back. Leave off
+    for models that support a system role properly."""
     memory_path: str = "results/grower_memory.sqlite3"
     """Preferences, conflicts and conversation. Shared across runs by design."""
     consent_version: str = ""

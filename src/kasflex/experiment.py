@@ -108,7 +108,8 @@ def build_planner(name: str, config: ScenarioConfig) -> Planner:
         call_fn = None
         if config.llm_provider in PROVIDERS:
             call_fn = build_call_fn(config.llm_provider,
-                                    base_url=config.llm_base_url or None)
+                                    base_url=config.llm_base_url or None,
+                                    fold_system=config.llm_fold_system)
         return LlmPlanner(
             model=config.llm_model,
             call_fn=call_fn,
