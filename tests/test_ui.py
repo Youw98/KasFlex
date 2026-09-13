@@ -285,7 +285,8 @@ def _post(url: str, payload: dict) -> tuple[int, dict]:
 
 
 def test_the_page_and_its_assets_are_served(live):
-    for path, needle in (("/", b"KasFlex"), ("/style.css", b"--ink"), ("/app.js", b"api(")):
+    for path, needle in (("/", b"KasFlex"), ("/grower.css", b"--kf-forest"),
+                         ("/grower.js", b"api("), ("/mark.svg", b"<svg")):
         status, body = _get(live + path)
         assert status == 200, path
         assert needle in body, path

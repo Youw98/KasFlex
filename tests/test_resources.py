@@ -22,7 +22,7 @@ def test_not_frozen_when_running_from_source():
 def test_static_directory_holds_the_interface():
     static = resources.static_dir()
     assert static.is_dir()
-    for name in ("index.html", "style.css", "app.js"):
+    for name in ("index.html", "grower.html", "grower.css", "grower.js", "mark.svg"):
         assert (static / name).is_file(), f"{name} missing from {static}"
 
 
@@ -67,7 +67,7 @@ def test_absolute_outputs_are_left_alone(monkeypatch, tmp_path):
     assert resources.resolve_output(target) == target
 
 
-@pytest.mark.parametrize("name", ["index.html", "style.css", "app.js"])
+@pytest.mark.parametrize("name", ["index.html", "grower.html", "grower.css", "app.js"])
 def test_the_packaging_spec_ships_the_interface(name):
     """A spec that forgets the static files builds cleanly and serves a blank page."""
     spec = Path(__file__).resolve().parents[1] / "packaging" / "kasflex.spec"

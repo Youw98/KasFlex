@@ -208,9 +208,18 @@ def derive_actions(plan: list[dict[str, Any]], baseline: list[dict[str, Any]], *
         ]
 
     if saving_eur is not None and found:
-        share = round(float(saving_eur) / len(found), 2)
-        found = [Action(**{**asdict(a), "hours": a.hours, "saving_eur": share})
-                 for a in found]
+        # Weighted by how long each change holds, not split evenly. An even split
+        # showed five identical figures and read as five equally valuable changes,
+        # which is misleading. Hours are a crude weight and deliberately so:
+        # attributing a joint saving precisely would claim an accuracy the
+        # simulation does not have, which is why the whole-day figure stays the
+        # headline and these are only a share of it.
+        total_hours = sum(len(a.hours) for a in found)
+        found = [
+            Action(**{**asdict(a), "hours": a.hours,
+                      "saving_eur": round(float(saving_eur) * len(a.hours) / total_hours, 2)})
+            for a in found
+        ]
     return found
 
 

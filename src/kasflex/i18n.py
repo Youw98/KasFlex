@@ -323,6 +323,9 @@ CATALOG: dict[str, dict[str, str]] = {
     "results.heading": {"en": "Results", "nl": "Resultaten"},
     "results.none": {"en": "No finished days yet. Results appear once a plan has run.",
                      "nl": "Nog geen afgeronde dagen. Resultaten verschijnen zodra een plan is gedraaid."},
+    "results.from_current": {
+        "en": "This is the plan you are looking at now, not a finished day.",
+        "nl": "Dit is het plan dat u nu bekijkt, geen afgeronde dag."},
     "results.crop": {"en": "Crop outcome", "nl": "Gewasresultaat"},
     "results.temp": {"en": "Temperature target", "nl": "Temperatuurdoel"},
     "results.cost": {"en": "Energy cost", "nl": "Energiekosten"},

@@ -185,7 +185,7 @@ def test_unique_titles_stay_plain(baseline):
     assert derive_actions(plan, baseline, language="en")[0].title == "Run the CHP this evening"
 
 
-def test_a_saving_is_split_across_the_actions(baseline):
+def test_equal_length_changes_share_the_saving_equally(baseline):
     plan = [dict(r) for r in baseline]
     for h in range(1, 4):
         plan[h]["battery"] = "charge"
@@ -195,6 +195,22 @@ def test_a_saving_is_split_across_the_actions(baseline):
     actions = derive_actions(plan, baseline, saving_eur=300.0)
     assert len(actions) == 2
     assert all(a.saving_eur == 150.0 for a in actions)
+
+
+def test_a_longer_change_is_credited_with_more_of_the_saving(baseline):
+    """An even split showed identical figures beside changes of very different
+    size, which reads as five equally valuable suggestions."""
+    plan = [dict(r) for r in baseline]
+    plan[3]["battery"] = "charge"                     # 1 hour
+    for h in range(10, 19):
+        plan[h]["lighting_level"] = 0.6               # 9 hours
+
+    actions = derive_actions(plan, baseline, saving_eur=1000.0)
+    by_length = sorted(actions, key=lambda a: len(a.hours))
+
+    assert by_length[0].saving_eur == pytest.approx(100.0)
+    assert by_length[1].saving_eur == pytest.approx(900.0)
+    assert sum(a.saving_eur for a in actions) == pytest.approx(1000.0)
 
 
 def test_no_saving_given_leaves_it_unstated(baseline):

@@ -518,14 +518,34 @@ $("save-goals").addEventListener("click", () => {
 
 /* ------------------------------------------------------------ 4. Results */
 
-function renderResults() {
+/* "Did KasFlex help?" is a question about a finished day, so this reads the
+ * saved history rather than the plan currently on screen. Falls back to the
+ * current run only when nothing has been saved yet, and says which it is. */
+async function renderResults() {
   const root = $("results-body");
+  root.replaceChildren(el("p", { className: "muted", textContent: t("common.loading") }));
+
+  let run = null;
+  let fromHistory = false;
+  try {
+    const history = await api("/api/reviews");
+    const previous = (history.runs || []).find((entry) => entry.result
+      && entry.result.normal_settings);
+    if (previous) {
+      run = (await api(`/api/reviews/${previous.result.run_id}`)).result;
+      fromHistory = true;
+    }
+  } catch { /* fall through to the run on screen */ }
+  if (!run) run = state.run;
+
   root.replaceChildren();
-  const run = state.run;
   if (!run || !run.normal_settings) {
     root.append(el("p", { className: "muted", textContent: t("results.none") }));
     return;
   }
+  root.append(el("p", { className: "muted small", style: "margin-bottom:16px",
+                        textContent: fromHistory ? `${t("results.heading")}: ${run.date}`
+                                                 : t("results.from_current") }));
 
   const metrics = run.metrics || {};
   const normal = run.normal_settings;
