@@ -11,7 +11,6 @@ import pytest
 
 from kasflex import i18n
 
-
 # -- completeness -----------------------------------------------------------
 
 

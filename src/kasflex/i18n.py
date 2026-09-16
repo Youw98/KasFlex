@@ -292,15 +292,17 @@ CATALOG: dict[str, dict[str, str]] = {
                           "U kunt dit altijd wijzigen."},
     "goals.crop_first": {"en": "Protect crop above everything",
                          "nl": "Gewas boven alles beschermen"},
-    "goals.crop_first.note": {"en": "Keep the crop in ideal conditions, even if energy costs are high.",
-                              "nl": "Houd het gewas in ideale omstandigheden, ook als de energie duur is."},
+    "goals.crop_first.note": {
+        "en": "Keep the crop in ideal conditions, even if energy costs are high.",
+        "nl": "Houd het gewas in ideale omstandigheden, ook als de energie duur is."},
     "goals.balance": {"en": "Balance crop and energy cost",
                       "nl": "Gewas en energiekosten in balans"},
     "goals.balance.note": {"en": "Keep the crop healthy while actively managing energy costs.",
                            "nl": "Houd het gewas gezond en stuur tegelijk op de energiekosten."},
     "goals.cost_first": {"en": "Minimise energy cost", "nl": "Energiekosten zo laag mogelijk"},
-    "goals.cost_first.note": {"en": "Focus on the lowest possible energy cost, while staying within crop limits.",
-                              "nl": "Richt op de laagst mogelijke energiekosten, binnen de gewasgrenzen."},
+    "goals.cost_first.note": {
+        "en": "Focus on the lowest possible energy cost, while staying within crop limits.",
+        "nl": "Richt op de laagst mogelijke energiekosten, binnen de gewasgrenzen."},
     "goals.limits": {"en": "My crop limits", "nl": "Mijn gewasgrenzen"},
     "goals.temp": {"en": "Temperature", "nl": "Temperatuur"},
     "goals.light": {"en": "Minimum light", "nl": "Minimaal licht"},
@@ -322,7 +324,8 @@ CATALOG: dict[str, dict[str, str]] = {
     # -- Results -------------------------------------------------------------
     "results.heading": {"en": "Results", "nl": "Resultaten"},
     "results.none": {"en": "No finished days yet. Results appear once a plan has run.",
-                     "nl": "Nog geen afgeronde dagen. Resultaten verschijnen zodra een plan is gedraaid."},
+                     "nl": "Nog geen afgeronde dagen. Resultaten verschijnen zodra een plan "
+                           "is gedraaid."},
     "results.from_current": {
         "en": "This is the plan you are looking at now, not a finished day.",
         "nl": "Dit is het plan dat u nu bekijkt, geen afgeronde dag."},
@@ -408,7 +411,8 @@ CATALOG: dict[str, dict[str, str]] = {
         "en": "Nothing needs to change. Your normal settings already suit tomorrow.",
         "nl": "Er hoeft niets te veranderen. Uw normale instellingen passen al bij morgen."},
     "actions.count": {"en": "{n} suggested changes to save energy while keeping your crop healthy.",
-                      "nl": "{n} voorgestelde wijzigingen om energie te besparen en uw gewas gezond te houden."},
+                      "nl": "{n} voorgestelde wijzigingen om energie te besparen en uw "
+                            "gewas gezond te houden."},
     "action.lighting.down": {"en": "Dim lighting to {percent}% {when}",
                              "nl": "Lampen naar {percent}% {when}"},
     "action.lighting.down.why": {"en": "Enough light for the crop, lower energy use.",

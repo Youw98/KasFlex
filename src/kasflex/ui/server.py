@@ -51,7 +51,13 @@ from kasflex.conversation import (
 from kasflex.fair import DatasetMetadata, build_bundle, conflict_table, to_csv
 from kasflex.forecast.cost import project_cost
 from kasflex.intent import IntentSchemaError, IntervalIntent, Plan
-from kasflex.llm_providers import PROVIDERS, LlmError, build_call_fn, check_provider, provider_status
+from kasflex.llm_providers import (
+    PROVIDERS,
+    LlmError,
+    build_call_fn,
+    check_provider,
+    provider_status,
+)
 from kasflex.memory import STRENGTHS, GrowerMemory
 from kasflex.oversight import AuditLog
 from kasflex.profiles import ProfileStore

@@ -7,6 +7,8 @@ say. Wording is template-driven rather than generated, so it can be asserted.
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from kasflex.actions import MAX_ACTIONS, Action, derive_actions, summarise
@@ -296,5 +298,5 @@ def test_action_is_frozen():
     action = Action(action_id="a", kind="lighting", title="t", why="w",
                     status="safe", hours=(1,), field_name="lighting_level",
                     baseline_value="1.0", planned_value="0.7")
-    with pytest.raises(Exception):
+    with pytest.raises(dataclasses.FrozenInstanceError):
         action.title = "changed"  # type: ignore[misc]

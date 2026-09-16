@@ -51,7 +51,7 @@ def test_a_saved_setup_comes_back(store, settings):
 
 
 def test_setups_list_most_recent_first(store, settings):
-    first = store.create("First", settings)
+    store.create("First", settings)
     second = store.create("Second", settings)
     second.notes = "touched"
     store.save(second)

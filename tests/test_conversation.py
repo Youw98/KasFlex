@@ -246,7 +246,8 @@ def test_extract_preference_returns_something_confirmable():
 
 def test_extract_preference_survives_prose_around_the_json():
     reply = ('Sure! Here is the rule:\n```json\n'
-             '{"rule": "Keep lights off after 20:00", "strength": "preference"}\n```\nHope that helps.')
+             '{"rule": "Keep lights off after 20:00", "strength": "preference"}\n'
+             '```\nHope that helps.')
     result = conv.extract_preference(scripted(reply), "m", "lights bother the neighbours")
     assert result["rule"] == "Keep lights off after 20:00"
 

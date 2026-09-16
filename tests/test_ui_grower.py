@@ -656,7 +656,8 @@ def test_a_changed_consent_version_asks_again(study_server):
         "scopes": {"research": True}})
     status = get(study_server, "/api/consent?participant_id=grower-1")
 
-    assert status["needs_consent"] is True, "agreeing to an earlier text is not agreeing to this one"
+    assert status["needs_consent"] is True, (
+        "agreeing to an earlier text is not agreeing to this one")
 
 
 def test_withdrawing_an_unknown_participant_is_a_404(study_server):
