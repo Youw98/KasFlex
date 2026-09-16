@@ -99,10 +99,10 @@ def test_experiment_writes_records_and_prints_the_table(tmp_path, capsys):
     assert out.exists()
 
 
-def test_cache_data_source_is_refused_until_wired_up(tmp_path):
-    """Better an explicit refusal than silently falling back to synthetic data."""
+def test_cache_data_source_needs_fetched_data(tmp_path):
+    """Cache mode exits clearly when no data has been downloaded yet."""
     config = Path(CONFIG).read_text().replace("data_source: synthetic", "data_source: cache")
     path = tmp_path / "cache.yaml"
     path.write_text(config)
-    with pytest.raises(SystemExit, match="not wired up"):
+    with pytest.raises(SystemExit, match="not available"):
         main(["run", "--config", str(path), "--quiet"])

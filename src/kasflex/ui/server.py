@@ -23,18 +23,24 @@ from __future__ import annotations
 import dataclasses
 import json
 import mimetypes
+import os
 import threading
 import time
 import traceback
 from dataclasses import dataclass, field
+from datetime import date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
+from urllib.parse import urlsplit
 
+from kasflex.api_connections import ApiConnections
 from kasflex.checker.rules import SafetyChecker
 from kasflex.config import ConfigError, ScenarioConfig
+from kasflex.forecast.cost import project_cost
 from kasflex.intent import IntentSchemaError, IntervalIntent, Plan
 from kasflex.oversight import AuditLog
 from kasflex.resources import resolve_output, static_dir
+from kasflex.ui.reviews import ReviewConflict, ReviewStore
 
 STATIC_DIR = static_dir()
 
@@ -52,6 +58,16 @@ _FAVICON = (
 #: ``(path, label, kind, minimum, maximum, step, help)`` where ``path`` is a
 #: dotted path into the scenario config.
 ADJUSTABLE: tuple[dict[str, Any], ...] = (
+    {"path": "data_source", "label": "Data mode", "kind": "choice",
+     "choices": ["synthetic", "cache"],
+     "help": "Demo uses generated inputs. Real data reads downloaded prices and weather."},
+    {"path": "latitude", "label": "Latitude", "kind": "number",
+     "min": -90, "max": 90, "step": 0.001},
+    {"path": "longitude", "label": "Longitude", "kind": "number",
+     "min": -180, "max": 180, "step": 0.001},
+    {"path": "gas_price_eur_kwh", "label": "Gas price assumption", "kind": "number",
+     "min": 0, "max": 10, "step": 0.001, "unit": "€/kWh",
+     "help": "Enter your gas energy price. This is a manual assumption, not a live TTF quote."},
     {"path": "planner", "label": "Planner", "kind": "choice",
      "choices": ["rule-based", "learned", "naive", "llm", "mpc"],
      "help": "Which planner proposes the day. 'learned' forecasts demand and optimises."},
@@ -233,11 +249,41 @@ def _apply_overrides(config: ScenarioConfig, overrides: dict[str, Any]) -> Scena
 def _day_for(config: ScenarioConfig):
     from kasflex.data.synthetic import synthetic_day
 
-    return synthetic_day(
+    try:
+        target = date.fromisoformat(config.date)
+    except ValueError as exc:
+        raise ApiError("Choose a valid date in Configuration.") from exc
+    if config.data_source == "cache":
+        from types import SimpleNamespace
+
+        from kasflex.data.pipeline import ensure_day
+        from kasflex.data.sources import FetchError
+
+        try:
+            data = ensure_day(target, latitude=config.latitude, longitude=config.longitude,
+                              gas_price_eur_kwh=config.gas_price_eur_kwh,
+                              entsoe_zone=config.entsoe_zone, allow_network=False)
+        except (FetchError, ValueError, KeyError, OSError) as exc:
+            raise ApiError(f"Real data is not ready for {config.date}. "
+                           "Open Configuration → Data sources and check availability. "
+                           f"Details: {exc}") from exc
+        forecast, actual = data.conditions()
+        return SimpleNamespace(forecast=forecast, actual=actual,
+                               actuals_available=data.actuals_available, sources=data.sources)
+    if config.data_source != "synthetic":
+        raise ApiError("Choose Demo or Downloaded real data in Configuration.")
+    day = synthetic_day(
         config.date,
         seed=config.seed,
         floor_area_m2=config.hub.floor_area_m2,
         winter=config.winter,
+    )
+    return dataclasses.replace(
+        day,
+        forecast=tuple(dataclasses.replace(c, gas_price_eur_kwh=config.gas_price_eur_kwh)
+                       for c in day.forecast),
+        actual=tuple(dataclasses.replace(c, gas_price_eur_kwh=config.gas_price_eur_kwh)
+                     for c in day.actual),
     )
 
 
@@ -285,10 +331,14 @@ class UiServer:
     config_path: str = "configs/scenario_westland_winter.yaml"
     anonymous: bool = False
     base: ScenarioConfig = field(init=False)
+    connections: ApiConnections = field(init=False)
+    reviews: ReviewStore = field(init=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.base = ScenarioConfig.from_yaml(self.config_path)
+        self.connections = ApiConnections(resolve_output(".env"))
+        self.reviews = ReviewStore(resolve_output("results/reviews.sqlite3"))
 
     # -- endpoints ---------------------------------------------------------
 
@@ -303,7 +353,59 @@ class UiServer:
             "scenario": self.base.name,
             "config_path": self.config_path,
             "fields": fields,
+            "entsoe_configured": bool(os.environ.get("ENTSOE_API_KEY")),
         }
+
+    def data_status(self, overrides: dict[str, Any], download: bool = False) -> dict[str, Any]:
+        """Check local coverage or explicitly acquire data; never silently substitute demo data."""
+        from kasflex.data.cache import DataCache
+        from kasflex.data.pipeline import ensure_day
+        from kasflex.data.sources import FetchError
+
+        config = _apply_overrides(self.base, overrides)
+        try:
+            target = date.fromisoformat(config.date)
+        except ValueError as exc:
+            raise ApiError("Choose a valid date in Configuration.") from exc
+        cache = DataCache()
+        site = f"{config.latitude:.3f}_{config.longitude:.3f}"
+        keys = {"Electricity prices": f"entsoe_da_{config.date}",
+                "Weather forecast": f"weather_forecast_{config.date}_{site}",
+                "Weather reanalysis": f"weather_actual_{config.date}_{site}"}
+        message = ""
+        if download:
+            if target < date.today():
+                raise ApiError("Downloading archived forecasts is not available here yet. "
+                               "Choose today or tomorrow, or use an existing historical cache. "
+                               "Historical observations cannot replace a forecast.")
+            try:
+                ensure_day(target, cache=cache, latitude=config.latitude,
+                           longitude=config.longitude, gas_price_eur_kwh=config.gas_price_eur_kwh,
+                           entsoe_zone=config.entsoe_zone, allow_network=True, want_actuals=False)
+                message = "Prices and forecast downloaded. Runs can now use this day offline."
+            except (FetchError, ValueError, OSError):
+                # Never return a transport exception containing a credential-bearing URL.
+                message = ("Download incomplete. Check your server's ENTSOE_API_KEY, network "
+                           "connection, and whether prices for this date have been published. "
+                           "Any completed downloads remain cached.")
+        entries = cache.entries()
+        rows = []
+        for label, key in keys.items():
+            valid = False
+            if cache.has(key):
+                try:
+                    values = cache.get(key)
+                    hours = sorted(int(r["hour"]) for r in values)
+                    valid = len(values) == 24 and hours == list(range(24))
+                except (ValueError, KeyError, OSError):
+                    valid = False
+            entry = entries.get(key)
+            rows.append({"label": label, "ready": valid,
+                         "retrieved_on": entry.retrieved_on if entry else None,
+                         "source": entry.source if entry else None})
+        return {"date": config.date, "ready": all(r["ready"] for r in rows[:2]),
+                "actuals_available": rows[2]["ready"], "series": rows,
+                "entsoe_configured": bool(os.environ.get("ENTSOE_API_KEY")), "message": message}
 
     def run(self, overrides: dict[str, Any]) -> dict[str, Any]:
         """Run one scenario and return everything the page needs to show it."""
@@ -333,14 +435,16 @@ class UiServer:
                 audit_log=AuditLog(resolve_output(config.audit_path), anonymous=self.anonymous),
                 brief=config.brief,
                 seed=config.seed,
-                provenance={"data_source": config.data_source, "via": "ui"},
+                provenance={"data_source": config.data_source, "via": "ui",
+                            "actuals_available": getattr(day, "actuals_available", False),
+                            "series": getattr(day, "sources", {})},
             )
         except NotImplementedError as exc:
             raise ApiError(str(exc), status=501) from exc
 
         conditions, _ = _conditions_for(config, greenhouse, day.forecast)
         hard = result.realised_hard_violations
-        return {
+        response = {
             "date": result.date,
             "planner": result.planner,
             "greenhouse_model": result.greenhouse_model,
@@ -354,12 +458,22 @@ class UiServer:
             "realised_hard": hard,
             "realised_projected": len(result.realised_violations) - hard,
             "metrics": result.metrics,
+            "cost_forecast": project_cost(result.plan, config.hub, day.forecast, greenhouse),
             "plan": _plan_payload(result.plan, conditions),
             "elapsed_s": round(time.time() - started, 2),
             "overrides": overrides,
+            "data_source": config.data_source,
+            "actuals_available": getattr(day, "actuals_available", False),
+            "series_origin": getattr(day, "sources", {}),
         }
+        snapshot = {"config": dataclasses.asdict(config),
+                    "forecast": [dataclasses.asdict(c) for c in day.forecast],
+                    "actual": [dataclasses.asdict(c) for c in day.actual]}
+        response["configuration"] = {f["path"]: _get_path(config, f["path"]) for f in ADJUSTABLE}
+        return self.reviews.create(snapshot, response)
 
-    def verify(self, overrides: dict[str, Any], plan_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    def verify(self, overrides: dict[str, Any], plan_rows: list[dict[str, Any]],
+               reference: dict | None = None) -> dict[str, Any]:
         """Re-verify a plan a person has edited (R23).
 
         An edit is never accepted on the strength of having been made by a human.
@@ -367,7 +481,9 @@ class UiServer:
         """
         from kasflex.experiment import build_greenhouse
 
-        config = _apply_overrides(self.base, overrides)
+        snapshot, previous = self.reviews.current(reference) if reference else (None, None)
+        config = (ScenarioConfig.from_dict(snapshot["config"]) if snapshot
+                  else _apply_overrides(self.base, overrides))
         # The rows sent back carry the display-only columns this server added when
         # it rendered the plan (price, heat demand). The intent schema rightly
         # rejects unknown fields, so strip them here rather than loosening the
@@ -382,39 +498,63 @@ class UiServer:
         except IntentSchemaError as exc:
             raise ApiError(f"edited plan is not valid: {exc}") from exc
 
-        day = _day_for(config)
+        if snapshot:
+            from kasflex.energy.dispatch import HourlyConditions
+
+            forecast = tuple(HourlyConditions(**row) for row in snapshot["forecast"])
+        else:
+            forecast = _day_for(config).forecast
         greenhouse = build_greenhouse(config.greenhouse, config)
-        conditions, outcome = _conditions_for(config, greenhouse, day.forecast)
-        verdict = SafetyChecker(config.hub, config.checker).verify(
+        conditions, outcome = _conditions_for(config, greenhouse, forecast)
+        verification_config = dataclasses.replace(config.checker, enabled=True)
+        verdict = SafetyChecker(config.hub, verification_config).verify(
             plan, conditions, outcome.projection()
         )
 
         from kasflex.energy.dispatch import dispatch_plan
 
         dispatch = dispatch_plan(plan, config.hub, list(conditions))
-        return {
+        response = {
             "accepted": verdict.accepted,
+            "checker_enabled": True,
+            "verification_config": dataclasses.asdict(verification_config),
             "feedback": verdict.feedback(explain=config.checker.explain),
             "violations": [v.to_dict() for v in verdict.violations],
             "metrics": dispatch.summary(),
+            "cost_forecast": project_cost(plan, config.hub, forecast, greenhouse),
         }
+        if reference:
+            # Restore all display-only inputs from the frozen server snapshot.
+            response = {**previous, **response, "plan": _plan_payload(plan, conditions),
+                        "planner": "human-edited", "realised_hard": None,
+                        "realised_projected": None, "edited_preview": True,
+                        "fell_back": False, "revisions_used": 0}
+            return self.reviews.revise(reference, response)
+        # Direct callers can inspect a detached plan; only saved revisions can be approved.
+        return response
 
     def decide(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Record a human decision in the append-only log (R25, R26)."""
         decision = str(payload.get("decision", "")).lower()
         if decision not in {"approve", "reject", "edit"}:
             raise ApiError("decision must be approve, reject or edit")
-        AuditLog(resolve_output(self.base.audit_path), anonymous=self.anonymous).append(
-            "human_decision_ui",
-            {
-                "decision": decision,
-                "comment": str(payload.get("comment", ""))[:2000],
-                "seconds_to_decide": payload.get("seconds_to_decide"),
-                "overrides": payload.get("overrides", {}),
-            },
-            operator=str(payload.get("operator", "")),
-        )
-        return {"recorded": True, "decision": decision, "anonymous": self.anonymous}
+        snapshot, _ = self.reviews.current(payload)
+        # Interaction timing is optional research data, not a condition of using the app.
+        consent = payload.get("research_consent") is True
+        duration = payload.get("seconds_to_decide") if consent else None
+        if duration is not None and (not isinstance(duration, (int, float))
+                                     or not 0 <= duration <= 86400):
+            raise ApiError("Review duration must be between zero and 24 hours.")
+        saved = self.reviews.decide(payload, {
+            "decision": decision, "comment": str(payload.get("comment", ""))[:2000],
+            "seconds_to_decide": duration, "research_consent": consent,
+            "operator": "anonymous" if self.anonymous else str(payload.get("operator", "")),
+        })
+        if not saved["duplicate"]:
+            AuditLog(resolve_output(snapshot["config"]["audit_path"]),
+                     anonymous=self.anonymous).append("human_decision_ui", saved,
+                                                     operator=saved["operator"])
+        return {"recorded": True, "anonymous": self.anonymous, **saved}
 
     def compare(self, overrides: dict[str, Any], planners: list[str]) -> dict[str, Any]:
         """Run several planners on the identical scenario (R29)."""
@@ -448,7 +588,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A002
         """Quieter than the default, which prints a line per asset request."""
-        if "api" in (args[0] if args else ""):
+        if args and "api" in str(args[0]):
             super().log_message(fmt, *args)
 
     # -- plumbing ----------------------------------------------------------
@@ -489,7 +629,13 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         try:
-            if self.path.startswith("/api/settings"):
+            if self.path == "/api/connections":
+                self._json(self.ui.connections.status())
+            elif self.path == "/api/reviews":
+                self._json({"runs": self.ui.reviews.history()})
+            elif self.path.startswith("/api/reviews/"):
+                self._json(self.ui.reviews.get(self.path.removeprefix("/api/reviews/")))
+            elif self.path.startswith("/api/settings"):
                 self._json(self.ui.get_settings())
             elif self.path.startswith("/favicon.ico"):
                 # Answer rather than 404: a browser asks for this unprompted, and a
@@ -497,6 +643,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(200, _FAVICON, "image/svg+xml")
             else:
                 self._static(self.path.split("?")[0])
+        except ReviewConflict as exc:
+            self._json({"error": str(exc)}, 409)
         except ApiError as exc:
             self._json({"error": str(exc)}, exc.status)
         except Exception as exc:  # noqa: BLE001
@@ -505,12 +653,42 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         try:
+            if self.path == "/api/connections":
+                # Require a same-origin JSON request before accepting local credentials.
+                origin = self.headers.get("Origin")
+                if origin and urlsplit(origin).netloc != self.headers.get("Host"):
+                    raise ApiError("API keys can only be saved from this local workspace.", 403)
+                if self.headers.get("Sec-Fetch-Site") == "cross-site":
+                    raise ApiError("API keys can only be saved from this local workspace.", 403)
+                if self.headers.get_content_type() != "application/json":
+                    raise ApiError("Use a JSON request to save an API key.", 415)
+                if int(self.headers.get("Content-Length") or 0) > 8192:
+                    raise ApiError("API key request is too large.", 413)
             body = self._body()
             overrides = body.get("overrides", {})
-            if self.path.startswith("/api/run"):
+            if self.path == "/api/connections":
+                try:
+                    with self.ui._lock:
+                        result = self.ui.connections.save(body.get("provider", ""),
+                                                          body.get("api_key", ""),
+                                                          remove=body.get("remove") is True)
+                except ValueError as exc:
+                    raise ApiError(str(exc)) from exc
+                except OSError as exc:
+                    raise ApiError("Could not save the local .env file. "
+                                   "Check folder permissions.") from exc
+                self._json(result)
+            elif self.path.startswith("/api/run"):
                 self._json(self.ui.run(overrides))
+            elif self.path == "/api/data-status":
+                self._json(self.ui.data_status(overrides))
+            elif self.path == "/api/data-download":
+                with self.ui._lock:
+                    self._json(self.ui.data_status(overrides, download=True))
             elif self.path.startswith("/api/verify"):
-                self._json(self.ui.verify(overrides, body.get("plan", [])))
+                if not all(k in body for k in ("run_id", "revision", "plan_hash")):
+                    raise ApiError("Generate or reopen a saved plan before verifying edits.", 409)
+                self._json(self.ui.verify(overrides, body.get("plan", []), reference=body))
             elif self.path.startswith("/api/decision"):
                 self._json(self.ui.decide(body))
             elif self.path.startswith("/api/compare"):
@@ -520,6 +698,8 @@ class _Handler(BaseHTTPRequestHandler):
                 ))
             else:
                 self._json({"error": f"no such endpoint: {self.path}"}, 404)
+        except ReviewConflict as exc:
+            self._json({"error": str(exc)}, 409)
         except ApiError as exc:
             self._json({"error": str(exc)}, exc.status)
         except Exception as exc:  # noqa: BLE001

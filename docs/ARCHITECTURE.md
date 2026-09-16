@@ -190,6 +190,7 @@ table would measure nothing.
 
 | Module | Responsibility |
 |---|---|
+| `kasflex.api_connections` | Local .env credential loading and persistence; status-only API responses |
 | `kasflex.intent` | The intent schema. Parses and validates planner output. |
 | `kasflex.checker.rules` | The named, individually switchable checks. |
 | `kasflex.checker.verdict` | Machine-readable rejections and planner feedback. |

@@ -202,7 +202,9 @@ def test_a_decision_is_recorded(tmp_path):
     server.base = type(server.base)(
         **{**server.base.__dict__, "audit_path": str(tmp_path / "audit.jsonl")}
     )
-    server.decide({"decision": "approve", "comment": "looks right",
+    saved = server.run({})
+    server.decide({**saved, "decision": "approve", "comment": "looks right",
+                   "research_consent": True,
                    "seconds_to_decide": 12.5, "operator": "grower-1"})
 
     from kasflex.oversight import AuditLog
@@ -219,7 +221,7 @@ def test_anonymous_mode_withholds_the_operator(tmp_path):
     server.base = type(server.base)(
         **{**server.base.__dict__, "audit_path": str(tmp_path / "a.jsonl")}
     )
-    server.decide({"decision": "reject", "operator": "grower-1"})
+    server.decide({**server.run({}), "decision": "reject", "operator": "grower-1"})
 
     from kasflex.oversight import AuditLog
 

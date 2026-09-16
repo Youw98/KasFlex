@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import math
 import os
 from dataclasses import dataclass, field
 from datetime import date as Date
@@ -105,7 +106,15 @@ def _column(rows: list[dict[str, Any]], name: str) -> tuple[float, ...]:
     ordered = sorted(rows, key=lambda r: int(r["hour"]))
     if len(ordered) != HOURS:
         raise FetchError(f"expected {HOURS} rows for column {name!r}, got {len(ordered)}")
-    return tuple(float(r[name]) for r in ordered)
+    if [int(r["hour"]) for r in ordered] != list(range(HOURS)):
+        raise FetchError(f"{name}: every hour from 0 to 23 must occur exactly once")
+    try:
+        values = tuple(float(r[name]) for r in ordered)
+    except (TypeError, ValueError, KeyError) as exc:
+        raise FetchError(f"{name}: missing or non-numeric values") from exc
+    if not all(math.isfinite(v) for v in values):
+        raise FetchError(f"{name}: non-finite values are not usable")
+    return values
 
 
 def _cached_or_fetch(
