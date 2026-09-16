@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KasFlex setup</title>
+<link rel="stylesheet" href="/grower.css">
+<style>
+  main { max-width: 980px; }
+  .setup-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+  .setup-head h1 { font-size: 28px; }
+  .group { margin-bottom: 10px; }
+  .group > summary { cursor: pointer; font-weight: 650; padding: 14px 0; display: flex; align-items: center; gap: 10px; }
+  .group > summary .count { color: var(--ink-muted); font-weight: 500; font-size: 16px; }
+  .setting { display: grid; grid-template-columns: 1fr 260px; gap: 16px; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
+  @media (max-width: 640px) { .setting { grid-template-columns: 1fr; } }
+  .setting .label { font-weight: 600; }
+  .setting .path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; color: var(--ink-muted); }
+  .setting .help { color: var(--ink-soft); font-size: 16px; margin-top: 3px; }
+  .setting input, .setting select, .setting textarea { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--line-strong); min-height: 44px; background: var(--paper); color: var(--ink); }
+  .setting input[type="checkbox"] { width: 22px; height: 22px; min-height: 0; accent-color: var(--brand); }
+  .setting.changed { background: var(--warn-soft); }
+  .setting.changed .label::after { content: " •"; color: var(--warn); }
+  .researcher-only { display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 999px; background: var(--info-soft); color: var(--info); font-size: 16px; font-weight: 650; vertical-align: middle; }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .metric { padding: 14px; border: 2px solid var(--line-strong); border-radius: var(--radius); }
+  .metric .n { font-size: 27px; font-weight: 700; }
+  .metric .k { font-size: 16px; color: var(--ink-soft); }
+  .metric .k small { display: block; color: var(--ink-muted); font-weight: 400; }
+  .bar { position: sticky; bottom: 0; background: rgba(255,255,255,.96); backdrop-filter: blur(10px); border-top: 1px solid var(--line); padding: 14px var(--pad); display: flex; gap: 12px; align-items: center; justify-content: flex-end; }
+  .bar .status { margin-right: auto; color: var(--ink-soft); font-size: 16px; }
+  table.people { width: 100%; border-collapse: collapse; font-size: 16px; }
+  table.people th { text-align: left; padding: 9px 8px; border-bottom: 2px solid var(--line-strong); font-size: 16px; color: var(--ink-soft); text-transform: uppercase; }
+  table.people td { padding: 9px 8px; border-bottom: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="topbar">
+  <div class="identity">
+    <img src="/mark.svg" alt="" width="40" height="40">
+    <span>
+      <b>KasFlex setup</b>
+      <small>Researcher configuration</small>
+    </span>
+  </div>
+
+  <div id="sim-notice" class="sim-badge" role="note">
+    <b>Simulation.</b>
+    <span>No equipment is connected. Not validated for operational use.</span>
+  </div>
+
+  <div class="context">
+    <a href="/">Grower view</a> &nbsp; <a href="/advanced">Research workspace</a>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <div id="error" class="error" role="alert" hidden></div>
+
+  <div class="setup-head">
+    <h1>Setup</h1>
+    <span class="muted small">Everything the study can vary. Growers never see this page.</span>
+  </div>
+
+  <section class="card">
+    <h2 style="margin-bottom:6px">Study</h2>
+    <p class="muted small" style="margin-bottom:16px">
+      Leave the consent text version empty and no study is running: nothing is
+      gated and nothing is recorded against a participant. Fill it in and consent
+      becomes required before anything reaches the research stores — and is asked
+      again whenever this string changes.
+    </p>
+    <div id="study-settings"></div>
+    <div id="consent-state" class="stack" style="margin-top:18px"></div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-bottom:6px">Participants</h2>
+    <p class="muted small" style="margin-bottom:14px">
+      Withdrawing erases that participant's recorded data. The consent record itself
+      is kept, marked erased.
+    </p>
+    <div id="people"></div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-bottom:6px">Reliance</h2>
+    <p class="muted small" style="margin-bottom:14px">
+      Rates read <em>none</em> rather than zero when no such occasion arose. An
+      unscored decision is not counted either way.
+    </p>
+    <div style="margin-bottom:14px">
+      <label for="condition-filter" class="small muted">Condition</label>
+      <input id="condition-filter" type="text" placeholder="all conditions"
+             style="font:inherit;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);min-height:44px;margin-left:8px">
+    </div>
+    <div id="reliance" class="metrics"></div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-bottom:16px">All settings</h2>
+    <div id="settings"></div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-bottom:14px">Export</h2>
+    <div class="button-row">
+      <a href="/api/export/fair" download="kasflex-study.json"><button type="button">Research bundle (JSON-LD)</button></a>
+      <a href="/api/export/fair?format=csv" download="kasflex-conflicts.csv"><button type="button">Disagreements (CSV)</button></a>
+    </div>
+  </section>
+</main>
+
+<div class="bar">
+  <span id="status" class="status" role="status"></span>
+  <button id="reset" type="button">Discard changes</button>
+  <button id="apply" class="primary" type="button" disabled>Apply to next run</button>
+</div>
+
+<script src="/setup.js"></script>
+</body></html>

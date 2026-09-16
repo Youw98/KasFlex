@@ -62,7 +62,33 @@ class ScenarioConfig:
     data_source: str = "synthetic"
     """``synthetic`` or ``cache``. Never a live API call at run time (R30)."""
     winter: bool = True
+    language: str = "en"
+    """``en`` or ``nl``. Sets the interface and the language the model explains in."""
+    llm_provider: str = "anthropic"
+    """Which model vendor answers. See :mod:`kasflex.llm_providers`."""
     llm_model: str = "claude-opus-5"
+    llm_base_url: str = ""
+    """Override for a self-hosted or proxied endpoint. Empty uses the vendor default."""
+    llm_fold_system: bool = False
+    """Send the system prompt inside the user turn rather than as its own message.
+
+    Needed by local models whose chat template has no system slot -- they otherwise
+    treat the instructions as text to continue and echo the prompt back. Leave off
+    for models that support a system role properly."""
+    memory_path: str = "results/grower_memory.sqlite3"
+    """Preferences, conflicts and conversation. Shared across runs by design."""
+    consent_version: str = ""
+    """Identifier of the ethics-approved consent text in force.
+
+    Empty means no study is running and nothing is gated -- the ordinary case of
+    one person using the tool on their own machine. Set it and consent becomes
+    required before anything reaches the research stores, and is re-asked whenever
+    this string changes."""
+    participant_id: str = ""
+    """Pseudonymous identifier for the person at the keyboard, when a study is
+    running. Never a name."""
+    condition: str = ""
+    """Experiment condition this session is assigned to."""
     latitude: float = 51.99
     longitude: float = 4.25
     """Site location for the weather request. Defaults to Westland, the Dutch

@@ -30,6 +30,7 @@ Design constraints, in the order they mattered:
 from __future__ import annotations
 
 import json
+import math
 import time
 import urllib.error
 import urllib.parse
@@ -355,11 +356,15 @@ def parse_openmeteo_hourly(payload: str | dict[str, Any], day: Date) -> list[dic
         if not str(stamp).startswith(wanted):
             continue
         hour = int(str(stamp)[11:13])
+        if temp is None or rad is None:
+            raise FetchError(f"Open-Meteo has missing weather at {stamp}; download a complete day")
+        if not math.isfinite(float(temp)) or not math.isfinite(float(rad)):
+            raise FetchError(f"Open-Meteo has non-finite weather at {stamp}")
         rows.append(
             {
                 "hour": hour,
-                "outdoor_temp_c": float(temp) if temp is not None else 0.0,
-                "irradiance_w_m2": max(0.0, float(rad)) if rad is not None else 0.0,
+                "outdoor_temp_c": float(temp),
+                "irradiance_w_m2": max(0.0, float(rad)),
             }
         )
 

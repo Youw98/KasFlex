@@ -99,9 +99,20 @@ def build_planner(name: str, config: ScenarioConfig) -> Planner:
         return LearnedPlanner(history=history)
     if name == "llm":
         from kasflex.controllers.llm import LlmPlanner, TraceStore  # noqa: PLC0415
+        from kasflex.llm_providers import PROVIDERS, build_call_fn  # noqa: PLC0415
 
+        # A recorded trace is served without any transport, so a reviewer can
+        # reproduce a published figure with no account and no network. The
+        # transport is built anyway, for the runs that have not been recorded yet;
+        # it only reaches the network when the trace store misses.
+        call_fn = None
+        if config.llm_provider in PROVIDERS:
+            call_fn = build_call_fn(config.llm_provider,
+                                    base_url=config.llm_base_url or None,
+                                    fold_system=config.llm_fold_system)
         return LlmPlanner(
             model=config.llm_model,
+            call_fn=call_fn,
             traces=TraceStore(resolve_output(config.trace_path)),
         )
     raise ValueError(
