@@ -174,7 +174,11 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
      "min": 1, "max": 12, "step": 1, "unit": "h"},
 
     {"path": "hub.buffer.capacity_kwh", "label": "Heat buffer", "kind": "number",
-     "min": 0, "max": 40000, "step": 500, "unit": "kWh"},
+     # The default is 43 600 kWh (1 500 m3 for 5 ha over a 25 K swing -- see the
+     # README's sourced numbers). A ceiling below that makes the form invalid on
+     # load, which silently blocks "Generate daily plan" rather than showing an
+     # error. 200 000 covers the 20 ha maximum site at the same kWh-per-hectare.
+     "min": 0, "max": 200000, "step": 500, "unit": "kWh"},
     {"path": "hub.crop.dli_target_mol_m2", "label": "Light target", "kind": "number",
      "min": 0, "max": 30, "step": 0.5, "unit": "mol/m2",
      "help": "Supplemental daily light integral the crop needs."},
