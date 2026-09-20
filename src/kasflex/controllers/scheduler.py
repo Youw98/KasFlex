@@ -68,7 +68,12 @@ class ScheduleScore:
     peak_import_kw: float = 0.0
     buffer_discharge_kwh: float = 0.0
 
-    def objective(self, mode: str = "balanced", *, prefer_stored_heat: bool = False) -> tuple[float, ...]:
+    def objective(
+        self,
+        mode: str = "balanced",
+        *,
+        prefer_stored_heat: bool = False,
+    ) -> tuple[float, ...]:
         """Return the optimisation objective for a grower-selected priority."""
         if not self.feasible:
             return (10**9, INFEASIBLE, INFEASIBLE)
@@ -309,7 +314,10 @@ class OptimizingScheduler:
                         return best
                     score = self._score(candidate, hub, conditions, self.margin_used)
                     if _better(
-                        score.objective(self.objective_mode, prefer_stored_heat=self.prefer_stored_heat),
+                        score.objective(
+                            self.objective_mode,
+                            prefer_stored_heat=self.prefer_stored_heat,
+                        ),
                         best_score.objective(
                             self.objective_mode, prefer_stored_heat=self.prefer_stored_heat
                         ),
