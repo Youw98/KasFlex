@@ -360,7 +360,19 @@ function renderDimensions() {
       choices.append(label);
     }
 
-    card.append(top, evidence, choices);
+    const reason = document.createElement("input");
+    reason.type = "text";
+    reason.className = "dimension-reason";
+    reason.placeholder = state.lang === "nl" ? "Optioneel: waarom?" : "Optional: why?";
+    reason.value = saved.reason || "";
+    reason.addEventListener("input", () => {
+      state.dimensions[dimension] = {
+        ...(state.dimensions[dimension] || {}),
+        reason: reason.value,
+      };
+    });
+
+    card.append(top, evidence, choices, reason);
 
     if (saved.counter) {
       const counter = document.createElement("div");
@@ -403,6 +415,7 @@ async function respondDimension(dimension, response) {
     detail_expansions:state.detailExpansions,
     why_clicks:state.whyClicks,
     edits_made:state.editsMade,
+    reason:state.dimensions[dimension]?.reason || "",
   };
   try {
     const reply = await api("/api/deliberate", payload);
@@ -410,7 +423,9 @@ async function respondDimension(dimension, response) {
       ...previous,
       initial:response,
       counter:reply.counter_response,
+      counterModel:reply.counter_model || "",
       alternative:reply.alternative,
+      reason:previous.reason || "",
       final: response === "disagree" ? "" : response,
     };
     if (response !== "disagree") {
@@ -423,7 +438,13 @@ async function respondDimension(dimension, response) {
   }
 }
 
-async function finaliseDimension(dimension, finalResponse, acceptedFinally=null) {
+async function finaliseDimension(
+  dimension,
+  finalResponse,
+  acceptedFinally=null,
+  outcomeShown=false,
+  outcomeResult=""
+) {
   const item = state.dimensions[dimension] || {};
   try {
     await api("/api/deliberate/final", {
@@ -434,13 +455,17 @@ async function finaliseDimension(dimension, finalResponse, acceptedFinally=null)
       dimension,
       initial_response:item.initial || finalResponse,
       ai_counter_response:item.counter || "",
+      counter_model:item.counterModel || "",
       final_response:finalResponse,
       time_to_first_response_s:secondsSince(state.planShownAt),
       time_to_final_decision_s:secondsSince(state.planShownAt),
       detail_expansions:state.detailExpansions,
       why_clicks:state.whyClicks,
       edits_made:state.editsMade,
+      free_text_reason:item.reason || "",
       plan_accepted_finally:acceptedFinally,
+      outcome_shown:outcomeShown,
+      outcome_better_or_worse_than_expected:outcomeResult,
     });
   } catch (error) {
     showError(error, state.lang === "nl" ? "Onderzoeksrecord opslaan" : "Saving research record");
@@ -556,6 +581,10 @@ function renderRiskDetail(root) {
       <p>${u.novelty?.known
         ? (state.lang==="nl" ? `Deze dag is geclassificeerd als: ${u.novelty.band}.` : `This day is classified as: ${u.novelty.band}.`)
         : (state.lang==="nl" ? "Nog te weinig historische dagen om modelonzekerheid betrouwbaar te schatten." : "Not enough historical days yet to estimate model uncertainty reliably.")}</p>
+      ${state.run?.actuals_available ? `<h3>${state.lang==="nl"?"Historische replay-uitkomst":"Historical replay outcome"}</h3>
+      <p>${state.lang==="nl"
+        ? `Werkelijke replay-kosten: ${euro(state.run.metrics?.net_cost_eur)} tegenover ${euro(state.run.cost_forecast?.totals?.net_cost_eur || state.run.metrics?.net_cost_eur)} voorspeld.`
+        : `Replay realised cost: ${euro(state.run.metrics?.net_cost_eur)} versus ${euro(state.run.cost_forecast?.totals?.net_cost_eur || state.run.metrics?.net_cost_eur)} predicted.`}</p>` : ""}
       <p class="warning">${state.lang==="nl"?"Het kasmodel zelf is nog niet gevalideerd tegen AGC-metingen.":"The greenhouse model itself is still not validated against AGC measurements."}</p>
     </div>`;
 }
@@ -613,13 +642,23 @@ async function approvePlan() {
       research_consent:state.studyConsented,
       seconds_to_decide:secondsSince(state.planShownAt),
     });
+    const predicted = Number(state.run.cost_forecast?.totals?.net_cost_eur || state.run.metrics?.net_cost_eur || 0);
+    const actual = Number(state.run.metrics?.net_cost_eur || 0);
+    const outcomeResult = !state.run.actuals_available
+      ? ""
+      : actual <= predicted ? "better_than_expected" : "worse_than_expected";
+
     for (const dimension of DIMENSIONS) {
-      await finaliseDimension(dimension, state.dimensions[dimension]?.final || "unsure", true);
+      await finaliseDimension(
+        dimension,
+        state.dimensions[dimension]?.final || "unsure",
+        true,
+        Boolean(state.run.actuals_available),
+        outcomeResult,
+      );
     }
 
     if (state.run.actuals_available) {
-      const predicted = Number(state.run.cost_forecast?.totals?.net_cost_eur || state.run.metrics?.net_cost_eur || 0);
-      const actual = Number(state.run.metrics?.net_cost_eur || 0);
       try {
         await api("/api/outcomes", {
           overrides:overrides(),
