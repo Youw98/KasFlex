@@ -97,6 +97,7 @@ def test_day_context_explains_the_day_before_planning(ui):
     assert len(context["weather"]["temperature_series"]) == 24
     assert context["price"]["min_eur_kwh"] <= context["price"]["max_eur_kwh"]
     assert context["grid"]["import_limit_kw"] > 0
+    assert "provenance" in context
 
 
 def test_collaborative_run_uses_grower_policy(ui):
