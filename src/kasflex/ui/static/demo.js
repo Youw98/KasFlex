@@ -74,7 +74,14 @@ async function loadContext() {
 function renderContext(ctx) {
   $("planning-date").textContent = new Date(ctx.date+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
   const origins = ctx.sources || {};
-  $("source-summary").textContent = `prices: ${origins.prices || "cache"} · weather: ${origins.forecast_weather || "cache"}`;
+  const provenance = ctx.provenance || {};
+  const market = provenance.prices?.dataset_key === "entsoe_da"
+    ? "ENTSO-E-derived NL prices" : "electricity prices";
+  const weather = provenance.forecast_weather?.dataset_key === "openmeteo_hist_forecast"
+    ? "Open-Meteo archived forecast" : "weather forecast";
+  const local = origins.prices === "cache" && origins.forecast_weather === "cache"
+    ? "cached locally" : "prepared now";
+  $("source-summary").textContent = `${market} · ${weather} · ${local}`;
   $("price-low").textContent = cents(ctx.price.min_eur_kwh);
   $("price-high").textContent = cents(ctx.price.max_eur_kwh);
   $("price-low-hours").textContent = "Best: " + hours(ctx.price.cheapest_hours);
