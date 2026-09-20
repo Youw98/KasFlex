@@ -487,7 +487,7 @@ class UiServer:
         """Validate the explicit daily choices and merge compatible remembered rules."""
         raw = supplied if isinstance(supplied, dict) else {}
         priority = str(raw.get("priority", "balanced")).lower()
-        if priority not in {"balanced", "cost", "grid"}:
+        if priority not in {"balanced", "cost", "grid", "crop"}:
             priority = "balanced"
 
         try:
