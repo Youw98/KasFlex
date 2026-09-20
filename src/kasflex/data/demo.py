@@ -49,7 +49,7 @@ def prepare_real_demo(
     """Prepare or reuse a historical demo day with real external inputs."""
     cache = cache or DataCache()
     cached = _latest_cached_demo(cache, latitude, longitude)
-    if cached and not allow_network:
+    if cached:
         site = f"{latitude:.3f}_{longitude:.3f}"
         actual_key = f"weather_actual_{cached}_{site}"
         return DemoPrepared(
