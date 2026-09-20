@@ -1,9 +1,9 @@
 """Collaborative daily planner for the grower-facing KasFlex demo.
 
-This planner deliberately does not depend on synthetic training history. It starts
-from the conventional rule-based schedule, improves it against the current day's
-forecast and prices, and applies structured grower preferences supplied in the
-base.intent.PlanningContext metadata.
+This planner does not depend on synthetic training history. It starts from the
+conventional rule-based schedule, improves it against the current day's forecast
+and prices, and applies structured grower preferences supplied in the planning
+context metadata.
 
 The language-model layer remains optional: planning must still work during a team
 demo with no model account configured.
@@ -11,9 +11,8 @@ demo with no model account configured.
 
 import dataclasses
 
-from kasflex.controllers import base, rule_based, scheduler
 from kasflex import intent
-
+from kasflex.controllers import base, rule_based, scheduler
 
 NIGHT_HOURS = (22, 23, 0, 1, 2, 3, 4, 5)
 
@@ -32,7 +31,7 @@ def _hours(raw: object) -> tuple[int, ...]:
     return tuple(sorted(out))
 
 
-def _policy(context: base.intent.PlanningContext) -> dict[str, object]:
+def _policy(context: base.PlanningContext) -> dict[str, object]:
     raw = context.metadata.get("policy", {}) if context.metadata else {}
     if not isinstance(raw, dict):
         raw = {}
@@ -64,56 +63,62 @@ def _apply_blackout(plan: intent.Plan, forbidden: tuple[int, ...]) -> intent.Pla
     blocked = set(forbidden)
     if not blocked:
         return plan
+
     intervals = []
-    for iv in plan.intervals:
-        if iv.hour not in blocked:
-            intervals.append(iv)
+    for interval in plan.intervals:
+        if interval.hour not in blocked:
+            intervals.append(interval)
             continue
+
         changes: dict[str, object] = {"chp_mode": "off"}
-        if iv.heat_source == "chp":
+        if interval.heat_source == "chp":
             changes["heat_source"] = "boiler"
-        if iv.co2_source == "chp":
+        if interval.co2_source == "chp":
             changes["co2_source"] = "liquid"
-        intervals.append(dataclasses.replace(iv, **changes))
+        intervals.append(dataclasses.replace(interval, **changes))
+
     return dataclasses.replace(plan, intervals=tuple(intervals))
 
 
 @dataclasses.dataclass
-class Collaborativeintent.Planner:
-    """Optimise one real day while keeping the grower's structured choices visible."""
+class CollaborativePlanner:
+    """Optimise one day while keeping grower choices visible and enforceable."""
 
     name: str = "collaborative"
     last_policy: dict[str, object] = dataclasses.field(default_factory=dict, init=False)
-    last_diagnostics: dict[str, float | str] = dataclasses.field(default_factory=dict, init=False)
+    last_diagnostics: dict[str, float | str] = dataclasses.field(
+        default_factory=dict,
+        init=False,
+    )
 
-    def plan(self, context: base.intent.PlanningContext) -> intent.Plan:
+    def plan(self, context: base.PlanningContext) -> intent.Plan:
         policy = _policy(context)
         self.last_policy = policy
 
-        seed = rule_based.RuleBasedintent.Planner().plan(context)
+        seed = rule_based.RuleBasedPlanner().plan(context)
         seed = _apply_blackout(seed, policy["avoid_chp_hours"])
 
-        scheduler = scheduler.OptimizingScheduler(
-            safety_margin=policy["battery_reserve_pct"] / 100.0,
-            objective_mode=policy["priority"],
-            forbidden_chp_hours=policy["avoid_chp_hours"],
-            prefer_stored_heat=policy["prefer_stored_heat"],
+        optimiser = scheduler.OptimizingScheduler(
+            safety_margin=float(policy["battery_reserve_pct"]) / 100.0,
+            objective_mode=str(policy["priority"]),
+            forbidden_chp_hours=tuple(policy["avoid_chp_hours"]),
+            prefer_stored_heat=bool(policy["prefer_stored_heat"]),
         )
-        best = scheduler.optimise(seed, context.hub, context.forecast)
+        best = optimiser.optimise(seed, context.hub, context.forecast)
 
         self.last_diagnostics = {
-            "priority": policy["priority"],
-            "evaluations": float(scheduler.evaluations),
-            "seed_cost_eur": round(scheduler.start_cost_eur, 2),
-            "planned_cost_eur": round(scheduler.final_cost_eur, 2),
-            "battery_reserve_pct": policy["battery_reserve_pct"],
-            "avoided_chp_hours": float(len(policy["avoid_chp_hours"])),
+            "priority": str(policy["priority"]),
+            "evaluations": float(optimiser.evaluations),
+            "seed_cost_eur": round(optimiser.start_cost_eur, 2),
+            "planned_cost_eur": round(optimiser.final_cost_eur, 2),
+            "battery_reserve_pct": float(policy["battery_reserve_pct"]),
+            "avoided_chp_hours": float(len(tuple(policy["avoid_chp_hours"]))),
         }
 
         note = (
             f"KasFlex collaborative plan; priority={policy['priority']}; "
-            f"battery reserve={policy['battery_reserve_pct']:.0f}%; "
-            f"CHP blocked in {len(policy['avoid_chp_hours'])} hour(s)."
+            f"battery reserve={float(policy['battery_reserve_pct']):.0f}%; "
+            f"CHP blocked in {len(tuple(policy['avoid_chp_hours']))} hour(s)."
         )
         return dataclasses.replace(
             best,
@@ -121,5 +126,9 @@ class Collaborativeintent.Planner:
             brief=context.brief,
             revision=context.revision,
             notes=note,
-            metadata={**best.metadata, "policy": policy, "diagnostics": self.last_diagnostics},
+            metadata={
+                **best.metadata,
+                "policy": policy,
+                "diagnostics": self.last_diagnostics,
+            },
         )
