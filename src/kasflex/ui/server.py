@@ -1227,13 +1227,35 @@ class UiServer:
                 seed=config.seed,
                 provenance={"data_source": config.data_source, "via": "ui",
                             "actuals_available": getattr(day, "actuals_available", False),
-                            "series": getattr(day, "sources", {})},
+                            "series": getattr(day, "sources", {}),
+                            "llm_provider": config.llm_provider,
+                            "llm_model": config.llm_model,
+                            "language": config.language},
                 planning_metadata={"policy": compiled_policy},
             )
         except NotImplementedError as exc:
             raise ApiError(str(exc), status=501) from exc
 
         conditions, _ = _conditions_for(config, greenhouse, day.forecast)
+
+        from kasflex.energy.dispatch import dispatch_plan  # noqa: PLC0415
+        from kasflex.energy.position import (  # noqa: PLC0415
+            ProcurementContract,
+            settle_position,
+        )
+
+        dispatch = dispatch_plan(result.plan, config.hub, list(conditions))
+        position = settle_position(
+            dispatch,
+            conditions,
+            ProcurementContract(
+                base_import_kw=config.contracted_base_kw,
+                contract_price_eur_kwh=config.contracted_price_eur_kwh,
+                short_spread_eur_kwh=config.imbalance_short_spread_eur_kwh,
+                long_spread_eur_kwh=config.imbalance_long_spread_eur_kwh,
+            ),
+        ).to_dict()
+
         hard = result.realised_hard_violations
         response = {
             "date": result.date,
@@ -1251,6 +1273,13 @@ class UiServer:
             "metrics": result.metrics,
             "uncertainty": self._uncertainty(config, result.plan, conditions, greenhouse),
             "cost_forecast": project_cost(result.plan, config.hub, day.forecast, greenhouse),
+            "position": position,
+            "model": {
+                "planner": result.planner,
+                "provider": config.llm_provider,
+                "model": config.llm_model,
+                "sampling": {"temperature": 0.0},
+            },
             **self._against_normal(config, result, conditions, greenhouse),
             "plan": _plan_payload(result.plan, conditions),
             "elapsed_s": round(time.time() - started, 2),
