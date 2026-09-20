@@ -1,71 +1,74 @@
 # Using KasFlex
 
-> **Before you read any number this produces.** KasFlex is a simulation, and its
-> built-in greenhouse model is **not validated** against measured data. Every figure
-> on this page is apparatus demonstrating that the measurement works, not a result.
-> The tools say so themselves: each run prints a warning, and every result record
-> carries `greenhouse_validated: false`. Validating against the Autonomous
-> Greenhouse Challenge measurements is stage 1 of [the plan](MVP_PLAN.md).
+> **Simulation only.** KasFlex is not connected to greenhouse equipment. Real
+> electricity and weather inputs are supported, but greenhouse-model outputs remain
+> simulated and unvalidated until measured-data validation is completed.
 
-## Install
+## Pick the way you want to use it
 
-The quickest route for someone who does not want Python at all: download the
-application from [releases](https://github.com/youw98/test/releases) and run it.
-Double-clicking opens the interface; from a terminal it takes the same commands as
-below. Results go to a `KasFlex` folder in your home directory. See
-[packaging/](../packaging/README.md).
+### Downloaded application
 
-### From source
+Open https://github.com/Youw98/KasFlex/releases/latest and download:
+
+- Windows: `KasFlex-windows.exe`
+- macOS: `KasFlex-macos`
+- Linux: `KasFlex-linux`
+
+Windows users can double-click the executable. On macOS/Linux, run
+`chmod +x <filename>` once first. The browser interface runs locally.
+
+### Source checkout
 
 ```bash
-git clone <this repository>
-cd <this repository>
-python3 -m venv .venv && source .venv/bin/activate
+git clone https://github.com/Youw98/KasFlex.git
+cd KasFlex
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
+kasflex doctor
+kasflex ui
 ```
 
-That is enough to run everything in this page. No API key, no downloads, no network.
+On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`.
 
-Check what you have:
+## First browser run
+
+Either configure your own site or choose **Just show me a demo first**.
+
+The demo uses real historical market/weather inputs. The first successful run
+caches the prepared day; later demo runs reuse it. Greenhouse response and crop
+outcomes remain simulated.
+
+## Direct ENTSO-E research-data workflow
 
 ```bash
-kasflex doctor
+export ENTSOE_API_KEY=...
+kasflex fetch --date 2026-09-21
+kasflex run --data-source cache --date 2026-09-21
 ```
 
-## The interface
+The dates must match. `--data-source cache` is important because the bundled
+scenario intentionally stays synthetic by default for reproducibility.
+
+After the fetch succeeds, the run itself is offline-safe. Missing cache data causes
+an error rather than a silent switch back to synthetic inputs.
+
+## Browser interface
 
 ```bash
 kasflex ui
 ```
 
-Opens a browser at <http://127.0.0.1:8765>. Change the scenario, plan the day, read
-the verdict, edit the plan, approve or reject it.
-
-**What you can change:** planner, checker on/off, whether rejections are explained,
-revisions allowed, date, seed, season, grid import and export limits, battery size
-and power, CHP size and minimum run/down times, heat buffer, crop light target,
-greenhouse area, and the operator brief. Everything else stays in the scenario file
-— the point is the handful of things an experiment actually varies.
-
-**Editing a plan.** Any cell in the plan table is editable. The moment you change
-one, *Approve* locks and *Re-verify edits* becomes available: an edit goes back
-through the same checker the planner's output did (R23). If it breaks a limit you
-cannot approve it.
-
-**Two things the interface refuses to imply.** With the checker switched off the
-verdict reads *not verified*, never *accepted* — nothing checked that plan, and
-approval is disabled because there is nothing to approve. And if a re-verification
-fails, the previous verdict is cleared rather than left on screen.
-
-Every decision goes to the append-only audit log with the time taken to make it
-(R25, R26). Use `--anonymous` to record decisions without operator identity:
+The grower interface is `/`; the detailed research interface is `/advanced`.
+Any human edit must be re-verified. With the checker disabled, the UI says **not
+verified**, never accepted.
 
 ```bash
 kasflex ui --anonymous --port 9000 --no-browser
 ```
 
-> Localhost only, single user, no authentication. It runs a simulation on your own
-> machine. Do not expose it to a network.
+> The server is localhost-only and has no authentication. Do not expose it to a
+> network.
 
 ## Run one day
 
@@ -176,6 +179,7 @@ appends one record to `results/daily.jsonl`.
 ```bash
 export ENTSOE_API_KEY=...            # register at https://transparency.entsoe.eu/
 kasflex fetch --date 2026-09-08      # download and cache one day
+kasflex run --data-source cache --date 2026-09-08
 kasflex daily                        # fetch if needed, plan tomorrow, record it
 ```
 
