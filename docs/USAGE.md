@@ -33,11 +33,21 @@ On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`.
 
 ## First browser run
 
-Either configure your own site or choose **Just show me a demo first**.
+The main page is the team-demo workspace. It prepares the real historical demo day
+and shows the day context before it asks for a plan.
 
-The demo uses real historical market/weather inputs. The first successful run
-caches the prepared day; later demo runs reuse it. Greenhouse response and crop
-outcomes remain simulated.
+1. Check the electricity-price, weather and grid cards.
+2. Pick **Balanced**, **Lowest cost**, or **Grid relief**.
+3. Set the battery reserve and any operating preferences.
+4. Click **Build tomorrow's plan**.
+5. Review the independently checked proposal.
+6. Change individual suggestions back to normal control if needed; every change is
+   re-verified.
+7. Record the checked revision as the final day plan.
+
+The first successful demo-data load is cached; later runs reuse it. Market/weather
+inputs are real historical data, while greenhouse response, crop outcomes and asset
+dispatch remain simulated.
 
 ## Direct ENTSO-E research-data workflow
 
@@ -59,7 +69,10 @@ an error rather than a silent switch back to synthetic inputs.
 kasflex ui
 ```
 
-The grower interface is `/`; the detailed research interface is `/advanced`.
+The team-demo interface is `/`. The research interface remains available at
+`/advanced` for direct technical use, but the demo does not navigate into it.
+A stale `/grower` URL also opens the new demo rather than the previous interface.
+
 Any human edit must be re-verified. With the checker disabled, the UI says **not
 verified**, never accepted.
 
