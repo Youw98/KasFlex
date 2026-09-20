@@ -1,7 +1,9 @@
-from pathlib import Path
+PARAMETERS = "docs/PARAMETERS.md"
 
 
-PARAMETERS = Path("docs/PARAMETERS.md")
+def _parameters() -> str:
+    with open(PARAMETERS, encoding="utf-8") as handle:
+        return handle.read()
 
 
 def test_parameter_table_is_canonical_and_uses_explicit_assumptions():
