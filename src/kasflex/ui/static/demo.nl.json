@@ -20,6 +20,8 @@
   "priority.balanced.note": "Kosten, net en marge samen.",
   "priority.cost": "Laagste kosten",
   "priority.cost.note": "Verwachte euro's eerst.",
+  "priority.crop": "Gewas eerst",
+  "priority.crop.note": "Klimaat en tomatenmarge eerst.",
   "priority.grid": "Net ontlasten",
   "priority.grid.note": "Lagere importpiek eerst.",
   "policy.chp": "WKK 's nachts vermijden",
@@ -69,6 +71,8 @@
   "decision.crop": "Gesimuleerde tomatengroei",
   "checker.toggle": "Onafhankelijke veiligheidscheck",
   "checker.toggle.note": "Laat deze aan voor het telerplan. Zet hem alleen uit om te laten zien wat de checker voorkomt.",
+  "checker.compare": "Toon wat de check voorkomt",
+  "checker.compare.note": "Veiligheidsdemo op dezelfde dag met een baseline zonder kennis van grenzen; niet uw telerplan.",
   "validation.pending": "Modelvalidatie nog niet uitgevoerd",
   "validation.ready": "Validatie met meetdata beschikbaar"
 }

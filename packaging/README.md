@@ -18,7 +18,7 @@ macOS binary on macOS. This is why `.github/workflows/release.yml` exists: it bu
 all three on CI, smoke-tests each one, and attaches them to a tagged release.
 
 Two ways to start it: push a `v*` tag, or run **Actions -> Build applications ->
-Run workflow** and type the version (`v0.1.0`) into `release_tag`. The second exists
+Run workflow** and type the version (`v0.1.1`) into `release_tag`. The second exists
 because pushing a tag needs direct git access to the remote, which a machine behind
 a restrictive proxy does not always have; the release job then creates the tag on
 the commit it built. Running it with `release_tag` empty builds and smoke-tests the

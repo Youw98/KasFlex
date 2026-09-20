@@ -32,8 +32,8 @@
   </header>
 
   <div id="sim-notice" class="simulation" role="note">
-    <strong>Simulation.</strong>
-    <span>No equipment connected. Greenhouse outcomes are <strong>Not validated for operational use</strong>.</span>
+    <strong data-i18n="simulation.title">Simulation.</strong>
+    <span data-i18n="simulation.note">No equipment connected. Greenhouse outcomes are Not validated for operational use.</span>
   </div>
 
   <main id="workspace">
@@ -68,6 +68,7 @@
           <div class="priority-grid" role="radiogroup">
             <label><input type="radio" name="priority" value="balanced" checked><span><strong data-i18n="priority.balanced">Balanced</strong><small data-i18n="priority.balanced.note">Cost, grid and margin together.</small></span></label>
             <label><input type="radio" name="priority" value="cost"><span><strong data-i18n="priority.cost">Lowest cost</strong><small data-i18n="priority.cost.note">Expected euros first.</small></span></label>
+            <label><input type="radio" name="priority" value="crop"><span><strong data-i18n="priority.crop">Crop first</strong><small data-i18n="priority.crop.note">Climate and tomato margin first.</small></span></label>
             <label><input type="radio" name="priority" value="grid"><span><strong data-i18n="priority.grid">Grid relief</strong><small data-i18n="priority.grid.note">Lower import peak first.</small></span></label>
           </div>
           <div class="policy-row">
@@ -83,6 +84,11 @@
             <input id="checker-enabled" type="checkbox" checked>
             <span class="switch-ui" aria-hidden="true"></span>
           </label>
+          <div class="checker-compare-row">
+            <button id="compare-checker" type="button" class="ghost" data-i18n="checker.compare" disabled>Show what the check prevents</button>
+            <span data-i18n="checker.compare.note">Safety demonstration on the same day with a constraint-blind baseline; not your grower plan.</span>
+          </div>
+          <div id="checker-comparison" class="checker-comparison" hidden></div>
           <label class="brief"><span data-i18n="policy.brief">Anything special tomorrow?</span><textarea id="brief" rows="2" data-i18n-placeholder="policy.brief.placeholder" placeholder="Maintenance, noise, crop work, staffing…"></textarea></label>
         </article>
 
@@ -95,7 +101,7 @@
 
       <div class="prepare-action">
         <div><strong data-i18n="prepare.action.title">Ready to make the plan?</strong><small data-i18n="prepare.action.note">The independent checker still decides whether the proposal is safe.</small></div>
-        <button id="build-plan" class="primary" data-i18n="prepare.action.button">Build tomorrow's plan</button>
+        <button id="build-plan" type="button" class="primary" data-i18n="prepare.action.button" disabled>Build tomorrow's plan</button>
       </div>
     </section>
 

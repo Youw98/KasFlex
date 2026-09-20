@@ -38,6 +38,11 @@ async function api(path, body) {
 function tr(key, fallback="") {
   return state.strings[key] || fallback || key;
 }
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;",
+  })[character]);
+}
 
 async function loadLanguage(language) {
   state.lang = language === "nl" ? "nl" : "en";
@@ -118,11 +123,28 @@ function runRef(run=state.run) {
 }
 
 async function loadModels() {
-  const payload = await api("/api/models");
+  const previousProvider = state.selectedProvider;
+  const previousModel = state.selectedModel;
+  let payload;
+  try { payload = await api("/api/models"); }
+  catch {
+    state.providers = [];
+    state.selectedProvider = previousProvider;
+    state.selectedModel = previousModel;
+    const select = $("model-select");
+    select.replaceChildren();
+    const option = document.createElement("option");
+    option.value = JSON.stringify({provider:previousProvider, model:previousModel});
+    option.textContent = previousModel
+      ? `${previousProvider} — ${previousModel}`
+      : (state.lang === "nl" ? "Collaboratieve planner" : "Collaborative planner");
+    select.append(option);
+    return;
+  }
   state.providers = payload.providers || [];
   const selected = payload.selected || {};
-  state.selectedProvider = selected.provider || "";
-  state.selectedModel = selected.model || "";
+  state.selectedProvider = previousProvider || selected.provider || "";
+  state.selectedModel = previousModel || selected.model || "";
 
   const select = $("model-select");
   select.replaceChildren();
@@ -131,7 +153,8 @@ async function loadModels() {
     for (const model of models) {
       const option = document.createElement("option");
       option.value = JSON.stringify({provider:provider.id, model});
-      const status = provider.configured === false ? " · setup needed" : "";
+      const status = provider.configured === false
+        ? (state.lang === "nl" ? " · installatie nodig" : " · setup needed") : "";
       option.textContent = `${provider.name} — ${model}${status}`;
       if (provider.id === state.selectedProvider && model === state.selectedModel) option.selected = true;
       select.append(option);
@@ -140,7 +163,7 @@ async function loadModels() {
   if (!select.options.length) {
     const option = document.createElement("option");
     option.value = JSON.stringify({provider:"", model:""});
-    option.textContent = "Collaborative planner";
+    option.textContent = state.lang === "nl" ? "Collaboratieve planner" : "Collaborative planner";
     select.append(option);
   }
 }
@@ -182,12 +205,16 @@ async function loadContext() {
   $("data-pill").className = "pill loading";
   $("data-pill").textContent = state.lang === "nl" ? "Echte data voorbereiden…" : "Preparing real data…";
   $("refresh-data").disabled = true;
+  $("build-plan").disabled = true;
+  $("compare-checker").disabled = true;
   try {
     const prepared = await api("/api/demo-prepare", {overrides:{data_source:"demo"}});
     state.context = await api("/api/day-context", {
       overrides:{...overrides(), date:prepared.date, data_source:"demo"}
     });
     renderContext(state.context);
+    $("build-plan").disabled = false;
+    $("compare-checker").disabled = false;
     $("data-pill").className = "pill";
     $("data-pill").textContent = state.lang === "nl"
       ? (prepared.reused_cache ? "Echte data · lokaal opgeslagen" : "Echte data · klaar")
@@ -241,6 +268,38 @@ function renderPriceChart(values) {
     bar.title = `${String(hour).padStart(2,"0")}:00 · ${cents(value)}`;
     root.append(bar);
   });
+}
+
+async function compareChecker() {
+  if (!state.context) return;
+  const button = $("compare-checker"), old = button.textContent;
+  button.disabled = true;
+  button.textContent = state.lang === "nl" ? "Vergelijken…" : "Comparing…";
+  clearError();
+  try {
+    const result = await api("/api/checker-comparison", {
+      overrides:{...overrides(), planner:"naive"}, policy:selectedPolicy(),
+    });
+    const root = $("checker-comparison");
+    root.replaceChildren();
+    for (const row of result.rows || []) {
+      const card = document.createElement("article");
+      card.className = row.checker_enabled ? "on" : "off";
+      const title = document.createElement("strong");
+      title.textContent = row.checker_enabled
+        ? (state.lang === "nl" ? "Baseline + check" : "Baseline + check")
+        : (state.lang === "nl" ? "Baseline zonder check" : "Baseline without check");
+      const detail = document.createElement("span");
+      const problems = state.lang === "nl" ? "harde overschrijdingen" : "hard breaches";
+      detail.textContent = `${row.hard_violations} ${problems} · ${euro(row.cost_eur)} · ${Number(row.growth_kg_m2 || 0).toFixed(3)} kg/m²`;
+      card.append(title, detail); root.append(card);
+    }
+    root.hidden = false;
+  } catch (error) {
+    showError(error, state.lang === "nl" ? "Checker vergelijken" : "Comparing checker");
+  } finally {
+    button.disabled = false; button.textContent = old;
+  }
 }
 
 async function buildPlan() {
@@ -604,7 +663,14 @@ function renderPositionDetail(root) {
   for (const row of state.run?.position?.hours || []) {
     const line = document.createElement("div");
     line.className = `position-line ${row.direction}`;
-    line.innerHTML = `<span>${String(row.hour).padStart(2,"0")}:00</span><b>${(row.planned_net_kw/1000).toFixed(2)} MW</b><small>${row.direction} · ${euro(row.settlement_eur,0)}</small>`;
+    const hour = document.createElement("span"), power = document.createElement("b"), detail = document.createElement("small");
+    hour.textContent = `${String(row.hour).padStart(2,"0")}:00`;
+    power.textContent = `${(Number(row.planned_net_kw || 0)/1000).toFixed(2)} MW`;
+    const direction = row.direction === "short"
+      ? (state.lang === "nl" ? "tekort" : "short")
+      : row.direction === "long" ? (state.lang === "nl" ? "overschot" : "long") : String(row.direction || "");
+    detail.textContent = `${direction} · ${euro(row.settlement_eur,0)}`;
+    line.append(hour, power, detail);
     bars.append(line);
   }
 }
@@ -613,19 +679,25 @@ function renderRiskDetail(root) {
   $("dialog-title").textContent = state.lang === "nl" ? "Risico en onzekerheid" : "Risk and uncertainty";
   const u = state.run?.uncertainty || {};
   const band = u.cost;
+  const basis = state.lang === "nl"
+    ? ({measured:"gemeten", assumed:"aangenomen"}[u.forecast_error?.basis] || u.forecast_error?.basis)
+    : u.forecast_error?.basis;
+  const novelty = state.lang === "nl"
+    ? ({typical:"gebruikelijk", unusual:"ongebruikelijk", "unlike anything seen":"niet eerder gezien", unknown:"onbekend"}[u.novelty?.band] || u.novelty?.band)
+    : u.novelty?.band;
   root.innerHTML = `
     <div class="detail-grid">
       <article><span>${state.lang==="nl"?"Verwacht":"Expected"}</span><strong>${euro(state.run?.metrics?.net_cost_eur)}</strong></article>
       <article><span>${state.lang==="nl"?"Ongunstig 90e percentiel":"Bad-case 90th percentile"}</span><strong>${band && u.is_defensible ? euro(band.high_eur) : "—"}</strong></article>
-      <article><span>${state.lang==="nl"?"Weeronzekerheid":"Weather uncertainty"}</span><strong>${u.forecast_error?.basis || "—"}</strong></article>
-      <article><span>${state.lang==="nl"?"Modelbekendheid":"Model familiarity"}</span><strong>${u.novelty?.band || "—"}</strong></article>
+      <article><span>${state.lang==="nl"?"Weeronzekerheid":"Weather uncertainty"}</span><strong>${escapeHtml(basis || "—")}</strong></article>
+      <article><span>${state.lang==="nl"?"Modelbekendheid":"Model familiarity"}</span><strong>${escapeHtml(novelty || "—")}</strong></article>
     </div>
     <div class="risk-copy">
       <h3>${state.lang==="nl"?"Onvermijdelijke onzekerheid":"Irreducible uncertainty"}</h3>
-      <p>${u.words?.detail || "—"}</p>
+      <p>${escapeHtml(u.words?.detail || "—")}</p>
       <h3>${state.lang==="nl"?"Modelonzekerheid":"Model uncertainty"}</h3>
       <p>${u.novelty?.known
-        ? (state.lang==="nl" ? `Deze dag is geclassificeerd als: ${u.novelty.band}.` : `This day is classified as: ${u.novelty.band}.`)
+        ? (state.lang==="nl" ? `Deze dag is geclassificeerd als: ${escapeHtml(novelty)}.` : `This day is classified as: ${escapeHtml(novelty)}.`)
         : (state.lang==="nl" ? "Nog te weinig historische dagen om modelonzekerheid betrouwbaar te schatten." : "Not enough historical days yet to estimate model uncertainty reliably.")}</p>
       ${state.run?.actuals_available ? `<h3>${state.lang==="nl"?"Historische replay-uitkomst":"Historical replay outcome"}</h3>
       <p>${state.lang==="nl"
@@ -638,8 +710,12 @@ function renderRiskDetail(root) {
 function renderPlanDetail(root) {
   $("dialog-title").textContent = state.lang === "nl" ? "Volledig 24-uursplan" : "Full 24-hour plan";
   const table = document.createElement("table");
-  table.innerHTML = `<thead><tr><th>Hour</th><th>Price</th><th>Heat</th><th>Lights</th><th>Battery</th><th>CHP</th></tr></thead><tbody></tbody>`;
-  const body = table.querySelector("tbody");
+  const headings = state.lang === "nl"
+    ? ["Uur", "Prijs", "Warmte", "Lampen", "Batterij", "WKK"]
+    : ["Hour", "Price", "Heat", "Lights", "Battery", "CHP"];
+  const head = document.createElement("thead"), headRow = document.createElement("tr"), body = document.createElement("tbody");
+  headings.forEach((value) => { const th = document.createElement("th"); th.textContent = value; headRow.append(th); });
+  head.append(headRow); table.append(head, body);
   for (const row of state.run?.plan || []) {
     const trNode = document.createElement("tr");
     const battery = row.battery === "idle" ? "idle" : `${row.battery} ${Math.round(row.battery_power_kw)} kW`;
@@ -671,7 +747,12 @@ function renderDataDetail(root) {
   for (const [role, info] of items) {
     const card = document.createElement("article");
     card.className = "source-card";
-    card.innerHTML = `<strong>${role}</strong><span>${info.dataset_key || ""}</span><small>${info.source || ""}</small><small>SHA256 ${String(info.sha256||"").slice(0,16)}…</small>`;
+    const title = document.createElement("strong"), dataset = document.createElement("span"), source = document.createElement("small"), hash = document.createElement("small");
+    const roles = state.lang === "nl"
+      ? {prices:"Stroomprijzen", forecast_weather:"Weersverwachting", actual_weather:"Gerealiseerd weer"}
+      : {prices:"Electricity prices", forecast_weather:"Weather forecast", actual_weather:"Realised weather"};
+    title.textContent = roles[role] || role; dataset.textContent = info.dataset_key || ""; source.textContent = info.source || ""; hash.textContent = `SHA256 ${String(info.sha256 || "").slice(0,16)}…`;
+    card.append(title, dataset, source, hash);
     root.append(card);
   }
 }
@@ -745,17 +826,22 @@ async function consentStudy() {
     $("participant-id").focus();
     return;
   }
-  const status = await api("/api/consent");
-  await api("/api/consent", {
-    participant_id:participant,
-    version:status.version,
-    scopes:{research:true, quotes:true, outcomes:true},
-    overrides:{participant_id:participant},
-  });
-  state.participantId = participant;
-  state.studyConsented = true;
-  localStorage.setItem("kasflex.demo.participant", participant);
-  $("consent-dialog").close();
+  const button = $("consent-study"); button.disabled = true;
+  try {
+    const status = await api("/api/consent");
+    await api("/api/consent", {
+      participant_id:participant,
+      version:status.version,
+      scopes:{research:true, quotes:true, outcomes:true},
+      overrides:{participant_id:participant},
+    });
+    state.participantId = participant;
+    state.studyConsented = true;
+    localStorage.setItem("kasflex.demo.participant", participant);
+    $("consent-dialog").close();
+  } catch (error) {
+    showError(error, state.lang === "nl" ? "Toestemming opslaan" : "Saving consent");
+  } finally { button.disabled = false; }
 }
 
 function consentAnonymous() {
@@ -773,6 +859,7 @@ $("checker-enabled").addEventListener("change", () => {
     : (on ? "Safety checker on." : "Checker off: this plan cannot be finally approved."));
 });
 $("refresh-data").addEventListener("click", loadContext);
+$("compare-checker").addEventListener("click", compareChecker);
 $("build-plan").addEventListener("click", buildPlan);
 $("open-position").addEventListener("click", () => openDetail("position"));
 $("open-risk").addEventListener("click", () => openDetail("risk"));
@@ -785,7 +872,8 @@ $("consent-anonymous").addEventListener("click", consentAnonymous);
 $("consent-study").addEventListener("click", consentStudy);
 $("language-select").addEventListener("change", async (event) => {
   await loadLanguage(event.target.value);
-  await loadValidationStatus();
+  $("checker-comparison").hidden = true;
+  await Promise.all([loadModels(), loadValidationStatus()]);
 });
 $("model-select").addEventListener("change", (event) => {
   try {

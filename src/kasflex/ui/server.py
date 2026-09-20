@@ -898,20 +898,25 @@ class UiServer:
         if dimension == "crop":
             old_dli = float(before.get("supplemental_dli_mol_m2", before.get("dli_mol_m2", 0)) or 0)
             new_dli = float(after.get("supplemental_dli_mol_m2", after.get("dli_mol_m2", 0)) or 0)
+            old_growth = float(before.get("fruit_growth_kg_m2", 0) or 0)
+            new_growth = float(after.get("fruit_growth_kg_m2", 0) or 0)
             old_cost = float(before.get("net_cost_eur", 0) or 0)
             new_cost = float(after.get("net_cost_eur", 0) or 0)
             if nl:
                 return (
                     f"U bent het niet eens over gewasbescherming. Ik heb de planning opnieuw "
                     f"gemaakt met gewasmarge vóór kosten. Aanvullend licht verandert van "
-                    f"{old_dli:.1f} naar {new_dli:.1f} mol/m²; de kosten veranderen met "
-                    f"€{new_cost-old_cost:+,.0f}. Wilt u deze gewasvariant gebruiken?"
+                    f"{old_dli:.1f} naar {new_dli:.1f} mol/m² en de gesimuleerde "
+                    f"tomatengroei van {old_growth:.3f} naar {new_growth:.3f} kg/m²; de "
+                    f"kosten veranderen met €{new_cost-old_cost:+,.0f}. Wilt u deze "
+                    f"gewasvariant gebruiken?"
                 )
             return (
                 f"You disagree about crop protection. I rebuilt the plan with crop margin "
                 f"ahead of cost. Supplemental light moves from {old_dli:.1f} to "
-                f"{new_dli:.1f} mol/m²; expected cost changes by €{new_cost-old_cost:+,.0f}. "
-                f"Use this crop-first alternative?"
+                f"{new_dli:.1f} mol/m² and simulated tomato growth from {old_growth:.3f} "
+                f"to {new_growth:.3f} kg/m²; expected cost changes by "
+                f"€{new_cost-old_cost:+,.0f}. Use this crop-first alternative?"
             )
         if dimension == "grid":
             old_peak = float(before.get("peak_import_kw", 0) or 0)
@@ -1758,6 +1763,22 @@ class UiServer:
                 rows.append({"planner": name, "error": str(exc)})
         return {"rows": rows}
 
+    def compare_checker(self, overrides: dict[str, Any], policy: dict[str, Any]) -> dict[str, Any]:
+        """Run identical grower choices with verification disabled and enabled."""
+        rows = []
+        for enabled in (False, True):
+            result = self.run({**overrides, "checker.enabled": enabled}, policy)
+            rows.append({
+                "checker_enabled": enabled,
+                "verified": bool(enabled and result["accepted"]),
+                "accepted": result["accepted"] if enabled else None,
+                "hard_violations": result["realised_hard"],
+                "cost_eur": result["metrics"]["net_cost_eur"],
+                "growth_kg_m2": result["metrics"]["fruit_growth_kg_m2"],
+                "fell_back": result["fell_back"],
+            })
+        return {"rows": rows}
+
     def _compare_row(self, overrides: dict[str, Any], planner: str) -> dict[str, Any]:
         result = self.run({**overrides, "planner": planner})
         return {
@@ -1946,6 +1967,8 @@ class _Handler(BaseHTTPRequestHandler):
                     overrides,
                     body.get("planners") or ["rule-based", "learned", "naive"],
                 ))
+            elif self.path == "/api/checker-comparison":
+                self._json(self.ui.compare_checker(overrides, body.get("policy") or {}))
             elif self.path == "/api/experiment":
                 with self.ui._lock:
                     self._json(self.ui.run_experiment_batch(body))

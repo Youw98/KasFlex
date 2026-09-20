@@ -58,7 +58,7 @@ def test_cache_detects_tampering(tmp_path):
     cache = DataCache(tmp_path)
     cache.put("s", [{"a": 1}], source="x", licence="y")
     path = tmp_path / cache.entries()["s"].filename
-    path.write_text(path.read_text() + "\n999\n")
+    path.write_bytes(path.read_bytes() + b"\n999\n")
     with pytest.raises(ValueError, match="checksum mismatch"):
         cache.get("s")
 

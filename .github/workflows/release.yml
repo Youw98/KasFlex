@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Publish a release under this tag (e.g. v0.1.0). Leave empty to only build artifacts."
+        description: "Publish a release under this tag (e.g. v0.1.1). Leave empty to only build artifacts."
         required: false
         default: ""
 

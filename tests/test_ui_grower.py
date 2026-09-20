@@ -182,6 +182,19 @@ def test_suggested_questions_need_no_model(server):
     assert any("Waarom" in q for q in dutch["questions"])
 
 
+def test_checker_comparison_is_available_over_http(server):
+    result = post(server, "/api/checker-comparison", {
+        "overrides": {"planner": "naive", "data_source": "synthetic"},
+        "policy": {"priority": "crop", "battery_reserve_pct": 55},
+    })
+    assert [row["checker_enabled"] for row in result["rows"]] == [False, True]
+    assert all("hard_violations" in row for row in result["rows"])
+    assert result["rows"][0]["accepted"] is None
+    assert result["rows"][0]["verified"] is False
+    assert result["rows"][0]["hard_violations"] > 0
+    assert result["rows"][1]["hard_violations"] == 0
+
+
 # -- preferences ------------------------------------------------------------
 
 
