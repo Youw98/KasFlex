@@ -327,35 +327,48 @@ def cmd_datasets(args: argparse.Namespace) -> int:
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    """Compare the greenhouse model against measured AGC data (stage 1)."""
+    """Compare a real greenhouse replay against measured AGC data."""
     from kasflex.validation import (
         DatasetMissing,
+        ValidationNotRunnable,
         instructions_when_missing,
+        replay_simulator,
         validate_against_agc,
         write_validation_doc,
+        write_validation_json,
     )
 
     try:
-        report = validate_against_agc(args.cache_dir, simulate_day=None)
+        simulate_day = replay_simulator(args.cache_dir, model=args.greenhouse)
+        report = validate_against_agc(args.cache_dir, simulate_day=simulate_day)
     except DatasetMissing:
-        # Not an error to the shell -- an explanation. Print the message and
-        # exit with code 2 (dataset missing) so a scripted caller can tell
-        # this apart from an accidental non-zero.
         print(instructions_when_missing(args.cache_dir), file=sys.stderr)
+        return 2
+    except ValidationNotRunnable as exc:
+        print(f"Validation has NOT been completed.\n{exc}", file=sys.stderr)
+        return 2
+    except Exception as exc:  # worker/setup failures must not look like a result
+        print(
+            f"Validation has NOT been completed. {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
         return 2
 
     if report.days_compared == 0:
         print(
             "AGC folder exists but no daily CSVs were readable. "
-            "See kasflex validate --help.",
+            "Validation has NOT been completed.",
             file=sys.stderr,
         )
         return 2
 
     print(f"Compared {report.days_compared} day(s) against {report.dataset}.")
+    print(f"Greenhouse model: {args.greenhouse}")
     print("Deviations (simulated - measured):\n")
     print(report.to_markdown())
 
+    write_validation_json(report, args.result_json, model=args.greenhouse)
+    print(f"Wrote measured validation record to {args.result_json}")
     if args.write_doc:
         write_validation_doc(report, args.write_doc)
         print(f"Wrote {args.write_doc}")
@@ -503,6 +516,14 @@ def main(argv: list[str] | None = None) -> int:
         "--write-doc", default=None,
         help="also write the deviation table into this docs file "
              "(usually docs/VALIDATION.md)",
+    )
+    p_val.add_argument(
+        "--greenhouse", choices=["greenlight", "surrogate"], default="greenlight",
+        help="greenhouse model to replay against the measured AGC days",
+    )
+    p_val.add_argument(
+        "--result-json", default="results/validation-agc2.json",
+        help="machine-readable measured-validation status used by the demo",
     )
     p_val.set_defaults(func=cmd_validate)
 
