@@ -51,10 +51,12 @@ kasflex = "kasflex.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/kasflex"]
 
-# The interface is plain HTML, CSS and JS with no build step, shipped as package
-# data so `kasflex ui` works from an installed wheel.
+# The UI already lives inside the selected Python package. These two inputs live
+# outside it, so map them into the wheel as runtime data.
 [tool.hatch.build.targets.wheel.force-include]
-"src/kasflex/ui/static" = "kasflex/ui/static"
+"data/validation" = "kasflex/validation_data"
+"configs/parameter_sources.yaml" = "kasflex/parameter_sources.yaml"
+"configs/scenario_westland_winter.yaml" = "kasflex/configs/scenario_westland_winter.yaml"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

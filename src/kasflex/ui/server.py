@@ -476,7 +476,7 @@ class UiServer:
         """Validate the explicit daily choices and merge compatible remembered rules."""
         raw = supplied if isinstance(supplied, dict) else {}
         priority = str(raw.get("priority", "balanced")).lower()
-        if priority not in {"balanced", "cost", "grid"}:
+        if priority not in {"balanced", "cost", "grid", "crop"}:
             priority = "balanced"
 
         try:
@@ -731,6 +731,13 @@ class UiServer:
             "strengths": list(STRENGTHS),
         }
 
+    def parameters(self, overrides: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Operational parameter values with a source or explicit assumption."""
+        from kasflex.parameters import parameter_registry
+
+        config = _apply_overrides(self.base, overrides or {})
+        return parameter_registry(config)
+
     def add_preference(self, payload: dict[str, Any]) -> dict[str, Any]:
         try:
             pref = self.memory.add_preference(
@@ -787,6 +794,53 @@ class UiServer:
             scope=proposal["scope"], source="inferred", origin_run_id=run_id,
             confirmed=False)
         return {**proposal, "pref_id": stored.pref_id}
+
+    def respond_to_concern(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Acknowledge a scoped objection without rejecting the whole plan."""
+        self.reviews.current(payload)
+        allowed = {"money", "crop", "equipment", "timing", "specific_changes"}
+        accepted = {str(value) for value in payload.get("accepted_aspects", [])}
+        objected = {str(value) for value in payload.get("objected_aspects", [])}
+        unknown = (accepted | objected) - allowed
+        if unknown:
+            raise ApiError(f"Unknown concern aspect(s): {sorted(unknown)}")
+        if accepted & objected:
+            raise ApiError("An aspect cannot be both accepted and objected to.")
+        if not objected:
+            raise ApiError("Choose at least one part of the plan you disagree with.")
+        note = str(payload.get("comment", "")).strip()[:2000]
+        action_ids = [str(value) for value in payload.get("rejected_action_ids", [])][:20]
+
+        if "crop" in objected and "money" in accepted:
+            answer = ("Understood: the money side can stay, but crop impact is not accepted. "
+                      "Only the selected changes were returned to normal settings and the "
+                      "revised plan must pass the safety check before approval.")
+        elif action_ids:
+            answer = ("Understood. The rest of the plan can stay; only the selected changes "
+                      "were returned to normal settings and re-checked.")
+        else:
+            answer = ("Understood. This concern applies only to the selected part of the plan. "
+                      "Choose the affected changes below; the rest can remain in place.")
+
+        stored_id = None
+        overrides = payload.get("overrides") or {}
+        if self._may_record(overrides, "research"):
+            run_id = str(payload.get("run_id"))
+            self.memory.add_turn(
+                run_id, "grower", note or f"Concern about {', '.join(sorted(objected))}",
+                meta={"kind": "scoped_concern", "accepted_aspects": sorted(accepted),
+                      "objected_aspects": sorted(objected),
+                      "rejected_action_ids": action_ids})
+            preference = self.memory.add_preference(
+                f"Review {', '.join(sorted(objected))} separately from the rest of the plan",
+                note or "Grower raised a scoped concern", strength="preference",
+                scope={"aspects": sorted(objected), "action_ids": action_ids},
+                source="grower", origin_run_id=run_id,
+                origin_revision=int(payload.get("revision", 0)), confirmed=True)
+            stored_id = preference.pref_id
+        return {"answer": answer, "accepted_aspects": sorted(accepted),
+                "objected_aspects": sorted(objected),
+                "rejected_action_ids": action_ids, "preference_id": stored_id}
 
     # -- conflict and compromise -------------------------------------------
 
@@ -1188,6 +1242,8 @@ class UiServer:
         self,
         overrides: dict[str, Any],
         policy: dict[str, Any] | None = None,
+        *,
+        persist: bool = True,
     ) -> dict[str, Any]:
         """Run one scenario and return everything the page needs to show it."""
         from kasflex.experiment import build_greenhouse, build_planner
@@ -1216,7 +1272,8 @@ class UiServer:
                 planner=planner,
                 greenhouse=greenhouse,
                 checker_config=config.checker,
-                audit_log=AuditLog(resolve_output(config.audit_path), anonymous=self.anonymous),
+                audit_log=(AuditLog(resolve_output(config.audit_path), anonymous=self.anonymous)
+                           if persist else None),
                 brief=config.brief,
                 seed=config.seed,
                 provenance={"data_source": config.data_source, "via": "ui",
@@ -1262,7 +1319,7 @@ class UiServer:
                     "forecast": [dataclasses.asdict(c) for c in day.forecast],
                     "actual": [dataclasses.asdict(c) for c in day.actual]}
         response["configuration"] = {f["path"]: _get_path(config, f["path"]) for f in ADJUSTABLE}
-        return self.reviews.create(snapshot, response)
+        return self.reviews.create(snapshot, response) if persist else response
 
     def verify(self, overrides: dict[str, Any], plan_rows: list[dict[str, Any]],
                reference: dict | None = None) -> dict[str, Any]:
@@ -1306,14 +1363,29 @@ class UiServer:
         from kasflex.energy.dispatch import dispatch_plan
 
         dispatch = dispatch_plan(plan, config.hub, list(conditions))
+        metrics = {
+            **dispatch.summary(),
+            "fruit_growth_kg_m2": round(outcome.fruit_growth_kg_m2, 6),
+            "natural_dli_mol_m2": round(outcome.natural_dli_mol_m2, 3),
+            "supplemental_dli_mol_m2": round(dispatch.total_dli_mol_m2, 3),
+            "temperature_band_hours": float(outcome.temperature_band_hours(
+                config.hub.crop.temp_min_c, config.hub.crop.temp_max_c)),
+            "heat_dumped_kwh": round(
+                sum(interval.heat_dumped_kw for interval in dispatch.intervals), 2),
+        }
+        from types import SimpleNamespace
+
+        comparison = self._against_normal(
+            config, SimpleNamespace(plan=plan, metrics=metrics), conditions, greenhouse)
         response = {
             "accepted": verdict.accepted,
             "checker_enabled": True,
             "verification_config": dataclasses.asdict(verification_config),
             "feedback": verdict.feedback(explain=config.checker.explain),
             "violations": [v.to_dict() for v in verdict.violations],
-            "metrics": dispatch.summary(),
+            "metrics": metrics,
             "cost_forecast": project_cost(plan, config.hub, forecast, greenhouse),
+            **comparison,
         }
         if reference:
             # Restore all display-only inputs from the frozen server snapshot.
@@ -1357,6 +1429,27 @@ class UiServer:
             except ApiError as exc:
                 rows.append({"planner": name, "error": str(exc)})
         return {"rows": rows}
+
+    def compare_safety(self, overrides: dict[str, Any],
+                       policy: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Run the same deterministic day with verification disabled and enabled."""
+        rows = []
+        for enabled in (False, True):
+            result = self.run({**overrides, "checker.enabled": enabled}, policy,
+                              persist=False)
+            rows.append({
+                "checker_enabled": enabled,
+                "label": "Safety check on" if enabled else "Safety check off",
+                "verified": bool(enabled and result["accepted"]),
+                "cost_eur": result["metrics"]["net_cost_eur"],
+                "hard_violations": result["realised_hard"],
+                "projected_violations": result["realised_projected"],
+                "peak_import_kw": result["metrics"]["peak_import_kw"],
+                "crop_band_hours": result["metrics"]["temperature_band_hours"],
+                "fell_back": result["fell_back"],
+                "revisions_used": result["revisions_used"],
+            })
+        return {"date": rows and result["date"], "rows": rows}
 
     def _compare_row(self, overrides: dict[str, Any], planner: str) -> dict[str, Any]:
         result = self.run({**overrides, "planner": planner})
@@ -1445,6 +1538,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(self.ui.model_status())
             elif self.path == "/api/preferences":
                 self._json(self.ui.list_preferences())
+            elif self.path.startswith("/api/parameters"):
+                self._json(self.ui.parameters())
             elif self.path.startswith("/api/conflicts"):
                 query = dict(parse_qsl(urlsplit(self.path).query))
                 self._json(self.ui.list_conflicts(query.get("run_id", "")))
@@ -1541,6 +1636,8 @@ class _Handler(BaseHTTPRequestHandler):
                     overrides,
                     body.get("planners") or ["rule-based", "learned", "naive"],
                 ))
+            elif self.path == "/api/safety-comparison":
+                self._json(self.ui.compare_safety(overrides, body.get("policy")))
             elif self.path == "/api/explain":
                 self._json(self.ui.explain(body))
             elif self.path == "/api/suggested-questions":
@@ -1554,6 +1651,9 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path == "/api/preferences/from-objection":
                 with self.ui._lock:
                     self._json(self.ui.preference_from_objection(body))
+            elif self.path == "/api/concerns":
+                with self.ui._lock:
+                    self._json(self.ui.respond_to_concern(body))
             elif self.path == "/api/conflicts":
                 with self.ui._lock:
                     self._json(self.ui.record_conflicts(body))

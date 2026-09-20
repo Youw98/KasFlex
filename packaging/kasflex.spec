@@ -31,6 +31,7 @@ SRC = ROOT / "src" / "kasflex"
 datas = [
     (str(SRC / "ui" / "static"), "kasflex/ui/static"),
     (str(ROOT / "configs"), "configs"),
+    (str(ROOT / "data" / "validation"), "kasflex/validation_data"),
 ]
 
 # Imported by name at runtime, never statically. See the module docstring.

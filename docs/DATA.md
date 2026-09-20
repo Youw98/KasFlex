@@ -9,7 +9,7 @@ its licence and how it was obtained. The registry is machine-readable
 
 | Key | Dataset | Kind | Phase | Licence | Source |
 |---|---|---|---|---|---|
-| `agc2` | Autonomous Greenhouse Challenge, Second Edition (2019) | measurement | mvp | See 4TU.ResearchData landing page (CC-BY family); confirm before redistribution | https://doi.org/10.4121/uuid:88d22c60-21b3-4ea8-90db-20249a5be2a7 |
+| `agc2` | Autonomous Greenhouse Challenge, Second Edition (2019) | measurement | mvp | CC0-1.0 | https://doi.org/10.4121/uuid:88d22c60-21b3-4ea8-90db-20249a5be2a7 |
 | `entsoe_da` | ENTSO-E day-ahead electricity prices, Dutch bidding zone | price | mvp | ENTSO-E Transparency Platform terms; free with a registered API key | https://transparency.entsoe.eu/ |
 | `knmi_hourly` | KNMI hourly measured weather (radiation, temperature, humidity, wind) | measurement | mvp | KNMI open data | https://www.knmi.nl/nederland-nu/klimatologie/uurgegevens |
 | `openmeteo_hist_forecast` | Open-Meteo historical forecast archive | forecast | mvp | CC-BY 4.0 (non-commercial tier free) | https://open-meteo.com/en/docs/historical-forecast-api |
@@ -33,6 +33,15 @@ weather. See [DECISIONS.md](DECISIONS.md) ADR-0005.
 The Open-Meteo historical forecast archive does not cover the 2019–2020 AGC
 validation period. KasFlex therefore keeps measured-model validation and modern
 market/forecast scenarios as separate evidence tracks.
+
+## Bundled measured validation subset
+
+`data/validation/` contains 72 hourly observations and daily resource totals for
+three pre-declared days in the AGC Reference compartment. Its manifest records the
+source archive name, SHA-256, DOI, CC0 licence, 96 m² area, day-selection rule,
+unit conversions and aggregation steps. `kasflex validate` uses this subset by
+default so measured comparison also runs offline and in CI. It is a reproducible
+smoke-validation set, not a substitute for full-period held-out validation.
 
 ## Automated acquisition
 
@@ -109,6 +118,6 @@ records.
 | `power-grid-model` | MPL-2.0 | File-level copyleft; safe to depend on |
 | `power-grid-model-ds` | MPL-2.0 | Same |
 | Power-Agent repositories | MIT | Reference patterns only; no dependency taken |
-| AGC datasets | 4TU.ResearchData terms | Confirm before redistributing any derived data |
+| AGC datasets | CC0-1.0 | Compact transformed validation subset may be redistributed with provenance |
 
 **Verify every link and licence at project start.** Repositories move.

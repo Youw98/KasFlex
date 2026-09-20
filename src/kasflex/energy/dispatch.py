@@ -24,6 +24,9 @@ from dataclasses import dataclass, field
 from kasflex.energy.assets import EnergyHub
 from kasflex.intent import IntervalIntent, Plan
 
+LIQUID_CO2_EUR_KG = 0.30
+"""Scenario assumption for delivered liquid CO2; see parameter_sources.yaml."""
+
 
 @dataclass(frozen=True)
 class HourlyConditions:
@@ -296,7 +299,7 @@ def dispatch_hour(
         gas_input_kw * cond.gas_price_eur_kwh
         + grid_import_kw * cond.power_price_eur_kwh
         - grid_export_kw * cond.export_price
-        + co2_liquid * 0.30  # liquid CO2, EUR/kg
+        + co2_liquid * LIQUID_CO2_EUR_KG
     )
 
     interval = IntervalDispatch(

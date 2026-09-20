@@ -30,11 +30,11 @@ hard constraints, and lets a grower review, edit, approve, or reject it.
 2. Start KasFlex. The browser opens the new daily-planning workspace.
 3. KasFlex prepares a real historical Dutch market/weather day and shows the
    electricity-price and weather context first.
-4. Choose what matters to the grower: **Balanced**, **Lowest cost**, or
-   **Grid relief**, plus battery reserve and operating preferences.
+4. Choose what matters to the grower: **Tomatoes first**, **Balanced**, or
+   **Lowest cost**, plus battery reserve and operating preferences.
 5. Click **Build tomorrow's plan**.
-6. Review the checked proposal, switch individual suggestions back to normal
-   control if desired, and approve the final revision.
+6. Compare safety on/off, keep the acceptable parts and object only to crop,
+   timing, equipment or selected changes before approving the checked revision.
 
 The prepared real-input day is cached with provenance and checksums. Later demo
 runs reuse it instead of silently substituting synthetic data.
@@ -317,14 +317,16 @@ Greenhouse Challenge dataset.
 kasflex validate
 ```
 
-The validation target is the measured research compartment, **not** the 5 ha
-commercial scenario.
+The validation target is the measured 96 m² Reference compartment, **not** the 5 ha
+commercial scenario. A checksummed three-day subset now runs by default. The
+comparison is complete, but its errors are too large to call the surrogate calibrated
+or validated for operational use.
 
 See [docs/VALIDATION.md](docs/VALIDATION.md) for the current validation status and
 dataset instructions.
 
-Until that validation is complete, model-derived greenhouse performance numbers
-should be treated as **apparatus, not findings**.
+Until calibration and a broader held-out evaluation are complete, model-derived
+greenhouse performance numbers remain **apparatus, not findings**.
 
 ---
 
@@ -377,6 +379,9 @@ kasflex validate
 
 # Show registered datasets and provenance
 kasflex datasets
+
+# Show every operating number and whether it is sourced or assumed
+kasflex parameters
 ```
 
 For the full workflow, see [docs/USAGE.md](docs/USAGE.md).

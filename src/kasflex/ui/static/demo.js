@@ -46,6 +46,7 @@ function overrides() {
     data_source:"demo",
     planner:"collaborative",
     date:state.context?.date || undefined,
+    "checker.enabled":$("safety-check").checked,
   };
 }
 
@@ -136,7 +137,11 @@ function renderResult(result) {
   $("result-grid-energy").textContent=(Number(result.metrics?.grid_import_kwh||0)/1000).toFixed(1)+" MWh";
   $("result-gas").textContent=(Number(result.metrics?.gas_input_kwh||0)/1000).toFixed(1)+" MWh";
   $("result-peak").textContent=(Number(result.metrics?.peak_import_kw||0)/1000).toFixed(2)+" MW";
-  $("result-band").textContent=Math.round(Number(result.metrics?.temperature_band_hours||0))+"/24 h";
+  const cropHours=Math.round(Number(result.metrics?.temperature_band_hours||0));
+  $("result-band").textContent=cropHours+"/24 h";
+  $("result-crop").textContent=cropHours>=22?"On target":cropHours>=18?"Needs attention":"At risk";
+  $("result-crop-note").textContent=`Temperature in range for ${cropHours} of 24 hours · simulated, not measured`;
+  $("crop-card").className=`result-metric crop-card ${cropHours>=22?"good":"warn"}`;
   $("result-actions").textContent=String((result.actions||[]).length);
   $("plan-subtitle").textContent=`${labelPriority(result.policy?.priority)} · battery reserve ${Math.round(result.policy?.battery_reserve_pct||0)}% · compared with normal control.`;
 
@@ -144,6 +149,9 @@ function renderResult(result) {
   if(result.checker_enabled && result.accepted){
     badge.className="checker-badge"; badge.textContent="✓ Independently verified";
     $("approve-plan").disabled=false;
+  } else if(!result.checker_enabled) {
+    badge.className="checker-badge bad"; badge.textContent="Safety check off · not verified";
+    $("approve-plan").disabled=true;
   } else {
     badge.className="checker-badge bad"; badge.textContent="Not safe to approve";
     $("approve-plan").disabled=true;
@@ -154,7 +162,7 @@ function renderResult(result) {
 }
 
 function labelPriority(value){
-  return value==="cost"?"Lowest cost":value==="grid"?"Grid relief":"Balanced";
+  return value==="cost"?"Lowest cost":value==="crop"?"Tomatoes first":value==="grid"?"Grid relief":"Balanced";
 }
 
 function renderChanges(result){
@@ -183,7 +191,7 @@ function renderChanges(result){
 async function verifyPlan(rows, message) {
   if(!state.run) {
     showError(new Error("There is no active plan to verify."), "Checking your plan change");
-    return;
+    return null;
   }
   const payload={
     run_id:state.run.run_id,revision:state.run.revision,plan_hash:state.run.plan_hash,
@@ -193,7 +201,8 @@ async function verifyPlan(rows, message) {
     const revised=await api("/api/verify",payload);
     state.run=revised; state.currentPlan=(revised.plan||[]).map(r=>({...r}));
     renderResult(revised); toast(message);
-  }catch(error){showError(error, "Checking your plan change")}
+    return revised;
+  }catch(error){showError(error, "Checking your plan change");return null}
 }
 
 async function applyNormalForAction(action){
@@ -238,12 +247,86 @@ async function useNormalPlan(){
   await verifyPlan(normal.map(r=>({...r})),"Normal plan loaded and independently checked.");
 }
 
+async function compareSafety(){
+  if(!state.context){showError(new Error("Prepare the day first."),"Comparing safety");return}
+  const button=$("compare-safety");button.disabled=true;button.textContent="Running both…";
+  try{
+    const result=await api("/api/safety-comparison",{overrides:overrides(),policy:policy()});
+    const root=$("safety-comparison");root.replaceChildren();root.hidden=false;
+    for(const row of result.rows||[]){
+      const card=document.createElement("div");card.className=`safety-result ${row.checker_enabled?"on":"off"}`;
+      const title=document.createElement("strong");title.textContent=row.checker_enabled?"Safety check on":"Safety check off";
+      const outcome=document.createElement("span");
+      outcome.textContent=`${row.hard_violations} hard limit problem${row.hard_violations===1?"":"s"} · ${euro(row.cost_eur)} · crop ${Math.round(row.crop_band_hours)}/24 h`;
+      const note=document.createElement("span");
+      note.textContent=row.checker_enabled?(row.fell_back?"Unsafe proposal stopped; normal control took over.":"Plan verified before review."):"Executed only for comparison; cannot be approved.";
+      card.append(title,outcome,note);root.append(card);
+    }
+  }catch(error){showError(error,"Comparing safety on and off")}
+  finally{button.disabled=false;button.textContent="Compare on/off"}
+}
+
+function openConcern(){
+  if(!state.run){showError(new Error("Build a plan first."),"Opening partial review");return}
+  for(const input of document.querySelectorAll('#concern-form input[type="checkbox"]'))input.checked=false;
+  const root=$("concern-actions");root.replaceChildren();
+  for(const action of state.run.actions||[]){
+    const label=document.createElement("label");
+    const input=document.createElement("input");input.type="checkbox";input.value=action.action_id;
+    label.append(input,document.createTextNode(`${action.title} (${String(action.start).padStart(2,"0")}:00–${String(action.end+1).padStart(2,"0")}:00)`));
+    root.append(label);
+  }
+  if(!(state.run.actions||[]).length) root.textContent="There are no remaining changes to reject separately.";
+  $("concern-status").textContent="";$("concern-note").value="";
+  $("concern-dialog").showModal();
+}
+
+async function submitConcern(){
+  const accepted=[...document.querySelectorAll('#concern-form input[name="accepted"]:checked')].map(x=>x.value);
+  const objected=[...document.querySelectorAll('#concern-form input[name="objected"]:checked')].map(x=>x.value);
+  const overlap=accepted.filter(value=>objected.includes(value));
+  if(!objected.length){$("concern-status").textContent="Choose at least one part you disagree with.";return}
+  if(overlap.length){$("concern-status").textContent="The same part cannot be both okay and a concern.";return}
+  const rejected=[...$("concern-actions").querySelectorAll('input:checked')].map(x=>x.value);
+  const button=$("submit-concern");button.disabled=true;$("concern-status").textContent="Updating only those parts…";
+  try{
+    if(rejected.length){
+      const normal=state.run.normal_settings?.plan||[];const byHour=new Map(normal.map(r=>[Number(r.hour),r]));
+      const actions=(state.run.actions||[]).filter(action=>rejected.includes(action.action_id));
+      const edited=state.currentPlan.map(row=>{
+        const next={...row};
+        for(const action of actions){
+          if((action.hours||[]).includes(Number(row.hour))){const base=byHour.get(Number(row.hour));if(base)next[action.field_name]=base[action.field_name]}
+        }
+        return next;
+      });
+      const revised=await verifyPlan(edited,"Selected parts returned to normal and re-checked.");
+      if(!revised)throw new Error("The revised plan could not be verified.");
+    }
+    const reply=await api("/api/concerns",{
+      run_id:state.run.run_id,revision:state.run.revision,plan_hash:state.run.plan_hash,
+      accepted_aspects:accepted,objected_aspects:objected,rejected_action_ids:rejected,
+      comment:$("concern-note").value.trim(),overrides:overrides(),
+    });
+    $("concern-status").textContent=reply.answer;toast("Your partial concern is attached to this plan.");
+  }catch(error){$("concern-status").textContent=String(error.message||error)}
+  finally{button.disabled=false}
+}
+
+async function loadParameterSummary(){
+  try{
+    const registry=await api("/api/parameters");const c=registry.counts||{};
+    const guesses=(registry.parameters||[]).filter(row=>row.status==="assumption").slice(0,3).map(row=>row.path);
+    $("parameter-summary").textContent=`${registry.parameters.length} operating numbers are registered: ${c.sourced||0} sourced, ${c.assumption||0} clearly marked assumptions and ${c.choice||0} software choices. First assumptions to replace for Tahir: ${guesses.join(", ")}.`;
+  }catch(error){$("parameter-summary").textContent="The source register could not be loaded."}
+}
+
 function renderTimeline(plan){
   const root=$("timeline"); root.replaceChildren();
   const rows=[
     ["Price",r=>Number(r.power_price_eur_kwh||0)>.15?"hot":""],
     ["Lights",r=>Number(r.lighting_level||0)>.05?(Number(r.lighting_level)>.65?"hi":"on"):""],
-    ["CHP",r=>r.chp_mode&&r.chp_mode!=="off"?"hi":""],
+    ["Engine",r=>r.chp_mode&&r.chp_mode!=="off"?"hi":""],
     ["Battery",r=>r.battery==="charge"?"charge":r.battery==="discharge"?"discharge":""],
   ];
   rows.forEach(([label,fn])=>{
@@ -284,7 +367,11 @@ $("battery-reserve").addEventListener("input",()=>$("reserve-value").textContent
 $("refresh-data").addEventListener("click",loadContext);
 $("build-plan").addEventListener("click",buildPlan);
 $("use-normal-plan").addEventListener("click",useNormalPlan);
+$("compare-safety").addEventListener("click",compareSafety);
+$("raise-concern").addEventListener("click",openConcern);
+$("submit-concern").addEventListener("click",submitConcern);
 $("approve-plan").addEventListener("click",approve);
 $("recalculate").addEventListener("click",()=>{document.querySelector(".collaboration").scrollIntoView({behavior:"smooth",block:"start"});toast("Change the grower choices, then build the plan again.");});
 
 loadContext();
+loadParameterSummary();

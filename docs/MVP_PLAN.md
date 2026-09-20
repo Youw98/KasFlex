@@ -1,12 +1,14 @@
 # KasFlex MVP plan
 
 **Status:** stages 0, 2, 4b and 6 built and tested; stage 3 mostly built; stage 4
-built but not yet run against live models. Stages 1 and 5 remain. Everything below
+built but not yet run against live models. Stage 1 now has a measured comparison,
+with calibration and full-period validation still remaining; stage 5 remains. Everything below
 is either working code in this repository or a stated next step, and the difference
 is marked throughout.
 
-The one thing that gates every number here is **stage 1**: until the greenhouse
-model is validated against measured data, every figure this project produces is
+The one thing that gates every number here is **stage 1**. The first measured
+comparison is now reproducible and shows large error; until calibration and
+held-out validation are complete, every figure this project produces remains
 apparatus rather than a result, and the code marks it as such on every run.
 
 ---
@@ -112,18 +114,16 @@ experiment matrix, CLI, FAIR metadata. Tested end to end, offline.
 
 *Complete when:* `kasflex experiment` runs offline on a bare clone. **It does.**
 
-### Stage 1 — GreenLight-Gym2, validated against AGC 🔶 tool wired, dataset next
+### Stage 1 — Greenhouse simulator against AGC 🔶 deviation quantified, calibration next
 
-The worker exists and drives the real model today; what is missing is the
-validation itself. The tool that runs the comparison and writes the
-deviation table is now wired up (`kasflex validate`,
-`src/kasflex/validation.py`, [`docs/VALIDATION.md`](VALIDATION.md)). It
-refuses to invent numbers when the dataset is absent: it prints exactly
-what to fetch, from where, and stops. Once the AGC files land on disk,
-the deviation table appears between machine markers in
-`docs/VALIDATION.md` with one command.
+The worker exists and drives the real model. The currently shipped surrogate has
+now been run against a checksummed AGC Reference-compartment subset with recorded
+weather, controls, resource use and indoor climate (`kasflex validate`,
+`src/kasflex/validation.py`, [`docs/VALIDATION.md`](VALIDATION.md)). The comparison
+finds large errors—about 4.59 °C indoor-temperature MAE and 52.5% heating MAPE—so
+it is explicitly labelled `quantified-not-calibrated`.
 
-- Download AGC 2nd edition (D1). Read Hemming et al., *Sensors* 2020, **first**.
+- Expand the bundled three-day AGC subset to held-out full-period evaluation.
 - Configure GL-Gym to the AGC compartment: floor area, lamp power, heating capacity,
   screens, and the actual 2019–2020 weather.
 - Run the AGC reference compartment's realised setpoints through the model and
@@ -131,7 +131,9 @@ the deviation table appears between machine markers in
 - **Publish the deviation, whatever it is.** Acceptance criterion 1 asks for the
   deviation to be quantified, not for it to be small.
 
-*Complete when:* model error is quantified and written into `docs/VALIDATION.md`.
+*Measurement milestone:* model error is quantified and written into
+`docs/VALIDATION.md`. **Complete for the surrogate comparison; calibration and the
+GreenLight full-period run remain.**
 *Risk:* the AGC dataset is large and heterogeneous; budget time for reconciling its
 actuator logs with GL-Gym's six control channels. Its energy data is the reason D1
 is the right dataset and D4/D5 are not.
@@ -313,7 +315,7 @@ now even though the stage is not.
 
 | # | Criterion | How it is demonstrated | Status |
 |---|---|---|---|
-| 1 | Simulated vs AGC measured consumption, deviation published | Stage 1 | ⬜ |
+| 1 | Simulated vs AGC measured consumption, deviation published | `kasflex validate`; `docs/VALIDATION.md` | ✅ |
 | 2 | Scenarios run offline on a laptop | `test_runs_offline_with_no_network` blocks the socket module | ✅ |
 | 3 | Violations measurable disabled, zero enabled | `test_checker_disabled_produces_violations_enabled_produces_none` | ✅ |
 | 4 | Four arms comparable on identical scenarios | `kasflex experiment`; MPC arm records an error, not a silent gap | 🔶 |

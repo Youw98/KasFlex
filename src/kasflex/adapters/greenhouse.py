@@ -91,6 +91,7 @@ class SurrogateGreenhouse:
     """Overall heat transfer through the cover, per m2 of floor and per K of
     difference with outdoor air. A typical Dutch double-screened glasshouse."""
     thermal_mass_kwh_per_m2_per_k: float = 0.0085
+    lamp_power_kw_per_m2: float = 0.110
     lamp_heat_fraction: float = 0.85
     """Share of lamp electrical input that ends up as sensible heat inside."""
     co2_uptake_kg_per_m2_per_hour_full_light: float = 0.0012
@@ -108,7 +109,6 @@ class SurrogateGreenhouse:
         if len(conditions) != len(plan.intervals):
             raise ValueError("plan and conditions must cover the same hours")
 
-        lamp_kw_per_m2 = 0.110  # matches EnergyHub.lamp_power_w_m2 default
         temp = self.setpoint_night_c
         heat: list[float] = []
         co2_demand: list[float] = []
@@ -130,7 +130,10 @@ class SurrogateGreenhouse:
             )
             solar_gain_kw = 0.55 * cond.irradiance_w_m2 * floor_area_m2 / 1000.0
             lamp_gain_kw = (
-                intent.lighting_level * lamp_kw_per_m2 * floor_area_m2 * self.lamp_heat_fraction
+                intent.lighting_level
+                * self.lamp_power_kw_per_m2
+                * floor_area_m2
+                * self.lamp_heat_fraction
             )
             demand_kw = max(0.0, loss_kw - solar_gain_kw - lamp_gain_kw)
             heat.append(demand_kw)

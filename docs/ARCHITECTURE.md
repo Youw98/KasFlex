@@ -209,6 +209,7 @@ table would measure nothing.
 | `kasflex.data.pipeline` | The daily job: cache-first, offline-safe, idempotent. |
 | `kasflex.oversight` | Approval, edits, append-only audit log. |
 | `kasflex.validation` | Greenhouse-model deviation table against AGC measurements (stage 1). |
+| `kasflex.parameters` | Complete operational-number registry; enforces source, assumption or choice status. |
 | `kasflex.llm_providers` | Pluggable model transports: Anthropic, OpenAI, Gemini, Ollama, any OpenAI-compatible endpoint. |
 | `kasflex.memory` | Grower preferences, human/AI conflicts and conversation, append-only. |
 | `kasflex.conversation` | Explaining a plan, extracting a preference from an objection, proposing a compromise. |

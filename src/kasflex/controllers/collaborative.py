@@ -37,7 +37,7 @@ def _policy(context: base.PlanningContext) -> dict[str, object]:
         raw = {}
 
     priority = str(raw.get("priority", "balanced")).lower()
-    if priority not in {"balanced", "cost", "grid"}:
+    if priority not in {"balanced", "cost", "grid", "crop"}:
         priority = "balanced"
 
     reserve = raw.get("battery_reserve_pct", 45)
@@ -97,6 +97,7 @@ class CollaborativePlanner:
 
         seed = rule_based.RuleBasedPlanner().plan(context)
         seed = _apply_blackout(seed, policy["avoid_chp_hours"])
+        crop_reference = seed
 
         margin = float(policy["battery_reserve_pct"]) / 100.0
         forbidden = tuple(policy["avoid_chp_hours"])
@@ -115,11 +116,26 @@ class CollaborativePlanner:
 
         optimiser = scheduler.OptimizingScheduler(
             safety_margin=margin,
-            objective_mode=str(policy["priority"]),
+            objective_mode="cost" if policy["priority"] == "crop" else str(policy["priority"]),
             forbidden_chp_hours=forbidden,
             prefer_stored_heat=prefer_stored,
         )
         best = optimiser.optimise(seed, context.hub, context.forecast)
+        if policy["priority"] == "crop":
+            # Cost may move storage/CHP operation, but it may not buy savings by
+            # changing the crop-facing light, heat-availability or CO2 decisions.
+            best = dataclasses.replace(
+                best,
+                intervals=tuple(
+                    dataclasses.replace(
+                        interval,
+                        lighting_level=crop_reference.intervals[interval.hour].lighting_level,
+                        heat_source=crop_reference.intervals[interval.hour].heat_source,
+                        co2_source=crop_reference.intervals[interval.hour].co2_source,
+                    )
+                    for interval in best.intervals
+                ),
+            )
 
         self.last_diagnostics = {
             "priority": str(policy["priority"]),

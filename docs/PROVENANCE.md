@@ -1,161 +1,84 @@
-# Provenance of every number
+# Provenance of every operational number
 
-Every numerical parameter KasFlex ships with — battery size, CHP efficiency,
-lamp density, crop bands — comes from somewhere. This page lists them all,
-next to where they came from.
+Every number that materially affects the scenario, asset dispatch, safety retry
+budget or surrogate model is registered below. The source of truth is
+`configs/parameter_sources.yaml`; `kasflex parameters` joins it to the active
+configuration and renders this table.
 
-The six parameters that reach every cost figure the system produces (CHP,
-heat buffer, battery, crop temperature ceiling) are corrected against
-published sources in [the README](../README.md#where-the-numbers-come-from).
-This page carries the same table for those, and adds a row for every other
-parameter the scenario configuration and asset defaults expose, so that
-nothing is left as an unsourced default.
+The registry is enforced, not advisory:
 
-Three tags are used, and only three:
+- `sourced` entries require a named source and URL;
+- `assumption` entries are explicitly not measurements and should be replaced
+  with Tahir's site data where available;
+- `choice` entries are software or experiment settings, not physical claims;
+- missing, unknown, or stale values fail validation and the test suite.
 
-| tag | meaning |
-|---|---|
-| **documented** | copied from a specific source (a paper, a manufacturer sheet, a dataset, GL-Gym's own defaults). The source is named. |
-| **industry norm** | widely-used representative figure for the Dutch lit tomato greenhouse the scenario is modelled on, not tied to one document. Kept explicit so a reviewer knows it is a scenario choice, not a measurement. |
-| **guess** | an educated placeholder. Nobody has looked up a source yet. These are the values a validation exercise most needs to revisit. |
+The list below is generated from the default Westland scenario. Run
+`kasflex parameters --config your-site.yaml` to audit a different site, or
+`kasflex parameters --json` for machine-readable output.
 
-A parameter with no row in this file is a bug in this file, not permission
-to invent one. When you add a new field, add a row here in the same commit.
+Operational parameters: 61 (7 sourced, 46 assumptions, 8 choices)
 
-Datasets themselves live in [DATA.md](DATA.md) with their DOIs and licences.
-This file is about the values baked into `configs/scenario_westland_winter.yaml`
-and the defaults in `src/kasflex/energy/assets.py`.
-
-## Site scale
-
-| Field | Value | Tag | Source / rationale |
-|---|---|---|---|
-| `hub.floor_area_m2` | 50 000 m² | industry norm | A representative modern Dutch lit tomato greenhouse (Westland cluster). AGC validation runs at 96 m² instead — see [DECISIONS.md](DECISIONS.md) ADR-0004. |
-| `hub.base_load_kw` | 150 kW | guess | Site electrical load that is not lighting (pumps, fans, screens, packing hall). Order-of-magnitude estimate; a metering study would replace it. |
-| `hub.lamp_power_w_m2` | 110 W/m² | industry norm | Typical installed supplemental-lighting density for a lit Dutch tomato greenhouse. HPS installations sit around 100–120 W/m²; LED retrofits go higher. |
-| `hub.lamp_ppfd_umol_m2_s` | 185 μmol/m²/s | industry norm | Photosynthetic photon flux at full lamp power. Consistent with HPS efficacy around 1.7 μmol/J at 110 W/m². Would change materially under LED. |
-
-## Grid connection
-
-| Field | Value | Tag | Source / rationale |
-|---|---|---|---|
-| `hub.contract.import_limit_kw` | 6 000 kW | industry norm | Sized to carry the full lamp field of the default 5 ha site (5 500 kW at 110 W/m²) plus base load and margin. A connection smaller than the lamp load would make every fully-lit hour a violation. |
-| `hub.contract.export_limit_kw` | 4 000 kW | industry norm | Feed-in caps are commonly lower than import. Non-firm ATO contracts sometimes push this to zero — expose that via the scenario file. |
-| `hub.contract.congestion_windows` | 3 000 kW import / 1 000 kW export at 16–19h | industry norm | Represents a Liander evening-peak reduction typical of the Westland cluster. Real windows come from the Netbeheer Nederland capacity map (D10); this is a scenario stand-in until phase 2 wires the map in. |
-
-## Battery
-
-The system-level round-trip efficiency is cited in [the
-README](../README.md#where-the-numbers-come-from) (0.92 each way; 85%
-round-trip; sources: ScienceDirect, OSTI).
-
-| Field | Value | Tag | Source / rationale |
-|---|---|---|---|
-| `hub.battery.capacity_kwh` | 2 000 kWh | industry norm | Representative Li-ion battery for a 5 ha lit site; small enough that time-of-use arbitrage has to earn it, large enough to move the peak. |
-| `hub.battery.max_charge_kw` | 1 000 kW | industry norm | 0.5 C on capacity. Matches `c_rate_max` below. Corresponds to the conventional 2-hour grid-scale duration. |
-| `hub.battery.max_discharge_kw` | 1 000 kW | industry norm | Same reasoning as charge. |
-| `hub.battery.soc_min_frac` | 0.10 | documented | Standard vendor lower reserve on grid-scale Li-ion (Tesla Megapack, CATL EnerC, etc.); protects cycle life. |
-| `hub.battery.soc_max_frac` | 0.90 | documented | Corresponding upper reserve. |
-| `hub.battery.soc_init_frac` | 0.50 | industry norm | Midpoint start. Deterministic seed for reproducibility (R6). |
-| `hub.battery.charge_efficiency` | 0.92 | documented | See README citations. |
-| `hub.battery.discharge_efficiency` | 0.92 | documented | See README citations. |
-| `hub.battery.c_rate_max` | 0.5 | documented | Matches the 2-hour grid-scale duration standard for utility Li-ion. |
-
-## Combined heat and power (CHP)
-
-CHP electrical efficiency, heat/power ratio and CO₂ factor are cited in
-[the README](../README.md#where-the-numbers-come-from) (US EPA CHP catalog;
-van der Velden & Smit, *Energy Policy* 2015; Carbon Independent).
-
-| Field | Value | Tag | Source / rationale |
-|---|---|---|---|
-| `hub.chp.electrical_capacity_kw` | 1 500 kWe | industry norm | Mid-size greenhouse gas engine (0.5–5 MW is the Dutch sector's typical range, per van der Velden & Smit). |
-| `hub.chp.heat_to_power_ratio` | 1.1 | documented | See README citations (EPA Table 2-2, interpolated to 1.5 MW). |
-| `hub.chp.electrical_efficiency` | 0.375 | documented | Same source. |
-| `hub.chp.min_load_frac` | 0.50 | industry norm | Below half load the engine's electrical efficiency and NOx behaviour deteriorate. |
-| `hub.chp.min_run_hours` | 2 | industry norm | A gas engine reaches steady thermal state within about two hours; cycling faster costs efficiency and maintenance life. |
-| `hub.chp.min_down_hours` | 2 | industry norm | Same reasoning applied to restart. |
-| `hub.chp.ramp_kw_per_hour` | 1 500 kW/h | documented | A greenhouse gas engine reaches full load within minutes, so at one-hour resolution the ramp does not bind. Kept explicit because larger units and steam turbines do. |
-| `hub.chp.co2_kg_per_kwh_e` | 0.50 kg/kWh_e | documented | See README (natural-gas emission factor / electrical efficiency). |
-
-## Boiler
-
-| Field | Value | Tag | Source / rationale |
-|---|---|---|---|
-| `hub.boiler.thermal_capacity_kw` | 8 000 kW | documented | GreenLight-Gym2 reports a maximum heating power of 130 W/m²; a 5 ha site therefore needs about 6.5 MW on the coldest hour. 8 MW gives head-room; 4 MW would leave the checker reporting an unmeetable heat demand on any genuinely cold night. |
-| `hub.boiler.efficiency` | 0.90 | industry norm | Typical seasonal efficiency of a modern greenhouse condensing gas boiler on higher-heating-value gas. |
-| `hub.boiler.ramp_kw_per_hour` | 8 000 kW/h | documented | Boilers ramp fast enough that the hourly limit does not bind; kept explicit for symmetry with the CHP. |
-
-## Heat buffer
-
-Buffer capacity is cited in [the
-README](../README.md#where-the-numbers-come-from) (Hortinergy: ~300 m³/ha
-Dutch practice; VB Greenhouses on U-values).
-
-| Field | Value | Tag | Source / rationale |
-|---|---|---|---|
-| `hub.buffer.capacity_kwh` | 43 600 kWh | documented | See README citations (1 500 m³ for 5 ha × 25 K working swing). |
-| `hub.buffer.max_charge_kw` | 3 000 kW | industry norm | Sized to accept CHP + boiler simultaneously when needed. |
-| `hub.buffer.max_discharge_kw` | 3 000 kW | industry norm | Sized to cover a majority of night heat demand from the buffer alone. |
-| `hub.buffer.level_min_frac` | 0.05 | industry norm | Practical dead volume in a stratified tank. |
-| `hub.buffer.level_max_frac` | 0.95 | industry norm | Head-space for thermal expansion. |
-| `hub.buffer.standing_loss_frac_per_hour` | 0.005 | guess | 0.5% per hour is a reasonable placeholder for a well-insulated large stratified tank; a manufacturer figure would replace it. |
-
-## Photovoltaic
-
-| Field | Value | Tag | Source / rationale |
-|---|---|---|---|
-| `hub.pv.peak_kw` | 500 kW | industry norm | Modest rooftop or field PV, chosen so it affects but does not dominate the mid-day balance for the default site. |
-| `hub.pv.performance_ratio` | 0.85 | documented | Standard IEC-61724 performance ratio; captures inverter, cable and soiling losses relative to nameplate at STC. |
-
-## Crop limits (all crop-specific and worth revisiting per cultivar)
-
-`temp_max_c` is cited in [the
-README](../README.md#where-the-numbers-come-from).
-
-| Field | Value | Tag | Source / rationale |
-|---|---|---|---|
-| `hub.crop.dli_target_mol_m2` | 10 mol/m² | industry norm | Supplemental daily light integral for a Dutch winter lit tomato crop; the sun provides most summer light and lamps top up the rest. |
-| `hub.crop.dli_tolerance_mol_m2` | 3 mol/m² | industry norm | A tolerance wide enough that a valid winter plan is achievable; narrower windows reject every plan for a reason the planner cannot act on. |
-| `hub.crop.temp_min_c` | 15 °C | documented | Lower bound for tomato vegetative development; below this fruit set drops sharply. |
-| `hub.crop.temp_max_c` | 32 °C | documented | See README (pollen viability collapses above roughly 30–32 °C). |
-| `hub.crop.rh_max_pct` | 85% | documented | Above this, Botrytis risk rises steeply on tomato. |
-| `hub.crop.co2_min_ppm` | 300 ppm | industry norm | Roughly atmospheric; the floor of the enrichment control band. |
-| `hub.crop.co2_max_ppm` | 1 600 ppm | industry norm | A common upper enrichment target; above this the marginal photosynthesis gain flattens. |
-
-## Prices
-
-| Field | Value | Tag | Source / rationale |
-|---|---|---|---|
-| `gas_price_eur_kwh` | 0.035 EUR/kWh (HHV) | industry norm | TTF front-month settlement has no free public API, so this is a configured value rather than a fetch. Update it when the market moves materially. See [DATA.md](DATA.md). |
-| `power_price_eur_kwh` | ENTSO-E day-ahead | documented | Fetched, checksummed, cached. See [DATA.md](DATA.md). |
-| `irradiance_w_m2` | Open-Meteo forecast + KNMI actual | documented | Same pipeline. |
-
-## Configuration knobs that are choices, not measurements
-
-| Field | Value | Tag | Source / rationale |
-|---|---|---|---|
-| `checker.enabled` | true | choice | The whole point of the project is to measure what changes when this flips. |
-| `checker.explain` | true | choice | Whether the checker's rejection is passed back to the planner as guidance. R19 keeps this switchable independently of `enabled` so verification and explanation can be measured apart. |
-| `checker.max_revisions` | 3 | choice | How many times the planner is allowed to revise before the baseline takes over (R18). Small enough to be finite, large enough to test whether the planner learns from feedback. |
-| `checker.fail_on_projected` | false | choice | Projected (climate-band) violations do not reject a plan by default; that would attribute the greenhouse model's error to the planner. See [DECISIONS.md](DECISIONS.md) ADR-0007. |
-| `history_days` (learned planner) | 60 | industry norm | Enough past days to fit the ridge demand model without the lag features exhausting the sample. |
-| `seed` | 0 | choice | Reproducibility (R6). Any integer is fine; 0 is the default so the same run reproduces. |
-
-## Numbers that come from someone else's code, not this file
-
-| Where | Source |
-|---|---|
-| Climate and crop physics constants (transpiration, photosynthesis, stomatal conductance, canopy energy balance) | [GreenLight-Gym2](https://github.com/BartvLaatum/GreenLight-Gym2), inherited from [GreenLight](https://github.com/davkat1/GreenLight). Isolated in `workers/greenlight/`. |
-| Power-flow equations, MV feeder topology defaults | [power-grid-model](https://github.com/PowerGridModel/power-grid-model). |
-| Ridge regression coefficients (learned planner) | Fitted at runtime from the greenhouse's past operation. Reproducible from the seed. |
-
-## Guesses, listed
-
-The rows tagged **guess** above, at the time of writing:
-
-1. `hub.base_load_kw` (150 kW site load)
-2. `hub.buffer.standing_loss_frac_per_hour` (0.005)
-
-Two is few enough to enumerate. If it grows past a handful, this list —
-not the table — is the thing to look at first.
+| Parameter | Current value | Unit | Status | Source or rationale |
+|---|---:|---|---|---|
+| `hub.floor_area_m2` | 50000 | m2 | assumption | Representative scale for a modern Dutch lit tomato site; replace with Tahir's actual area. |
+| `hub.lamp_power_w_m2` | 110 | W/m2 | assumption | Representative HPS-era installed power density; must be replaced for the actual fixture layout. |
+| `hub.lamp_ppfd_umol_m2_s` | 185 | umol/m2/s | assumption | Derived from 110 W/m2 at roughly 1.7 umol/J; fixture-specific measurement is preferred. |
+| `hub.base_load_kw` | 150 | kW | assumption | Placeholder for pumps, fans, screens and site auxiliaries; marked as a guess in PROVENANCE.md. |
+| `hub.contract.import_limit_kw` | 6000 | kW | assumption | Scenario contract sized above the default lamp field; replace with the signed connection agreement. |
+| `hub.contract.export_limit_kw` | 4000 | kW | assumption | Scenario export ceiling; replace with the signed connection agreement. |
+| `hub.contract.congestion_windows` | {16: (3000.0, 1000.0), 17: (3000.0, 1000.0), 18: (3000.0, 1000.0), 19: (3000.0, 1000.0)} | hour_to_[import_kw,export_kw] | assumption | Illustrative evening restriction, not a live DSO instruction. |
+| `hub.battery.capacity_kwh` | 2000 | kWh | assumption | Representative two-hour battery for the 5 ha scenario; replace with the nameplate. |
+| `hub.battery.max_charge_kw` | 1000 | kW | assumption | 0.5 C scenario limit, consistent with a two-hour system. |
+| `hub.battery.max_discharge_kw` | 1000 | kW | assumption | 0.5 C scenario limit, consistent with a two-hour system. |
+| `hub.battery.soc_min_frac` | 0.1 | fraction | assumption | Conservative operating reserve; the supplier warranty must replace it. |
+| `hub.battery.soc_max_frac` | 0.9 | fraction | assumption | Conservative operating reserve; the supplier warranty must replace it. |
+| `hub.battery.soc_init_frac` | 0.5 | fraction | choice | Deterministic midpoint used to make scenario comparisons reproducible. |
+| `hub.battery.charge_efficiency` | 0.92 | fraction | sourced | [U.S. Department of Energy, Energy Storage Technology and Cost Characterization Report](https://www.energy.gov/sites/default/files/2019/07/f65/Storage%20Cost%20and%20Performance%20Characterization%20Report_Final.pdf) — Paired charge/discharge values give about 85% round-trip efficiency including system losses. |
+| `hub.battery.discharge_efficiency` | 0.92 | fraction | sourced | [U.S. Department of Energy, Energy Storage Technology and Cost Characterization Report](https://www.energy.gov/sites/default/files/2019/07/f65/Storage%20Cost%20and%20Performance%20Characterization%20Report_Final.pdf) — Paired charge/discharge values give about 85% round-trip efficiency including system losses. |
+| `hub.battery.c_rate_max` | 0.5 | 1/hour | assumption | Two-hour battery operating envelope; use the supplier's warranted C-rate in a real site profile. |
+| `hub.chp.electrical_capacity_kw` | 1500 | kWe | assumption | Representative mid-size greenhouse gas engine; replace with the installation nameplate. |
+| `hub.chp.heat_to_power_ratio` | 1.1 | kWth/kWe | sourced | [US EPA Catalog of CHP Technologies, reciprocating engines](https://www.epa.gov/chp/catalog-chp-technologies) — Representative 1–2 MW natural-gas reciprocating engine. |
+| `hub.chp.electrical_efficiency` | 0.375 | fraction_HHV | sourced | [US EPA Catalog of CHP Technologies, reciprocating engines](https://www.epa.gov/chp/catalog-chp-technologies) — Representative HHV electrical efficiency at this engine scale. |
+| `hub.chp.min_load_frac` | 0.5 | fraction | assumption | Generic minimum stable load; replace with the engine supplier curve. |
+| `hub.chp.min_run_hours` | 2 | hour | assumption | Operational anti-cycling rule, not a physical measurement. |
+| `hub.chp.min_down_hours` | 2 | hour | assumption | Operational anti-cycling rule, not a physical measurement. |
+| `hub.chp.ramp_kw_per_hour` | 1500 | kW/hour | assumption | Non-binding hourly ramp for a fast-start gas engine; supplier data should replace it. |
+| `hub.chp.co2_kg_per_kwh_e` | 0.5 | kg/kWh_e | sourced | [Derived from natural-gas CO2 intensity divided by the registered CHP electrical efficiency](https://www.epa.gov/chp/catalog-chp-technologies) — Derived value; must move if fuel carbon intensity or electrical efficiency changes. |
+| `hub.chp.initially_running` | False | boolean | choice | Reproducible scenario initial state. |
+| `hub.chp.hours_in_current_state` | 99 | hour | choice | Makes the initial state unconstrained by a previous run/down interval. |
+| `hub.boiler.thermal_capacity_kw` | 8000 | kWth | assumption | Covers roughly 130 W/m2 plus margin at the 5 ha scenario scale; replace with nameplate data. |
+| `hub.boiler.efficiency` | 0.9 | fraction_HHV | assumption | Representative modern greenhouse boiler seasonal efficiency; measure or use supplier data. |
+| `hub.boiler.ramp_kw_per_hour` | 8000.0 | kW/hour | assumption | Non-binding hourly ramp assumption for a fast boiler. |
+| `hub.buffer.capacity_kwh` | 43600 | kWhth | sourced | [Derived from 1,500 m3 water and a 25 K working temperature difference](https://www.hortinergy.com/knowledgebase/greenhouse-heating-system/) — Scenario derivation for about 300 m3/ha; replace with tank geometry and operating temperatures. |
+| `hub.buffer.max_charge_kw` | 3000 | kWth | assumption | Pipework and heat-exchanger placeholder. |
+| `hub.buffer.max_discharge_kw` | 3000 | kWth | assumption | Pipework and heat-exchanger placeholder. |
+| `hub.buffer.level_min_frac` | 0.05 | fraction | assumption | Practical dead-volume reserve. |
+| `hub.buffer.level_max_frac` | 0.95 | fraction | assumption | Expansion/headroom reserve. |
+| `hub.buffer.level_init_frac` | 0.5 | fraction | choice | Deterministic midpoint used for reproducible comparisons. |
+| `hub.buffer.standing_loss_frac_per_hour` | 0.005 | fraction/hour | assumption | Explicit guess pending tank U-value, geometry and temperature measurements. |
+| `hub.pv.peak_kw` | 500 | kWp | assumption | Illustrative PV plant; replace with inverter/nameplate data. |
+| `hub.pv.performance_ratio` | 0.85 | fraction | assumption | Representative system performance ratio; calculate from the actual array under IEC 61724 practice. |
+| `hub.crop.dli_target_mol_m2` | 10.0 | mol/m2/day | assumption | Supplemental-light scenario target, not a universal tomato optimum. |
+| `hub.crop.dli_tolerance_mol_m2` | 3.0 | mol/m2/day | assumption | Feasibility band chosen for the demonstration. |
+| `hub.crop.temp_min_c` | 15.0 | degC | assumption | Conservative generic tomato lower limit; Tahir must set cultivar and growth-stage limits. |
+| `hub.crop.temp_max_c` | 32.0 | degC | sourced | [Sato et al., high-temperature effects on tomato fruit set](https://doi.org/10.1093/jxb/53.371.1187) — Generic upper stress boundary, not a crop-control setpoint. |
+| `hub.crop.rh_max_pct` | 85.0 | percent | assumption | Generic disease-risk ceiling; cultivar, airflow and condensation conditions matter. |
+| `hub.crop.co2_min_ppm` | 300.0 | ppm | assumption | Lower enrichment-band guard near ambient concentration. |
+| `hub.crop.co2_max_ppm` | 1600.0 | ppm | assumption | Generic enrichment ceiling; site policy and ventilation should replace it. |
+| `gas_price_eur_kwh` | 0.035 | EUR/kWh_HHV | assumption | Manual scenario input because KasFlex has no licensed live TTF feed. |
+| `dispatch.liquid_co2_eur_kg` | 0.3 | EUR/kg | assumption | Delivered liquid CO2 placeholder; replace with the grower's contract. |
+| `history_days` | 60 | day | choice | Training-window choice, long enough for the current lag features. |
+| `checker.max_revisions` | 3 | count | choice | Experimental retry budget before baseline fallback. |
+| `scenario.seed` | 0 | integer | choice | Deterministic random seed for reproducible runs; it is not a physical measurement. |
+| `scenario.latitude` | 51.99 | decimal_degrees | assumption | Westland demonstration location; replace with Tahir's greenhouse coordinates. |
+| `scenario.longitude` | 4.25 | decimal_degrees | assumption | Westland demonstration location; replace with Tahir's greenhouse coordinates. |
+| `surrogate.setpoint_day_c` | 19.5 | degC | assumption | Simplified development-model setpoint; not read from a grower climate strategy. |
+| `surrogate.setpoint_night_c` | 16.5 | degC | assumption | Simplified development-model setpoint; not read from a grower climate strategy. |
+| `surrogate.heat_loss_kw_per_m2_per_k` | 0.0062 | kW/m2/K | assumption | Lumped cover-loss coefficient for a screened greenhouse; validation shows it needs calibration. |
+| `surrogate.thermal_mass_kwh_per_m2_per_k` | 0.0085 | kWh/m2/K | assumption | Lumped thermal mass selected for stable five-minute integration; not measured. |
+| `surrogate.lamp_power_kw_per_m2` | 0.11 | kW/m2 | assumption | Mirrors the default EnergyHub lamp power. |
+| `surrogate.lamp_heat_fraction` | 0.85 | fraction | assumption | Simplified sensible-heat fraction; fixture and radiation model dependent. |
+| `surrogate.co2_uptake_kg_per_m2_per_hour_full_light` | 0.0012 | kg/m2/hour | assumption | Linear uptake proxy; measured AGC2 error shows it is not calibrated. |
+| `surrogate.vent_kw_per_m2_per_k` | 0.15 | kW/m2/K | assumption | Proportional ventilation proxy used to prevent unrealistic solar overheating. |
+| `surrogate.substeps_per_hour` | 12 | count | choice | Five-minute numerical integration step. |

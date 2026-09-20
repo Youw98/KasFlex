@@ -7,6 +7,7 @@ Six commands, each of which does one thing:
     kasflex verify      check a plan file against a scenario's limits
     kasflex validate    compare the greenhouse model against measured AGC data
     kasflex datasets    the data provenance registry
+    kasflex parameters  every operational number and its source/assumption status
     kasflex doctor      what is installed and what is missing
 
 ``run`` and ``experiment`` work offline on a bare clone with no API key and no
@@ -326,17 +327,42 @@ def cmd_datasets(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_parameters(args: argparse.Namespace) -> int:
+    """Show every operational model/asset number with its provenance status."""
+    from kasflex.parameters import parameter_registry, render_markdown
+
+    config = ScenarioConfig.from_yaml(args.config)
+    registry = parameter_registry(config)
+    if args.json:
+        print(json.dumps(registry, indent=2))
+    else:
+        counts = registry["counts"]
+        print(
+            f"Operational parameters: {len(registry['parameters'])} "
+            f"({counts['sourced']} sourced, {counts['assumption']} assumptions, "
+            f"{counts['choice']} choices)\n"
+        )
+        print(render_markdown(config))
+    return 0
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     """Compare the greenhouse model against measured AGC data (stage 1)."""
     from kasflex.validation import (
         DatasetMissing,
         instructions_when_missing,
         validate_against_agc,
+        validate_bundled_reference,
         write_validation_doc,
     )
 
     try:
-        report = validate_against_agc(args.cache_dir, simulate_day=None)
+        if args.cache_dir:
+            # Backwards-compatible path for a researcher's full local AGC export.
+            report = validate_against_agc(args.cache_dir, simulate_day=None)
+        else:
+            chosen = tuple(args.days.split(",")) if args.days else None
+            report = validate_bundled_reference(days=chosen)
     except DatasetMissing:
         # Not an error to the shell -- an explanation. Print the message and
         # exit with code 2 (dataset missing) so a scripted caller can tell
@@ -355,6 +381,11 @@ def cmd_validate(args: argparse.Namespace) -> int:
     print(f"Compared {report.days_compared} day(s) against {report.dataset}.")
     print("Deviations (simulated - measured):\n")
     print(report.to_markdown())
+
+    if args.json_out:
+        Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.json_out).write_text(json.dumps(report.to_dict(), indent=2))
+        print(f"Wrote {args.json_out}")
 
     if args.write_doc:
         write_validation_doc(report, args.write_doc)
@@ -460,6 +491,13 @@ def main(argv: list[str] | None = None) -> int:
     p_data.add_argument("--markdown", action="store_true")
     p_data.set_defaults(func=cmd_datasets)
 
+    p_params = sub.add_parser(
+        "parameters", help="show operational numbers with sources and assumptions"
+    )
+    p_params.add_argument("--config", default=DEFAULT_CONFIG)
+    p_params.add_argument("--json", action="store_true")
+    p_params.set_defaults(func=cmd_parameters)
+
     p_fetch = sub.add_parser("fetch", help="download and cache data for a day or range")
     p_fetch.add_argument("--config", default=DEFAULT_CONFIG)
     p_fetch.add_argument("--date", help="ISO date; defaults to tomorrow")
@@ -484,9 +522,15 @@ def main(argv: list[str] | None = None) -> int:
         help="compare the greenhouse model against measured AGC data (stage 1)",
     )
     p_val.add_argument(
-        "--cache-dir", default="data/cache",
-        help="root that holds agc2/measured/*.csv",
+        "--cache-dir", default=None,
+        help="use a full local export rooted at agc2/measured/*.csv; omitted uses "
+             "the bundled CC0 reference-day subset",
     )
+    p_val.add_argument(
+        "--days", default=None,
+        help="comma-separated bundled reference days (default: all pre-declared days)",
+    )
+    p_val.add_argument("--json-out", default=None, help="also write the report as JSON")
     p_val.add_argument(
         "--write-doc", default=None,
         help="also write the deviation table into this docs file "

@@ -1,0 +1,22 @@
+{
+  "dataset": "Autonomous Greenhouse Challenge, Second Edition (2019)",
+  "doi": "10.4121/uuid:88d22c60-21b3-4ea8-90db-20249a5be2a7",
+  "source_url": "https://data.4tu.nl/articles/_/12764777/2",
+  "licence": "CC0-1.0",
+  "source_archive": "AutonomousGreenhouseChallenge_edition2.7z",
+  "source_archive_sha256": "b889e9ab1663fe3b8a90a3dab71d4340a6ecd49492532c43784cc82d799708ca",
+  "retrieved_on": "2026-09-20",
+  "compartment": "Reference (Dutch commercial growers)",
+  "greenhouse_floor_area_m2": 96.0,
+  "sample_days": ["2020-01-25", "2020-04-20", "2020-05-27"],
+  "selection": "Three pre-declared days spanning cold/dark, bright spring and bright/warm conditions.",
+  "transformation": {
+    "hourly": "Weather/Weather.csv and Reference/GreenhouseClimate.csv grouped by Excel-date day and hour; numeric readings averaged; CO2 active when any five-minute co2_dos value was positive.",
+    "daily": "Reference/Resources.csv converted from MJ/m2/day and per-m2 quantities to whole-compartment kWh and kg using 96 m2."
+  },
+  "limitations": [
+    "This compact subset is intended for reproducible smoke validation, not final scientific validation.",
+    "The surrogate does not model the recorded screen and ventilation controls.",
+    "The days were not used to tune the surrogate parameters."
+  ]
+}

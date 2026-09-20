@@ -185,6 +185,53 @@ def test_suggested_questions_need_no_model(server):
 # -- preferences ------------------------------------------------------------
 
 
+def test_tahir_endpoints_are_available_without_a_model(server):
+    parameters = get(server, "/api/parameters")
+    assert len(parameters["parameters"]) == 61
+
+    comparison = post(
+        server,
+        "/api/safety-comparison",
+        {"overrides": {"planner": "rule-based"}},
+    )
+    assert [row["checker_enabled"] for row in comparison["rows"]] == [False, True]
+
+
+def test_partial_concern_is_bound_to_the_current_revision(server):
+    run = post(server, "/api/run", {"overrides": {"planner": "rule-based"}})
+    response = post(
+        server,
+        "/api/concerns",
+        {
+            "run_id": run["run_id"],
+            "revision": run["revision"],
+            "plan_hash": run["plan_hash"],
+            "accepted_aspects": ["money"],
+            "objected_aspects": ["crop"],
+            "comment": "The crop response is not acceptable.",
+        },
+    )
+    assert response["accepted_aspects"] == ["money"]
+    assert response["objected_aspects"] == ["crop"]
+
+
+def test_partial_concern_rejects_contradictory_scope(server):
+    run = post(server, "/api/run", {"overrides": {"planner": "rule-based"}})
+    body = post_expecting(
+        server,
+        "/api/concerns",
+        {
+            "run_id": run["run_id"],
+            "revision": run["revision"],
+            "plan_hash": run["plan_hash"],
+            "accepted_aspects": ["crop"],
+            "objected_aspects": ["crop"],
+        },
+        400,
+    )
+    assert "both accepted and objected" in body["error"]
+
+
 def test_preferences_start_empty_and_can_be_added(server):
     assert get(server, "/api/preferences")["preferences"] == []
 

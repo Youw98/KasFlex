@@ -37,13 +37,13 @@ The main page is the team-demo workspace. It prepares the real historical demo d
 and shows the day context before it asks for a plan.
 
 1. Check the electricity-price, weather and grid cards.
-2. Pick **Balanced**, **Lowest cost**, or **Grid relief**.
+2. Pick **Tomatoes first**, **Balanced**, or **Lowest cost**.
 3. Set the battery reserve and any operating preferences.
 4. Click **Build tomorrow's plan**.
-5. Review the independently checked proposal.
-6. Change individual suggestions back to normal control if needed; every change is
-   re-verified.
-7. Record the checked revision as the final day plan.
+5. Compare the exact same day with the safety check on and off.
+6. Accept the money side while objecting to crop, timing, equipment or individual
+   changes; only the selected changes are returned to normal.
+7. Review the independently checked revision and record it as the final day plan.
 
 The first successful demo-data load is cached; later runs reuse it. Market/weather
 inputs are real historical data, while greenhouse response, crop outcomes and asset
@@ -172,17 +172,17 @@ the constraint, the hour, the actual value and the feasible bound.
 ## Validate the greenhouse model against measured data
 
 ```bash
-kasflex validate --write-doc docs/VALIDATION.md
+kasflex validate
+kasflex validate --json-out validation.json
 ```
 
 Compares KasFlex's greenhouse model to the [Autonomous Greenhouse Challenge
 2nd edition](https://doi.org/10.4121/uuid:88d22c60-21b3-4ea8-90db-20249a5be2a7)
-measured series. When the dataset is not on disk the command explains where
-to get it, how to lay it out, and stops with exit code 2 — nothing is
-downloaded silently. Once the dataset is present, `--write-doc` updates the
-deviation table in [`docs/VALIDATION.md`](VALIDATION.md) in place, between
-machine markers, so history carries the measurement. Every KasFlex result
-is stamped `greenhouse_validated: false` until this table exists.
+measured series. A checksummed three-day Reference-compartment subset is bundled,
+so the command is reproducible offline. It reports aggregate and per-day deviations.
+The current errors are quantified in [`docs/VALIDATION.md`](VALIDATION.md) and are
+too large for operational claims, so every result remains stamped
+`greenhouse_validated: false`.
 
 ## Run it automatically every day
 
@@ -237,7 +237,13 @@ once by hand and look at the output before scheduling anything.**
 ```bash
 kasflex datasets
 kasflex datasets --markdown     # the table in docs/DATA.md
+kasflex parameters              # every operational number and its status
+kasflex parameters --json       # machine-readable audit
 ```
+
+`configs/parameter_sources.yaml` must cover every configured asset, checker and
+surrogate constant. A parameter is either sourced with a URL, an explicit scenario
+assumption, or a software/research choice; missing entries fail the test suite.
 
 ## Turn on the real greenhouse model
 

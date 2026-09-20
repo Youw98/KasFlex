@@ -117,6 +117,54 @@ def test_collaborative_run_uses_grower_policy(ui):
         assert result["plan"][hour]["chp_mode"] == "off"
 
 
+def test_crop_first_is_a_real_collaborative_policy(ui):
+    result = ui.run(
+        {"planner": "collaborative"},
+        policy={"priority": "crop", "battery_reserve_pct": 45},
+    )
+    assert result["policy"]["priority"] == "crop"
+    assert result["metrics"]["temperature_band_hours"] >= 0
+
+
+def test_safety_can_be_compared_on_and_off_without_saving_runs(ui):
+    before = len(ui.reviews.history())
+    comparison = ui.compare_safety({"planner": "rule-based"})
+
+    assert [row["checker_enabled"] for row in comparison["rows"]] == [False, True]
+    assert comparison["rows"][0]["verified"] is False
+    assert len(ui.reviews.history()) == before
+
+
+def test_every_operational_number_has_source_or_assumption(ui):
+    registry = ui.parameters()
+    assert registry["counts"] == {"sourced": 7, "assumption": 46, "choice": 8}
+    assert all(row["rationale"] for row in registry["parameters"])
+    assert all(
+        row.get("source_url")
+        for row in registry["parameters"]
+        if row["status"] == "sourced"
+    )
+
+
+def test_grower_can_accept_money_but_object_to_crop(ui):
+    result = ui.run({"planner": "rule-based"})
+    response = ui.respond_to_concern(
+        {
+            "run_id": result["run_id"],
+            "revision": result["revision"],
+            "plan_hash": result["plan_hash"],
+            "accepted_aspects": ["money"],
+            "objected_aspects": ["crop"],
+            "comment": "Keep the saving, but not at the expense of the crop.",
+        }
+    )
+
+    assert response["accepted_aspects"] == ["money"]
+    assert response["objected_aspects"] == ["crop"]
+    assert "money side can stay" in response["answer"]
+    assert response["preference_id"]
+
+
 def test_plan_rows_carry_context_for_the_operator(base_run):
     """A price and a heat demand next to each hour, or the plan is unreadable."""
     row = base_run["plan"][17]

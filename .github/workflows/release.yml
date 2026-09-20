@@ -63,6 +63,8 @@ jobs:
             "$BIN" run --planner "$planner" --quiet
           done
           "$BIN" experiment --days 1 > /dev/null
+          "$BIN" parameters --json > /dev/null
+          "$BIN" validate > /dev/null
           echo "all planners ran from the bundle"
 
       - name: Smoke-test the interface

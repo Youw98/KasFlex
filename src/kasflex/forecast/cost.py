@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from kasflex.energy.dispatch import dispatch_plan
+from kasflex.energy.dispatch import LIQUID_CO2_EUR_KG, dispatch_plan
 
 
 def project_cost(plan, hub, forecast, greenhouse) -> dict:
@@ -31,7 +31,7 @@ def project_cost(plan, hub, forecast, greenhouse) -> dict:
             "electricity_import_eur": iv.grid_import_kw * c.power_price_eur_kwh,
             "gas_eur": iv.gas_input_kw * c.gas_price_eur_kwh,
             "export_revenue_eur": iv.grid_export_kw * c.export_price,
-            "liquid_co2_eur": iv.co2_liquid_kg * 0.30,
+            "liquid_co2_eur": iv.co2_liquid_kg * LIQUID_CO2_EUR_KG,
             "net_cost_eur": iv.energy_cost_eur,
         })
     totals = {key: sum(row[key] for row in hourly) for key in hourly[0] if key != "hour"}
@@ -40,6 +40,6 @@ def project_cost(plan, hub, forecast, greenhouse) -> dict:
             "totals": totals, "hourly": hourly,
             "excludes": ["taxes", "grid tariffs", "supplier fees", "capital costs",
                          "maintenance", "crop sales"],
-            "assumptions": {"liquid_co2_eur_kg": 0.30,
+            "assumptions": {"liquid_co2_eur_kg": LIQUID_CO2_EUR_KG,
                             "price_sensitivity": "Fixed volumes; equal electricity price shift "
                                                  "for import and export."}}

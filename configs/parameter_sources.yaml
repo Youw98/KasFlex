@@ -1,0 +1,336 @@
+schema_version: 1
+updated: "2026-09-20"
+statuses:
+  sourced: Copied or derived from the named publication, dataset, standard, or software.
+  assumption: Scenario value chosen by the team and not presented as a measurement.
+  choice: Experimental or software setting rather than a physical fact.
+
+parameters:
+  hub.floor_area_m2:
+    value: 50000
+    unit: m2
+    status: assumption
+    rationale: Representative scale for a modern Dutch lit tomato site; replace with Tahir's actual area.
+  hub.lamp_power_w_m2:
+    value: 110
+    unit: W/m2
+    status: assumption
+    rationale: Representative HPS-era installed power density; must be replaced for the actual fixture layout.
+  hub.lamp_ppfd_umol_m2_s:
+    value: 185
+    unit: umol/m2/s
+    status: assumption
+    rationale: Derived from 110 W/m2 at roughly 1.7 umol/J; fixture-specific measurement is preferred.
+  hub.base_load_kw:
+    value: 150
+    unit: kW
+    status: assumption
+    rationale: Placeholder for pumps, fans, screens and site auxiliaries; marked as a guess in PROVENANCE.md.
+  hub.contract.import_limit_kw:
+    value: 6000
+    unit: kW
+    status: assumption
+    rationale: Scenario contract sized above the default lamp field; replace with the signed connection agreement.
+  hub.contract.export_limit_kw:
+    value: 4000
+    unit: kW
+    status: assumption
+    rationale: Scenario export ceiling; replace with the signed connection agreement.
+  hub.contract.congestion_windows:
+    value: {16: [3000, 1000], 17: [3000, 1000], 18: [3000, 1000], 19: [3000, 1000]}
+    unit: hour_to_[import_kw,export_kw]
+    status: assumption
+    rationale: Illustrative evening restriction, not a live DSO instruction.
+
+  hub.battery.capacity_kwh:
+    value: 2000
+    unit: kWh
+    status: assumption
+    rationale: Representative two-hour battery for the 5 ha scenario; replace with the nameplate.
+  hub.battery.max_charge_kw:
+    value: 1000
+    unit: kW
+    status: assumption
+    rationale: 0.5 C scenario limit, consistent with a two-hour system.
+  hub.battery.max_discharge_kw:
+    value: 1000
+    unit: kW
+    status: assumption
+    rationale: 0.5 C scenario limit, consistent with a two-hour system.
+  hub.battery.soc_min_frac:
+    value: 0.10
+    unit: fraction
+    status: assumption
+    rationale: Conservative operating reserve; the supplier warranty must replace it.
+  hub.battery.soc_max_frac:
+    value: 0.90
+    unit: fraction
+    status: assumption
+    rationale: Conservative operating reserve; the supplier warranty must replace it.
+  hub.battery.soc_init_frac:
+    value: 0.50
+    unit: fraction
+    status: choice
+    rationale: Deterministic midpoint used to make scenario comparisons reproducible.
+  hub.battery.charge_efficiency:
+    value: 0.92
+    unit: fraction
+    status: sourced
+    source: U.S. Department of Energy, Energy Storage Technology and Cost Characterization Report
+    source_url: https://www.energy.gov/sites/default/files/2019/07/f65/Storage%20Cost%20and%20Performance%20Characterization%20Report_Final.pdf
+    rationale: Paired charge/discharge values give about 85% round-trip efficiency including system losses.
+  hub.battery.discharge_efficiency:
+    value: 0.92
+    unit: fraction
+    status: sourced
+    source: U.S. Department of Energy, Energy Storage Technology and Cost Characterization Report
+    source_url: https://www.energy.gov/sites/default/files/2019/07/f65/Storage%20Cost%20and%20Performance%20Characterization%20Report_Final.pdf
+    rationale: Paired charge/discharge values give about 85% round-trip efficiency including system losses.
+  hub.battery.c_rate_max:
+    value: 0.5
+    unit: 1/hour
+    status: assumption
+    rationale: Two-hour battery operating envelope; use the supplier's warranted C-rate in a real site profile.
+
+  hub.chp.electrical_capacity_kw:
+    value: 1500
+    unit: kWe
+    status: assumption
+    rationale: Representative mid-size greenhouse gas engine; replace with the installation nameplate.
+  hub.chp.heat_to_power_ratio:
+    value: 1.1
+    unit: kWth/kWe
+    status: sourced
+    source: US EPA Catalog of CHP Technologies, reciprocating engines
+    source_url: https://www.epa.gov/chp/catalog-chp-technologies
+    rationale: Representative 1–2 MW natural-gas reciprocating engine.
+  hub.chp.electrical_efficiency:
+    value: 0.375
+    unit: fraction_HHV
+    status: sourced
+    source: US EPA Catalog of CHP Technologies, reciprocating engines
+    source_url: https://www.epa.gov/chp/catalog-chp-technologies
+    rationale: Representative HHV electrical efficiency at this engine scale.
+  hub.chp.min_load_frac:
+    value: 0.50
+    unit: fraction
+    status: assumption
+    rationale: Generic minimum stable load; replace with the engine supplier curve.
+  hub.chp.min_run_hours:
+    value: 2
+    unit: hour
+    status: assumption
+    rationale: Operational anti-cycling rule, not a physical measurement.
+  hub.chp.min_down_hours:
+    value: 2
+    unit: hour
+    status: assumption
+    rationale: Operational anti-cycling rule, not a physical measurement.
+  hub.chp.ramp_kw_per_hour:
+    value: 1500
+    unit: kW/hour
+    status: assumption
+    rationale: Non-binding hourly ramp for a fast-start gas engine; supplier data should replace it.
+  hub.chp.co2_kg_per_kwh_e:
+    value: 0.50
+    unit: kg/kWh_e
+    status: sourced
+    source: Derived from natural-gas CO2 intensity divided by the registered CHP electrical efficiency
+    source_url: https://www.epa.gov/chp/catalog-chp-technologies
+    rationale: Derived value; must move if fuel carbon intensity or electrical efficiency changes.
+  hub.chp.initially_running:
+    value: false
+    unit: boolean
+    status: choice
+    rationale: Reproducible scenario initial state.
+  hub.chp.hours_in_current_state:
+    value: 99
+    unit: hour
+    status: choice
+    rationale: Makes the initial state unconstrained by a previous run/down interval.
+
+  hub.boiler.thermal_capacity_kw:
+    value: 8000
+    unit: kWth
+    status: assumption
+    rationale: Covers roughly 130 W/m2 plus margin at the 5 ha scenario scale; replace with nameplate data.
+  hub.boiler.efficiency:
+    value: 0.90
+    unit: fraction_HHV
+    status: assumption
+    rationale: Representative modern greenhouse boiler seasonal efficiency; measure or use supplier data.
+  hub.boiler.ramp_kw_per_hour:
+    value: 8000
+    unit: kW/hour
+    status: assumption
+    rationale: Non-binding hourly ramp assumption for a fast boiler.
+
+  hub.buffer.capacity_kwh:
+    value: 43600
+    unit: kWhth
+    status: sourced
+    source: Derived from 1,500 m3 water and a 25 K working temperature difference
+    source_url: https://www.hortinergy.com/knowledgebase/greenhouse-heating-system/
+    rationale: Scenario derivation for about 300 m3/ha; replace with tank geometry and operating temperatures.
+  hub.buffer.max_charge_kw:
+    value: 3000
+    unit: kWth
+    status: assumption
+    rationale: Pipework and heat-exchanger placeholder.
+  hub.buffer.max_discharge_kw:
+    value: 3000
+    unit: kWth
+    status: assumption
+    rationale: Pipework and heat-exchanger placeholder.
+  hub.buffer.level_min_frac:
+    value: 0.05
+    unit: fraction
+    status: assumption
+    rationale: Practical dead-volume reserve.
+  hub.buffer.level_max_frac:
+    value: 0.95
+    unit: fraction
+    status: assumption
+    rationale: Expansion/headroom reserve.
+  hub.buffer.level_init_frac:
+    value: 0.50
+    unit: fraction
+    status: choice
+    rationale: Deterministic midpoint used for reproducible comparisons.
+  hub.buffer.standing_loss_frac_per_hour:
+    value: 0.005
+    unit: fraction/hour
+    status: assumption
+    rationale: Explicit guess pending tank U-value, geometry and temperature measurements.
+
+  hub.pv.peak_kw:
+    value: 500
+    unit: kWp
+    status: assumption
+    rationale: Illustrative PV plant; replace with inverter/nameplate data.
+  hub.pv.performance_ratio:
+    value: 0.85
+    unit: fraction
+    status: assumption
+    rationale: Representative system performance ratio; calculate from the actual array under IEC 61724 practice.
+
+  hub.crop.dli_target_mol_m2:
+    value: 10
+    unit: mol/m2/day
+    status: assumption
+    rationale: Supplemental-light scenario target, not a universal tomato optimum.
+  hub.crop.dli_tolerance_mol_m2:
+    value: 3
+    unit: mol/m2/day
+    status: assumption
+    rationale: Feasibility band chosen for the demonstration.
+  hub.crop.temp_min_c:
+    value: 15
+    unit: degC
+    status: assumption
+    rationale: Conservative generic tomato lower limit; Tahir must set cultivar and growth-stage limits.
+  hub.crop.temp_max_c:
+    value: 32
+    unit: degC
+    status: sourced
+    source: Sato et al., high-temperature effects on tomato fruit set
+    source_url: https://doi.org/10.1093/jxb/53.371.1187
+    rationale: Generic upper stress boundary, not a crop-control setpoint.
+  hub.crop.rh_max_pct:
+    value: 85
+    unit: percent
+    status: assumption
+    rationale: Generic disease-risk ceiling; cultivar, airflow and condensation conditions matter.
+  hub.crop.co2_min_ppm:
+    value: 300
+    unit: ppm
+    status: assumption
+    rationale: Lower enrichment-band guard near ambient concentration.
+  hub.crop.co2_max_ppm:
+    value: 1600
+    unit: ppm
+    status: assumption
+    rationale: Generic enrichment ceiling; site policy and ventilation should replace it.
+
+  gas_price_eur_kwh:
+    value: 0.035
+    unit: EUR/kWh_HHV
+    status: assumption
+    rationale: Manual scenario input because KasFlex has no licensed live TTF feed.
+  dispatch.liquid_co2_eur_kg:
+    value: 0.30
+    unit: EUR/kg
+    status: assumption
+    rationale: Delivered liquid CO2 placeholder; replace with the grower's contract.
+  history_days:
+    value: 60
+    unit: day
+    status: choice
+    rationale: Training-window choice, long enough for the current lag features.
+  checker.max_revisions:
+    value: 3
+    unit: count
+    status: choice
+    rationale: Experimental retry budget before baseline fallback.
+
+  scenario.seed:
+    value: 0
+    unit: integer
+    status: choice
+    rationale: Deterministic random seed for reproducible runs; it is not a physical measurement.
+  scenario.latitude:
+    value: 51.99
+    unit: decimal_degrees
+    status: assumption
+    rationale: Westland demonstration location; replace with Tahir's greenhouse coordinates.
+  scenario.longitude:
+    value: 4.25
+    unit: decimal_degrees
+    status: assumption
+    rationale: Westland demonstration location; replace with Tahir's greenhouse coordinates.
+
+  surrogate.setpoint_day_c:
+    value: 19.5
+    unit: degC
+    status: assumption
+    rationale: Simplified development-model setpoint; not read from a grower climate strategy.
+  surrogate.setpoint_night_c:
+    value: 16.5
+    unit: degC
+    status: assumption
+    rationale: Simplified development-model setpoint; not read from a grower climate strategy.
+  surrogate.heat_loss_kw_per_m2_per_k:
+    value: 0.0062
+    unit: kW/m2/K
+    status: assumption
+    rationale: Lumped cover-loss coefficient for a screened greenhouse; validation shows it needs calibration.
+  surrogate.thermal_mass_kwh_per_m2_per_k:
+    value: 0.0085
+    unit: kWh/m2/K
+    status: assumption
+    rationale: Lumped thermal mass selected for stable five-minute integration; not measured.
+  surrogate.lamp_power_kw_per_m2:
+    value: 0.110
+    unit: kW/m2
+    status: assumption
+    rationale: Mirrors the default EnergyHub lamp power.
+  surrogate.lamp_heat_fraction:
+    value: 0.85
+    unit: fraction
+    status: assumption
+    rationale: Simplified sensible-heat fraction; fixture and radiation model dependent.
+  surrogate.co2_uptake_kg_per_m2_per_hour_full_light:
+    value: 0.0012
+    unit: kg/m2/hour
+    status: assumption
+    rationale: Linear uptake proxy; measured AGC2 error shows it is not calibrated.
+  surrogate.vent_kw_per_m2_per_k:
+    value: 0.150
+    unit: kW/m2/K
+    status: assumption
+    rationale: Proportional ventilation proxy used to prevent unrealistic solar overheating.
+  surrogate.substeps_per_hour:
+    value: 12
+    unit: count
+    status: choice
+    rationale: Five-minute numerical integration step.
