@@ -11,9 +11,9 @@
 KasFlex creates a 24-hour energy plan for a greenhouse, checks that plan against
 hard constraints, and lets a grower review, edit, approve, or reject it.
 
-> **Alpha research software.** The demo can use real historical Dutch electricity
-> prices and weather. Greenhouse climate, heat demand, crop response, and asset
-> behavior are still simulated and are not validated for operational control.
+> **Simulation only — alpha research software.** The demo can use real historical
+> Dutch electricity prices and weather. Greenhouse climate, heat demand, crop
+> response, and asset behavior are simulated and **not validated for operational use**.
 
 [**Download the latest release**](https://github.com/Youw98/KasFlex/releases/latest)
 · [Usage guide](docs/USAGE.md)
