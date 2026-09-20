@@ -101,7 +101,11 @@ function renderPriceChart(values) {
 }
 
 async function buildPlan() {
-  if (!state.context || state.busy) return;
+  if (state.busy) return;
+  if (!state.context) {
+    showError(new Error("Real demo data is not ready yet."), "Building tomorrow's plan");
+    return;
+  }
   state.busy=true; clearError();
   const btn=$("build-plan"); const old=btn.textContent; btn.disabled=true; btn.textContent="Planning…";
   try {
@@ -168,7 +172,10 @@ function renderChanges(result){
 }
 
 async function verifyPlan(rows, message) {
-  if(!state.run) return;
+  if(!state.run) {
+    showError(new Error("There is no active plan to verify."), "Checking your plan change");
+    return;
+  }
   const payload={
     run_id:state.run.run_id,revision:state.run.revision,plan_hash:state.run.plan_hash,
     plan:rows,
@@ -181,7 +188,11 @@ async function verifyPlan(rows, message) {
 }
 
 async function applyNormalForAction(action){
-  const normal=state.run?.normal_settings?.plan||[];
+  const normal=state.run?.normal_settings?.plan;
+  if(!normal || !normal.length) {
+    showError(new Error("The normal-control comparison is not available for this run."), "Using the normal setting");
+    return;
+  }
   const byHour=new Map(normal.map(r=>[Number(r.hour),r]));
   const edited=state.currentPlan.map(row=>{
     if(!(action.hours||[]).includes(Number(row.hour))) return {...row};
@@ -192,6 +203,10 @@ async function applyNormalForAction(action){
 }
 
 async function restoreAiForAction(action){
+  if(!state.aiPlan || !state.aiPlan.length) {
+    showError(new Error("The original KasFlex proposal is no longer available."), "Restoring the KasFlex suggestion");
+    return;
+  }
   const byHour=new Map(state.aiPlan.map(r=>[Number(r.hour),r]));
   const edited=state.currentPlan.map(row=>{
     if(!(action.hours||[]).includes(Number(row.hour))) return {...row};
@@ -202,8 +217,15 @@ async function restoreAiForAction(action){
 }
 
 async function useNormalPlan(){
-  const normal=state.run?.normal_settings?.plan;
-  if(!normal) return;
+  if(!state.run) {
+    showError(new Error("Build a plan before switching to normal control."), "Using the normal plan");
+    return;
+  }
+  const normal=state.run.normal_settings?.plan;
+  if(!normal || !normal.length) {
+    showError(new Error("The normal-control baseline is not available for this run."), "Using the normal plan");
+    return;
+  }
   await verifyPlan(normal.map(r=>({...r})),"Normal plan loaded and independently checked.");
 }
 
@@ -235,7 +257,10 @@ function renderTable(plan){
 }
 
 async function approve(){
-  if(!state.run)return;
+  if(!state.run) {
+    showError(new Error("There is no checked plan to approve."), "Approving the final plan");
+    return;
+  }
   const btn=$("approve-plan");btn.disabled=true;
   try{
     await api("/api/decision",{run_id:state.run.run_id,revision:state.run.revision,plan_hash:state.run.plan_hash,decision:"approve",comment:"Approved in team demo"});
