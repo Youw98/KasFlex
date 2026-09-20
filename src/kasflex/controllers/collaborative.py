@@ -3,7 +3,7 @@
 This planner deliberately does not depend on synthetic training history. It starts
 from the conventional rule-based schedule, improves it against the current day's
 forecast and prices, and applies structured grower preferences supplied in the
-PlanningContext metadata.
+base.intent.PlanningContext metadata.
 
 The language-model layer remains optional: planning must still work during a team
 demo with no model account configured.
@@ -11,10 +11,8 @@ demo with no model account configured.
 
 import dataclasses
 
-from kasflex.controllers.base import PlanningContext
-from kasflex.controllers.rule_based import RuleBasedPlanner
-from kasflex.controllers.scheduler import OptimizingScheduler
-from kasflex.intent import Plan
+from kasflex.controllers import base, rule_based, scheduler
+from kasflex import intent
 
 
 NIGHT_HOURS = (22, 23, 0, 1, 2, 3, 4, 5)
@@ -34,7 +32,7 @@ def _hours(raw: object) -> tuple[int, ...]:
     return tuple(sorted(out))
 
 
-def _policy(context: PlanningContext) -> dict[str, object]:
+def _policy(context: base.intent.PlanningContext) -> dict[str, object]:
     raw = context.metadata.get("policy", {}) if context.metadata else {}
     if not isinstance(raw, dict):
         raw = {}
@@ -61,7 +59,7 @@ def _policy(context: PlanningContext) -> dict[str, object]:
     }
 
 
-def _apply_blackout(plan: Plan, forbidden: tuple[int, ...]) -> Plan:
+def _apply_blackout(plan: intent.Plan, forbidden: tuple[int, ...]) -> intent.Plan:
     """Make the seed compatible with a CHP blackout before optimisation."""
     blocked = set(forbidden)
     if not blocked:
@@ -81,21 +79,21 @@ def _apply_blackout(plan: Plan, forbidden: tuple[int, ...]) -> Plan:
 
 
 @dataclasses.dataclass
-class CollaborativePlanner:
+class Collaborativeintent.Planner:
     """Optimise one real day while keeping the grower's structured choices visible."""
 
     name: str = "collaborative"
     last_policy: dict[str, object] = dataclasses.field(default_factory=dict, init=False)
     last_diagnostics: dict[str, float | str] = dataclasses.field(default_factory=dict, init=False)
 
-    def plan(self, context: PlanningContext) -> Plan:
+    def plan(self, context: base.intent.PlanningContext) -> intent.Plan:
         policy = _policy(context)
         self.last_policy = policy
 
-        seed = RuleBasedPlanner().plan(context)
+        seed = rule_based.RuleBasedintent.Planner().plan(context)
         seed = _apply_blackout(seed, policy["avoid_chp_hours"])
 
-        scheduler = OptimizingScheduler(
+        scheduler = scheduler.OptimizingScheduler(
             safety_margin=policy["battery_reserve_pct"] / 100.0,
             objective_mode=policy["priority"],
             forbidden_chp_hours=policy["avoid_chp_hours"],
