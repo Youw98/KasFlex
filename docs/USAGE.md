@@ -2,7 +2,7 @@
 
 > **Simulation only.** KasFlex is not connected to greenhouse equipment. Real
 > electricity and weather inputs are supported, but greenhouse-model outputs remain
-> simulated and unvalidated until measured-data validation is completed.
+> simulated and **not validated** until measured-data validation is completed.
 
 ## Pick the way you want to use it
 
