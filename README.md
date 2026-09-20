@@ -1,60 +1,49 @@
 # KasFlex
 
-> **Verified greenhouse energy planning, with a human in the loop.**
+[![CI](https://github.com/Youw98/KasFlex/actions/workflows/ci.yml/badge.svg)](https://github.com/Youw98/KasFlex/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Youw98/KasFlex?include_prereleases&sort=semver)](https://github.com/Youw98/KasFlex/releases)
+[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB)](https://www.python.org/)
+[![License](https://img.shields.io/github/license/Youw98/KasFlex)](LICENSE)
+![Status](https://img.shields.io/badge/status-alpha-orange)
 
-KasFlex explores whether an AI can help a Dutch greenhouse shift energy use around grid congestion **without being allowed to violate the constraints that matter**.
+**AI-assisted greenhouse energy planning with an independent safety check and a human in the loop.**
 
-It combines a planner, deterministic safety verification, greenhouse simulation, flexible energy assets, human review, and an auditable experiment harness.
+KasFlex creates a 24-hour energy plan for a greenhouse, checks that plan against
+hard constraints, and lets a grower review, edit, approve, or reject it.
 
-> **Simulation only.** No greenhouse equipment is connected. Nothing here is
-> validated for operational use, and no figure produced with the built-in surrogate
-> greenhouse model may be published as a result. Every number is **apparatus, not findings**.
-> The demo can use real Dutch market and weather inputs, but greenhouse climate,
-> heat demand and crop outcomes are still simulated. Until measured-data validation
-> is complete, those model-derived outcomes remain explicitly unvalidated.
+> **Alpha research software.** The demo can use real historical Dutch electricity
+> prices and weather. Greenhouse climate, heat demand, crop response, and asset
+> behavior are still simulated and are not validated for operational control.
 
-## What works today
+[**Download the latest release**](https://github.com/Youw98/KasFlex/releases/latest)
+· [Usage guide](docs/USAGE.md)
+· [Architecture](docs/ARCHITECTURE.md)
+· [Data & provenance](docs/DATA.md)
+· [Validation](docs/VALIDATION.md)
 
-- One-click demo with **real historical Dutch day-ahead prices and weather inputs**
-- Offline replay after those inputs have been cached
-- ENTSO-E day-ahead price pipeline for normal runs
-- Forecast weather kept separate from realised weather
-- Rule-based, learned and LLM-backed planners
-- Independent safety verification
-- Human editing followed by mandatory re-verification
-- Battery, CHP, boiler, heat-buffer, lighting and PV dispatch
-- Grower-facing and researcher-facing interfaces
-- Append-only review and disagreement records
-- JSON-LD / CSV research export
-- GreenLight-Gym2 integration through an isolated worker
-- Checksummed provenance for downloaded series
+---
 
-The main scientific gap is still greenhouse-model validation against measured operation. See [`docs/VALIDATION.md`](docs/VALIDATION.md).
+## Try KasFlex in 30 seconds
 
-## Start here
+1. Download the file for your operating system from
+   [Releases](https://github.com/Youw98/KasFlex/releases).
+2. Start KasFlex.
+3. In the browser, click **Just show me a demo first**.
+4. Review the proposed plan and safety verdict.
 
-There are four normal ways to use KasFlex.
+The demo prepares a real historical Dutch market/weather day on first use, caches
+it, and reuses it later.
 
-### 1. Download the app — easiest
+| Platform | Release file |
+|---|---|
+| Windows | `KasFlex-windows.exe` |
+| macOS | `KasFlex-macos` |
+| Linux | `KasFlex-linux` |
 
-Open the [latest release](https://github.com/Youw98/KasFlex/releases/latest) and download:
+On macOS/Linux, make the downloaded file executable once with
+`chmod +x <filename>`.
 
-- **Windows:** `KasFlex-windows.exe`
-- **macOS:** `KasFlex-macos`
-- **Linux:** `KasFlex-linux`
-
-Windows: double-click the `.exe`.
-
-On macOS or Linux, make the download executable once:
-
-```bash
-chmod +x KasFlex-macos
-# or: chmod +x KasFlex-linux
-```
-
-Then run it. KasFlex opens its browser interface locally.
-
-### 2. Run from source
+### Run from source instead
 
 ```bash
 git clone https://github.com/Youw98/KasFlex.git
@@ -76,143 +65,220 @@ pip install -e ".[dev]"
 kasflex ui
 ```
 
-### 3. Try the one-click real-input demo
+---
 
-In the browser choose **“Just show me a demo first.”**
+## What KasFlex does
 
-The first demo run prepares a complete Dutch historical day with real Dutch
-day-ahead prices, archived forecast weather, and separate realised weather when
-available. The prepared day is cached with provenance and checksums, and later demo
-runs reuse it instead of downloading it again.
+```text
+real/synthetic inputs
+        │
+        ▼
+   AI / planner
+        │
+        ▼
+ proposed 24h plan
+        │
+        ▼
+ deterministic checker
+        │
+        ▼
+  human review/edit
+        │
+        ▼
+ simulated outcome
+```
 
-The public price mirror is a convenience source for the demo. For research runs,
-use the direct ENTSO-E workflow below.
+In practice:
 
-### 4. Run a specific real-data day
+- a planner proposes when to use lighting, battery, CHP, boiler, heat storage, and
+  other flexible assets;
+- a deterministic checker independently verifies limits;
+- a grower can inspect and change the plan;
+- every edit must be checked again;
+- the run is recorded with provenance and audit information.
+
+The planner does **not** get to redefine the constraints that judge its own plan.
+
+![KasFlex interface](docs/ui.png)
+
+---
+
+## What is real and what is simulated?
+
+This distinction is central to KasFlex.
+
+| Layer | Current status |
+|---|---|
+| Dutch day-ahead electricity price | **Real data supported** |
+| Weather forecast | **Real data supported** |
+| Realised weather | **Real data supported separately** |
+| Human approve/reject/edit decision | **Observed directly** |
+| Battery / CHP / boiler / buffer dispatch | Simulated |
+| Greenhouse temperature / RH / CO₂ | Simulated |
+| Heat demand | Simulated |
+| Crop response / growth | Simulated |
+
+Using real inputs does **not** make a simulated greenhouse result a measured result.
+
+---
+
+## Why this project exists
+
+Dutch greenhouses can contain exactly the kinds of flexible assets that are useful
+during grid congestion: CHP, batteries, heat buffers, controllable lighting, boilers,
+and sometimes PV.
+
+The interesting question is not only:
+
+> Can an AI find a cheaper or more flexible schedule?
+
+It is also:
+
+> Can that schedule be checked independently, explained to a person, changed by that
+> person, and still remain inside the constraints?
+
+KasFlex is a research testbed for that second question.
+
+---
+
+## Demo mode vs research-data mode
+
+### One-click demo
+
+The grower-facing **Demo** button uses a public convenience mirror of ENTSO-E-derived
+Dutch day-ahead prices plus Open-Meteo historical forecast data.
+
+The prepared demo day is cached with source metadata and checksums. Reopening the
+demo reuses the cached data instead of downloading it again.
+
+If KasFlex cannot find a cached demo and cannot reach the data source, it stops. It
+does **not** quietly replace real inputs with synthetic ones.
+
+### Direct ENTSO-E workflow
+
+For a research run, use the direct ENTSO-E pipeline:
 
 ```bash
 export ENTSOE_API_KEY=...
+
 kasflex fetch --date 2026-09-21
 kasflex run --data-source cache --date 2026-09-21
 ```
 
-The fetch and run dates must match. After the fetch succeeds, the run itself is
-offline-safe.
+The fetch date and run date must match.
 
-> Real electricity and weather inputs do not make greenhouse outputs validated.
-> Greenhouse climate, heat demand and crop outcomes remain simulated until measured
-> validation is complete.
+After the fetch completes, the run itself is cache-only and can be replayed offline.
 
-## How it works
+### Synthetic mode
 
-```text
-             day-ahead prices
-                    │
-weather forecast ───┼──────┐
-                    ▼      │
-              ┌──────────┐ │
-              │ planner  │ │
-              └────┬─────┘ │
-                   ▼       │
-              proposed plan
-                   │
-                   ▼
-            ┌──────────────┐
-            │ safety check │
-            └──────┬───────┘
-                   │
-          accepted / revised
-                   │
-                   ▼
-          ┌─────────────────┐
-          │ human review    │
-          └────────┬────────┘
-                   ▼
-        simulated greenhouse day
-```
+Synthetic data still exists intentionally for:
 
-The planner can schedule energy. It does not get to redefine the constraints.
+- deterministic tests;
+- controlled experiments;
+- reproducing scenarios without network dependencies.
 
-## Real inputs versus simulated outcomes
+It is not what the normal one-click Demo button uses.
 
-| Layer | Meaning | Current status |
-|---|---|---|
-| Electricity price | Dutch day-ahead market input | real data supported |
-| Weather forecast | information available at planning time | real data supported |
-| Realised weather | what actually happened | separate real series supported |
-| Asset dispatch | battery/CHP/boiler/buffer behavior | modelled |
-| Greenhouse climate | temperature/RH/CO₂ response | simulated |
-| Crop response | DLI/growth or GreenLight output | simulated |
-| Human decision | approve/reject/edit/objection | directly observed |
+---
 
-This separation is deliberate. A planner must not be scored against future weather it was never supposed to know.
+## Safety and human oversight
 
-## Interfaces
+KasFlex separates planning from checking.
 
-### Grower interface
+The checker can verify constraints such as:
 
-`/`
+- grid import/export limits;
+- congestion-window limits;
+- battery state and power bounds;
+- CHP behavior;
+- projected greenhouse/crop envelopes.
 
-Designed around a few practical questions:
+A human can then approve, reject, or edit the plan.
+
+If a person edits an interval, the old verdict is invalidated and the plan must be
+checked again before approval.
+
+If the checker is disabled, KasFlex reports **not verified** rather than pretending
+the plan was accepted.
+
+---
+
+## Two interfaces
+
+### Grower UI — `/`
+
+The default interface focuses on the decision:
 
 - What is KasFlex proposing?
-- What changes compared with normal operation?
 - Why?
-- What is the expected cost difference?
-- Is the crop still inside the allowed envelope?
+- What changes compared with normal operation?
+- What is the expected cost effect?
+- Are the constraints satisfied?
 - Do I agree?
 
-### Research interface
+### Research UI — `/advanced`
 
-`/advanced`
+The advanced interface exposes:
 
-Shows the full instrument:
-
-- all hourly intervals;
-- checker verdicts and violations;
-- planner comparisons;
-- configuration;
+- all 24 hourly intervals;
+- planner output;
+- checker details and violations;
 - data provenance;
+- configuration;
 - metrics;
-- human edits and re-verification.
+- human edits;
+- audit information.
 
-When the checker is disabled, the UI says **not verified**, never “accepted”.
+---
 
-## Demo data
+## Architecture
 
-The grower-facing Demo button no longer means generated prices/weather.
+KasFlex keeps external models and verification logic behind explicit interfaces.
 
-KasFlex prepares and caches:
+![KasFlex architecture](docs/architecture.png)
+
+At a high level:
 
 ```text
-data/cache/
-├── entsoe_da_YYYY-MM-DD.*
-├── weather_forecast_YYYY-MM-DD_LAT_LON.*
-├── weather_actual_YYYY-MM-DD_LAT_LON.*    # when available
-└── MANIFEST.json
+data acquisition ──► cache/provenance
+                         │
+                         ▼
+                     planner
+                         │
+                         ▼
+                  structured intent
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+        safety checker       greenhouse model
+              │                     │
+              └──────────┬──────────┘
+                         ▼
+                    human review
+                         │
+                         ▼
+                 audit / experiment
 ```
 
-The manifest records source, terms/licence, retrieval date, schema, row count and SHA-256 checksum.
+More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Synthetic data remains available for tests and deliberate synthetic experiments. It is simply no longer what the normal Demo button means.
+---
 
-## Real-data CLI reminder
+## Greenhouse model
 
-```bash
-kasflex fetch --date 2026-09-21
-kasflex run --data-source cache --date 2026-09-21
-```
+KasFlex currently supports two greenhouse paths.
 
-See [docs/USAGE.md](docs/USAGE.md) for installation, offline replay, automated
-operation, validation, GreenLight and researcher workflows.
+### Surrogate model
 
-## Greenhouse physics
+Fast, deterministic, and dependency-light.
 
-KasFlex keeps greenhouse physics behind a narrow interface.
+It is useful for application development and experiment plumbing, but it is **not a
+scientifically validated greenhouse model**.
 
-**Surrogate greenhouse** — fast and deterministic, useful for testing the complete application, but not scientifically validated.
+### GreenLight-Gym2
 
-**GreenLight-Gym2** — runs in a separate process/environment because of licence and NumPy-version constraints.
+GreenLight-Gym2 runs in a separate worker environment because its dependency and
+licensing surface is deliberately isolated from the KasFlex core.
 
 ```bash
 python3 -m venv .venv-greenlight
@@ -220,122 +286,178 @@ python3 -m venv .venv-greenlight
 kasflex run --greenhouse greenlight
 ```
 
-The worker returns hourly heat demand, CO₂ demand, indoor temperature, RH, CO₂, DLI and crop-growth output.
+Its use does not automatically make the KasFlex scenario validated against measured
+greenhouse operation.
 
-Using GreenLight does not automatically make a scenario validated. The KasFlex configuration still has to be compared against measured greenhouse data.
+---
 
 ## Validation
 
-The repository contains the first AGC validation workflow:
-
-```text
-docs/VALIDATION.md
-src/kasflex/validation.py
-```
-
-Run:
+KasFlex contains a measured-data validation workflow based on the Autonomous
+Greenhouse Challenge dataset.
 
 ```bash
 kasflex validate
 ```
 
-once the documented AGC data are available locally.
+The validation target is the measured research compartment, **not** the 5 ha
+commercial scenario.
 
-The validation scale is the measured research compartment, not the 5 ha commercial scenario. A validation exercise should publish the deviation whether it is small or large.
+See [docs/VALIDATION.md](docs/VALIDATION.md) for the current validation status and
+dataset instructions.
+
+Until that validation is complete, model-derived greenhouse performance numbers
+should be treated as **apparatus, not findings**.
+
+---
 
 ## Planners
 
-| Planner | Purpose |
+| Planner | Role |
 |---|---|
 | `rule-based` | conventional baseline |
-| `learned` | demand forecasting + schedule optimisation |
-| `naive` | simple / useful unsafe comparison |
+| `learned` | demand forecast + schedule optimisation |
+| `naive` | deliberately simple comparison |
 | `llm` | language-model planner |
 | `mpc` | extension point |
 
+Examples:
+
 ```bash
+kasflex run --planner rule-based
 kasflex run --planner learned
 kasflex experiment --days 3
 ```
 
-Numbers produced with an unvalidated greenhouse model are **apparatus, not greenhouse-performance findings**.
+The conversational AI layer is optional. Planning, checking, and human review can
+operate without an LLM.
 
-## AI
+---
 
-The conversational layer is optional. KasFlex can work with hosted providers, OpenAI-compatible endpoints and Ollama/local models.
+## Common commands
 
-Planning, checking and human review do not require an LLM. Without one, you lose conversational explanation rather than the safety pipeline.
+```bash
+# Open the browser UI
+kasflex ui
 
-## Repository map
+# Check the installation and optional components
+kasflex doctor
+
+# Run the default reproducible scenario
+kasflex run
+
+# Fetch a real-data day
+kasflex fetch --date 2026-09-21
+
+# Run that cached day
+kasflex run --data-source cache --date 2026-09-21
+
+# Compare experiment conditions
+kasflex experiment --days 3
+
+# Validate against measured greenhouse data
+kasflex validate
+
+# Show registered datasets and provenance
+kasflex datasets
+```
+
+For the full workflow, see [docs/USAGE.md](docs/USAGE.md).
+
+---
+
+## Data provenance
+
+Downloaded series are stored under `data/cache/` with provenance and checksums.
+
+```text
+data/cache/
+├── entsoe_da_YYYY-MM-DD.*
+├── weather_forecast_YYYY-MM-DD_LAT_LON.*
+├── weather_actual_YYYY-MM-DD_LAT_LON.*
+└── MANIFEST.json
+```
+
+KasFlex keeps forecast weather and realised weather separate on purpose. A planner
+must not receive future observations during planning.
+
+See [docs/DATA.md](docs/DATA.md) and
+[docs/PROVENANCE.md](docs/PROVENANCE.md).
+
+---
+
+## Research safeguards
+
+KasFlex intentionally fails loudly rather than taking convenient shortcuts:
+
+- missing real data does not silently become synthetic data;
+- forecast and realised weather are separate;
+- cached data are checksum-verified;
+- clock-change days are refused instead of being squeezed into an incorrect
+  24-hour representation;
+- edited plans must be re-verified;
+- checker-disabled plans are labelled **not verified**;
+- greenhouse outputs remain labelled unvalidated until measured validation exists.
+
+---
+
+## Repository layout
 
 ```text
 configs/                 reproducible scenarios
-data/cache/              checksummed downloaded series
-docs/                    architecture, data, FAIR, validation and usage
+data/cache/              downloaded, checksummed input series
+docs/                    architecture, data, validation, usage
 src/kasflex/
 ├── adapters/            greenhouse and grid seams
 ├── checker/             deterministic verification
 ├── controllers/         planners
-├── data/                acquisition, cache and provenance
+├── data/                acquisition, cache, provenance
 ├── energy/              assets and dispatch
-├── forecast/            learned demand forecasting
+├── forecast/            forecasting
 └── ui/                  grower + research interfaces
 workers/greenlight/      isolated GreenLight-Gym2 worker
 tests/                   offline test suite
 ```
 
-Useful documents:
+### Documentation
 
-- [`docs/GUIDE.md`](docs/GUIDE.md)
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- [`docs/DATA.md`](docs/DATA.md)
-- [`docs/PROVENANCE.md`](docs/PROVENANCE.md)
-- [`docs/VALIDATION.md`](docs/VALIDATION.md)
-- [`docs/DECISIONS.md`](docs/DECISIONS.md)
-- [`docs/USAGE.md`](docs/USAGE.md)
+| Document | Purpose |
+|---|---|
+| [Usage](docs/USAGE.md) | install and run KasFlex |
+| [Guide](docs/GUIDE.md) | conceptual walkthrough |
+| [Architecture](docs/ARCHITECTURE.md) | components and boundaries |
+| [Data](docs/DATA.md) | datasets and acquisition |
+| [Provenance](docs/PROVENANCE.md) | assumptions and parameter sources |
+| [Validation](docs/VALIDATION.md) | measured-data validation status |
+| [Decisions](docs/DECISIONS.md) | architecture decision records |
+| [FAIR](docs/FAIR.md) | research-data principles |
 
-## Research safeguards
-
-KasFlex deliberately refuses a few convenient shortcuts:
-
-- forecast and realised weather are not interchangeable;
-- missing real data does not silently become synthetic data;
-- edited plans lose their old verdict until checked again;
-- checker-disabled runs are **not verified**;
-- cache corruption raises on checksum mismatch;
-- clock-change days are refused instead of being squeezed into 24 incorrect intervals;
-- external data carry provenance;
-- greenhouse outcomes stay labelled unvalidated until validation has actually been run.
+---
 
 ## Development
+
+```bash
+pip install -e ".[dev]"
+pytest
+python -m ruff check src/ tests/
+```
+
+Or use:
 
 ```bash
 make test
 make lint
 ```
 
-Or:
+The release workflow builds and smoke-tests native applications on Windows, macOS,
+and Linux.
 
-```bash
-pytest
-```
+---
 
-Environment check:
+## License
 
-```bash
-kasflex doctor
-```
+KasFlex core is licensed under [Apache-2.0](LICENSE).
 
-Data registry:
-
-```bash
-kasflex datasets
-```
-
-## Licence
-
-KasFlex core is [Apache-2.0](LICENSE).
-
-`workers/greenlight/worker.py` is AGPL-3.0-or-later as part of the isolated GreenLight integration surface.
-
-Third-party datasets/services retain their own terms. See [`docs/DATA.md`](docs/DATA.md).
+The isolated GreenLight integration has its own AGPL-compatible licensing surface.
+Third-party datasets and services retain their own terms; see
+[docs/DATA.md](docs/DATA.md).
