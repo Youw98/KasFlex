@@ -156,3 +156,48 @@ def test_the_honesty_notices_survive(path, needle):
     # literal search would fail on a reflow rather than on a real removal.
     text = " ".join(read(ROOT / path).split()).lower()
     assert needle.lower() in text, f"{path} no longer contains {needle!r}"
+
+
+# --- physical/economic parameter provenance --------------------------------
+
+
+def test_every_parameter_row_has_explicit_provenance():
+    """Reviewer-facing defaults must be sourced or labelled as assumptions."""
+    text = read(DOCS / "PARAMETERS.md")
+    assert "**ASSUMPTION**" in text
+    rows = [
+        line for line in text.splitlines()
+        if line.startswith("| ") and not line.startswith("|---")
+        and "Parameter | Default value" not in line
+    ]
+    assert rows, "docs/PARAMETERS.md has no parameter rows"
+
+    offenders = []
+    for row in rows:
+        cells = [cell.strip() for cell in row.strip("|").split("|")]
+        if len(cells) != 5:
+            offenders.append(f"malformed row: {row}")
+            continue
+        parameter, value, unit, source, notes = cells
+        if not all((parameter, value, unit, source, notes)):
+            offenders.append(f"empty provenance field: {row}")
+        if source.lower() in {"guess", "industry norm", "unknown", "tbd"}:
+            offenders.append(f"vague source label: {row}")
+    assert not offenders, "\n".join(offenders)
+
+
+def test_parameter_table_covers_the_demo_critical_numbers():
+    text = read(DOCS / "PARAMETERS.md").lower()
+    required = (
+        "battery capacity",
+        "battery charge efficiency",
+        "chp electrical efficiency",
+        "heat-buffer capacity",
+        "grid import contract",
+        "contracted base electricity position",
+        "contracted electricity price",
+        "gas price",
+        "supplemental-light target",
+    )
+    missing = [name for name in required if name not in text]
+    assert not missing, f"critical parameters missing from docs/PARAMETERS.md: {missing}"

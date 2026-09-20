@@ -48,6 +48,7 @@ from kasflex.conversation import (
     extract_preference,
     propose_compromise,
 )
+from kasflex.deliberation import DIMENSIONS, RESPONSES, DeliberationLog
 from kasflex.fair import DatasetMetadata, build_bundle, conflict_table, to_csv
 from kasflex.forecast.cost import project_cost
 from kasflex.intent import IntentSchemaError, IntervalIntent, Plan
@@ -135,6 +136,16 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
     {"path": "gas_price_eur_kwh", "label": "Gas price assumption", "kind": "number",
      "min": 0, "max": 10, "step": 0.001, "unit": "€/kWh",
      "help": "Enter your gas energy price. This is a manual assumption, not a live TTF quote."},
+    {"path": "contracted_base_kw", "label": "Contracted base position", "kind": "number",
+     "min": 0, "max": 20000, "step": 100, "unit": "kW",
+     "help": "Electricity volume already contracted before day-ahead settlement."},
+    {"path": "contracted_price_eur_kwh", "label": "Contract price", "kind": "number",
+     "min": 0, "max": 1, "step": 0.001, "unit": "€/kWh",
+     "help": "Price of the contracted base electricity volume."},
+    {"path": "imbalance_short_spread_eur_kwh", "label": "Short-position spread", "kind": "number",
+     "min": 0, "max": 0.5, "step": 0.001, "unit": "€/kWh", "scope": "researcher"},
+    {"path": "imbalance_long_spread_eur_kwh", "label": "Long-position spread", "kind": "number",
+     "min": 0, "max": 0.5, "step": 0.001, "unit": "€/kWh", "scope": "researcher"},
     {"path": "planner", "label": "Planner", "kind": "choice",
      "choices": ["collaborative", "rule-based", "learned", "naive", "llm", "mpc"],
      "help": ("Collaborative uses the current day, optimisation and grower choices. "
@@ -174,11 +185,11 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
      "min": 1, "max": 12, "step": 1, "unit": "h"},
 
     {"path": "hub.buffer.capacity_kwh", "label": "Heat buffer", "kind": "number",
-     # The default is 43 600 kWh (1 500 m3 for 5 ha over a 25 K swing -- see the
-     # README's sourced numbers). A ceiling below that makes the form invalid on
-     # load, which silently blocks "Generate daily plan" rather than showing an
-     # error. 200 000 covers the 20 ha maximum site at the same kWh-per-hectare.
+     # 43 600 kWh is the sourced 5 ha default; 200 MWh also covers the 20 ha
+     # maximum demo site without making the browser form invalid on load.
      "min": 0, "max": 200000, "step": 500, "unit": "kWh"},
+    {"path": "hub.pv.peak_kw", "label": "PV peak power", "kind": "number",
+     "min": 0, "max": 20000, "step": 100, "unit": "kWp"},
     {"path": "hub.crop.dli_target_mol_m2", "label": "Light target", "kind": "number",
      "min": 0, "max": 30, "step": 0.5, "unit": "mol/m2",
      "help": "Supplemental daily light integral the crop needs."},
@@ -425,6 +436,7 @@ class UiServer:
     reviews: ReviewStore = field(init=False)
     memory: GrowerMemory = field(init=False)
     reliance: RelianceLog = field(init=False)
+    deliberation: DeliberationLog = field(init=False)
     consent: ConsentLog = field(init=False)
     profiles: ProfileStore = field(init=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
@@ -435,6 +447,7 @@ class UiServer:
         self.reviews = ReviewStore(resolve_output("results/reviews.sqlite3"))
         self.memory = GrowerMemory(resolve_output(self.base.memory_path))
         self.reliance = RelianceLog(resolve_output(self.base.memory_path))
+        self.deliberation = DeliberationLog(resolve_output("results/deliberation.sqlite3"))
         self.consent = ConsentLog(resolve_output("results/consent.sqlite3"))
         self.profiles = ProfileStore(resolve_output("results/profiles"))
 
@@ -476,7 +489,7 @@ class UiServer:
         """Validate the explicit daily choices and merge compatible remembered rules."""
         raw = supplied if isinstance(supplied, dict) else {}
         priority = str(raw.get("priority", "balanced")).lower()
-        if priority not in {"balanced", "cost", "grid"}:
+        if priority not in {"balanced", "cost", "grid", "crop"}:
             priority = "balanced"
 
         try:
@@ -596,6 +609,12 @@ class UiServer:
                 "area_m2": config.hub.floor_area_m2,
             },
         }
+
+    def measured_validation_status(self) -> dict[str, Any]:
+        """Status shown beside the real-data badge in the grower workspace."""
+        from kasflex.validation import validation_status
+
+        return validation_status(resolve_output("results/validation-agc2.json"))
 
     # -- uncertainty --------------------------------------------------------
 
@@ -838,6 +857,252 @@ class UiServer:
         except LlmError as exc:
             raise ApiError(str(exc), status=502) from exc
         return result
+
+    # -- dimension-level deliberation ----------------------------------------
+
+    @staticmethod
+    def _model_id(run: dict[str, Any]) -> str:
+        model = run.get("model") or {}
+        provider = str(model.get("provider") or "")
+        name = str(model.get("model") or "")
+        planner = str(model.get("planner") or run.get("planner") or "unknown")
+        if provider and name:
+            return f"{provider}:{name}"
+        return planner
+
+    @staticmethod
+    def _counter_response(
+        dimension: str,
+        current: dict[str, Any],
+        alternative: dict[str, Any],
+        language: str,
+    ) -> str:
+        nl = i18n.normalise(language) == "nl"
+        before = current.get("metrics") or {}
+        after = alternative.get("metrics") or {}
+        if dimension == "money":
+            old = float(before.get("net_cost_eur", 0) or 0)
+            new = float(after.get("net_cost_eur", 0) or 0)
+            delta = new - old
+            if nl:
+                return (
+                    f"U bent het niet eens over de kosten. Ik heb opnieuw gepland met kosten "
+                    f"als eerste doel. De geschatte dagkosten gaan van €{old:,.0f} naar "
+                    f"€{new:,.0f} ({delta:+,.0f}). Wilt u deze kostenvariant gebruiken?"
+                )
+            return (
+                f"You disagree about the money. I rebuilt the plan with expected cost as "
+                f"the first objective. Estimated daily cost moves from €{old:,.0f} to "
+                f"€{new:,.0f} ({delta:+,.0f}). Use this cost-first alternative?"
+            )
+        if dimension == "crop":
+            old_dli = float(before.get("supplemental_dli_mol_m2", before.get("dli_mol_m2", 0)) or 0)
+            new_dli = float(after.get("supplemental_dli_mol_m2", after.get("dli_mol_m2", 0)) or 0)
+            old_cost = float(before.get("net_cost_eur", 0) or 0)
+            new_cost = float(after.get("net_cost_eur", 0) or 0)
+            if nl:
+                return (
+                    f"U bent het niet eens over gewasbescherming. Ik heb de planning opnieuw "
+                    f"gemaakt met gewasmarge vóór kosten. Aanvullend licht verandert van "
+                    f"{old_dli:.1f} naar {new_dli:.1f} mol/m²; de kosten veranderen met "
+                    f"€{new_cost-old_cost:+,.0f}. Wilt u deze gewasvariant gebruiken?"
+                )
+            return (
+                f"You disagree about crop protection. I rebuilt the plan with crop margin "
+                f"ahead of cost. Supplemental light moves from {old_dli:.1f} to "
+                f"{new_dli:.1f} mol/m²; expected cost changes by €{new_cost-old_cost:+,.0f}. "
+                f"Use this crop-first alternative?"
+            )
+        if dimension == "grid":
+            old_peak = float(before.get("peak_import_kw", 0) or 0)
+            new_peak = float(after.get("peak_import_kw", 0) or 0)
+            if nl:
+                return (
+                    f"U bent het niet eens over het net. Ik heb opnieuw gepland met de "
+                    f"importpiek als eerste doel. De piek verandert van {old_peak/1000:.2f} "
+                    f"naar {new_peak/1000:.2f} MW. Wilt u deze netvariant gebruiken?"
+                )
+            return (
+                f"You disagree about grid impact. I rebuilt the plan with peak import as "
+                f"the first objective. The peak moves from {old_peak/1000:.2f} to "
+                f"{new_peak/1000:.2f} MW. Use this grid-relief alternative?"
+            )
+
+        if nl:
+            return (
+                "U zegt dat het plan niet goed bij de praktijk past. Ik heb een variant "
+                "gemaakt die de WKK 's nachts vermijdt en opgeslagen warmte eerst gebruikt. "
+                "Wilt u deze praktische variant gebruiken?"
+            )
+        return (
+            "You say the plan does not fit day-to-day practice. I made an alternative that "
+            "avoids CHP overnight and prefers stored heat first. Use this practical variant?"
+        )
+
+    def deliberate(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Respond to one grower opinion without silently replacing the whole plan."""
+
+        dimension = str(payload.get("dimension") or "").lower()
+        response = str(payload.get("response") or "").lower()
+        if dimension not in DIMENSIONS:
+            raise ApiError(f"dimension must be one of {DIMENSIONS}")
+        if response not in RESPONSES:
+            raise ApiError(f"response must be one of {RESPONSES}")
+
+        snapshot, current = self.reviews.current(payload)
+        overrides = dict(current.get("overrides") or {})
+        language = i18n.normalise(str(overrides.get("language") or self.base.language))
+        alternative = None
+
+        if response == "agree":
+            counter = (
+                "Genoteerd. Dit onderdeel blijft zoals het is."
+                if language == "nl"
+                else "Noted. I will keep this dimension as it is."
+            )
+        elif response == "unsure":
+            counter = (
+                "Nog niets aangepast. Bekijk de reden en de onzekere uren voordat u kiest."
+                if language == "nl"
+                else "I have not changed anything yet. Review the reasoning and uncertain "
+                     "hours before you decide."
+            )
+        else:
+            policy = dict(current.get("policy") or {})
+            if dimension == "money":
+                policy["priority"] = "cost"
+            elif dimension == "crop":
+                policy["priority"] = "crop"
+                policy["battery_reserve_pct"] = max(
+                    55.0, float(policy.get("battery_reserve_pct", 45) or 45)
+                )
+            elif dimension == "grid":
+                policy["priority"] = "grid"
+            else:
+                policy["priority"] = "balanced"
+                policy["avoid_chp_night"] = True
+                policy["prefer_stored_heat"] = True
+
+            alt_overrides = {
+                **overrides,
+                "date": current.get("date", snapshot["config"]["date"]),
+                "data_source": current.get("data_source", snapshot["config"]["data_source"]),
+                "planner": "collaborative",
+                "language": language,
+            }
+            alternative = self.run(alt_overrides, policy)
+            counter = self._counter_response(dimension, current, alternative, language)
+
+        counter_model = "collaborative-deterministic-v1"
+        if response == "disagree":
+            try:
+                explainer, _ = self._explainer(overrides)
+                system = (
+                    "You are rewriting a factual greenhouse-energy counterproposal. "
+                    "Do not add, remove or change any number, constraint, causal claim or "
+                    "recommended action. Use plain grower language, at most three sentences. "
+                    "Do not sound certain about unvalidated greenhouse outcomes."
+                )
+                prompt = (
+                    f"Language: {language}. Rewrite this text without changing its facts:\n"
+                    f"{counter}"
+                )
+                rewritten = explainer.call_fn(explainer.model, system, prompt).strip()
+                if rewritten:
+                    counter = rewritten
+                    provider, model, *_ = self._model_settings(overrides)
+                    counter_model = f"{provider}:{model}"
+            except (ApiError, LlmError):
+                # The demo must remain fully functional without any external model.
+                pass
+
+        participant = str(payload.get("participant_id") or "")
+        session_id = str(payload.get("session_id") or "")
+        recorded = False
+        if session_id:
+            may_record = not participant or self._may_record(
+                {**overrides, "participant_id": participant}, "research"
+            )
+            if may_record:
+                self.deliberation.record(
+                    stage="initial",
+                    session_id=session_id,
+                    participant_id=participant,
+                    scenario_id=str(snapshot["config"].get("name", "")),
+                    plan_id=f"{current['run_id']}:{current['revision']}",
+                    model_id=counter_model,
+                    dimension=dimension,
+                    initial_response=response,
+                    ai_counter_response=counter,
+                    time_to_first_response_s=payload.get("time_to_first_response_s"),
+                    detail_expansions=int(payload.get("detail_expansions", 0) or 0),
+                    why_clicks=int(payload.get("why_clicks", 0) or 0),
+                    edits_made=int(payload.get("edits_made", 0) or 0),
+                    edit_parameters=payload.get("edit_parameters") or {},
+                    free_text_reason=str(payload.get("reason") or ""),
+                    ai_confidence_shown=str(
+                        (current.get("uncertainty") or {}).get("confidence", "")
+                    ),
+                )
+                recorded = True
+
+        return {
+            "dimension": dimension,
+            "response": response,
+            "counter_response": counter,
+            "counter_model": counter_model,
+            "alternative": alternative,
+            "recorded": recorded,
+        }
+
+    def finalise_deliberation(self, payload: dict[str, Any]) -> dict[str, Any]:
+        dimension = str(payload.get("dimension") or "").lower()
+        final_response = str(payload.get("final_response") or "").lower()
+        if dimension not in DIMENSIONS or final_response not in RESPONSES:
+            raise ApiError("invalid dimension or final response")
+
+        snapshot, current = self.reviews.current(payload)
+        participant = str(payload.get("participant_id") or "")
+        session_id = str(payload.get("session_id") or "")
+        overrides = dict(current.get("overrides") or {})
+        recorded = False
+        if session_id:
+            may_record = not participant or self._may_record(
+                {**overrides, "participant_id": participant}, "research"
+            )
+            if may_record:
+                self.deliberation.record(
+                    stage="final",
+                    session_id=session_id,
+                    participant_id=participant,
+                    scenario_id=str(snapshot["config"].get("name", "")),
+                    plan_id=f"{current['run_id']}:{current['revision']}",
+                    model_id=str(payload.get("counter_model") or self._model_id(current)),
+                    dimension=dimension,
+                    initial_response=str(payload.get("initial_response") or ""),
+                    ai_counter_response=str(payload.get("ai_counter_response") or ""),
+                    final_response=final_response,
+                    time_to_first_response_s=payload.get("time_to_first_response_s"),
+                    time_to_final_decision_s=payload.get("time_to_final_decision_s"),
+                    detail_expansions=int(payload.get("detail_expansions", 0) or 0),
+                    why_clicks=int(payload.get("why_clicks", 0) or 0),
+                    edits_made=int(payload.get("edits_made", 0) or 0),
+                    edit_parameters=payload.get("edit_parameters") or {},
+                    free_text_reason=str(payload.get("reason") or ""),
+                    ai_confidence_shown=str(
+                        (current.get("uncertainty") or {}).get("confidence", "")
+                    ),
+                    plan_accepted_finally=payload.get("plan_accepted_finally"),
+                    outcome_shown=payload.get("outcome_shown") is True,
+                    outcome_better_or_worse_than_expected=str(
+                        payload.get("outcome_better_or_worse_than_expected") or ""
+                    ),
+                )
+                recorded = True
+        return {"recorded": recorded, "dimension": dimension, "final_response": final_response}
+
+    def list_deliberations(self, session_id: str = "") -> dict[str, Any]:
+        return {"records": self.deliberation.export(session_id)}
 
     # -- consent -------------------------------------------------------------
 
@@ -1221,13 +1486,36 @@ class UiServer:
                 seed=config.seed,
                 provenance={"data_source": config.data_source, "via": "ui",
                             "actuals_available": getattr(day, "actuals_available", False),
-                            "series": getattr(day, "sources", {})},
+                            "series": getattr(day, "sources", {}),
+                            "llm_provider": config.llm_provider,
+                            "llm_model": config.llm_model,
+                            "llm_sampling": {"temperature": None, "mode": "provider_default"},
+                            "language": config.language},
                 planning_metadata={"policy": compiled_policy},
             )
         except NotImplementedError as exc:
             raise ApiError(str(exc), status=501) from exc
 
         conditions, _ = _conditions_for(config, greenhouse, day.forecast)
+
+        from kasflex.energy.dispatch import dispatch_plan  # noqa: PLC0415
+        from kasflex.energy.position import (  # noqa: PLC0415
+            ProcurementContract,
+            settle_position,
+        )
+
+        dispatch = dispatch_plan(result.plan, config.hub, list(conditions))
+        position = settle_position(
+            dispatch,
+            conditions,
+            ProcurementContract(
+                base_import_kw=config.contracted_base_kw,
+                contract_price_eur_kwh=config.contracted_price_eur_kwh,
+                short_spread_eur_kwh=config.imbalance_short_spread_eur_kwh,
+                long_spread_eur_kwh=config.imbalance_long_spread_eur_kwh,
+            ),
+        ).to_dict()
+
         hard = result.realised_hard_violations
         response = {
             "date": result.date,
@@ -1245,6 +1533,13 @@ class UiServer:
             "metrics": result.metrics,
             "uncertainty": self._uncertainty(config, result.plan, conditions, greenhouse),
             "cost_forecast": project_cost(result.plan, config.hub, day.forecast, greenhouse),
+            "position": position,
+            "model": {
+                "planner": result.planner,
+                "provider": config.llm_provider,
+                "model": config.llm_model,
+                "sampling": {"temperature": None, "mode": "provider_default"},
+            },
             **self._against_normal(config, result, conditions, greenhouse),
             "plan": _plan_payload(result.plan, conditions),
             "elapsed_s": round(time.time() - started, 2),
@@ -1348,6 +1643,111 @@ class UiServer:
                                                      operator=saved["operator"])
         return {"recorded": True, "anonymous": self.anonymous, **saved}
 
+    def run_experiment_batch(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Run a configurable experiment matrix from the browser."""
+
+        import csv
+        import io
+
+        from kasflex.checker.rules import CheckerConfig  # noqa: PLC0415
+        from kasflex.experiment import (  # noqa: PLC0415
+            Condition,
+            ExperimentMatrix,
+            summarise,
+        )
+
+        overrides = payload.get("overrides") or {}
+        config = _apply_overrides(self.base, overrides)
+        try:
+            days = int(payload.get("days", 3))
+        except (TypeError, ValueError) as exc:
+            raise ApiError("Repetitions must be a whole number.") from exc
+        if not 1 <= days <= 30:
+            raise ApiError("Repetitions must be between 1 and 30.")
+
+        allowed = {"collaborative", "rule-based", "learned", "naive", "llm"}
+        planners = [str(p) for p in (payload.get("planners") or ["collaborative", "rule-based"])]
+        if not planners or set(planners) - allowed:
+            raise ApiError(f"Planners must be chosen from {sorted(allowed)}.")
+
+        checker_modes = payload.get("checker_modes") or ["verified"]
+        if not set(checker_modes) <= {"verified", "unverified"}:
+            raise ApiError("Checker modes must be verified and/or unverified.")
+        explain = payload.get("feedback", True) is not False
+
+        conditions = []
+        for planner in planners:
+            for mode in checker_modes:
+                enabled = mode == "verified"
+                label = f"{planner}-{mode}" + ("" if explain else "-silent")
+                conditions.append(
+                    Condition(
+                        label=label,
+                        planner=planner,
+                        checker=CheckerConfig(
+                            enabled=enabled,
+                            explain=explain,
+                            max_revisions=config.checker.max_revisions,
+                            fail_on_projected=config.checker.fail_on_projected,
+                            excluded_checks=config.checker.excluded_checks,
+                        ),
+                    )
+                )
+
+        stamp = int(time.time())
+        output = resolve_output(f"results/experiments/batch-{stamp}.jsonl")
+        records = ExperimentMatrix(
+            config=config,
+            conditions=conditions,
+            days=days,
+            output_path=str(output),
+            continue_on_error=True,
+        ).run(verbose=False)
+        summary = summarise(records)
+
+        stream = io.StringIO()
+        writer = csv.writer(stream)
+        writer.writerow(
+            [
+                "condition",
+                "runs",
+                "mean_cost_eur",
+                "mean_violations",
+                "hard_violations",
+                "fallback_rate",
+                "mean_peak_import_kw",
+            ]
+        )
+        for label, row in summary.items():
+            writer.writerow(
+                [
+                    label,
+                    row.get("runs"),
+                    row.get("mean_cost_eur"),
+                    row.get("mean_violations"),
+                    row.get("hard_violations"),
+                    row.get("fallback_rate"),
+                    row.get("mean_peak_import_kw"),
+                ]
+            )
+        return {
+            "summary": summary,
+            "records": len(records),
+            "output_path": str(output),
+            "csv": stream.getvalue(),
+            "settings": {
+                "days": days,
+                "planners": planners,
+                "checker_modes": checker_modes,
+                "feedback": explain,
+                "date": config.date,
+                "latitude": config.latitude,
+                "longitude": config.longitude,
+                "model": {"provider": config.llm_provider, "model": config.llm_model},
+            },
+        }
+
+
     def compare(self, overrides: dict[str, Any], planners: list[str]) -> dict[str, Any]:
         """Run several planners on the identical scenario (R29)."""
         rows = []
@@ -1436,6 +1836,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json({"runs": self.ui.reviews.history()})
             elif self.path.startswith("/api/reviews/"):
                 self._json(self.ui.reviews.get(self.path.removeprefix("/api/reviews/")))
+            elif self.path == "/api/validation-status":
+                self._json(self.ui.measured_validation_status())
             elif self.path.startswith("/api/settings"):
                 self._json(self.ui.get_settings())
             elif self.path.startswith("/api/i18n"):
@@ -1462,6 +1864,9 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/elicitations"):
                 query = dict(parse_qsl(urlsplit(self.path).query))
                 self._json(self.ui.list_elicitations(query.get("run_id", "")))
+            elif self.path.startswith("/api/deliberations"):
+                query = dict(parse_qsl(urlsplit(self.path).query))
+                self._json(self.ui.list_deliberations(query.get("session_id", "")))
             elif self.path == "/api/profiles":
                 self._json(self.ui.list_profiles())
             elif self.path.startswith("/api/profiles/export/"):
@@ -1541,6 +1946,15 @@ class _Handler(BaseHTTPRequestHandler):
                     overrides,
                     body.get("planners") or ["rule-based", "learned", "naive"],
                 ))
+            elif self.path == "/api/experiment":
+                with self.ui._lock:
+                    self._json(self.ui.run_experiment_batch(body))
+            elif self.path == "/api/deliberate":
+                with self.ui._lock:
+                    self._json(self.ui.deliberate(body))
+            elif self.path == "/api/deliberate/final":
+                with self.ui._lock:
+                    self._json(self.ui.finalise_deliberation(body))
             elif self.path == "/api/explain":
                 self._json(self.ui.explain(body))
             elif self.path == "/api/suggested-questions":

@@ -41,7 +41,13 @@ def test_settings_expose_current_values(ui):
     settings = ui.get_settings()
     assert settings["scenario"] == "westland-winter"
     paths = {f["path"] for f in settings["fields"]}
-    assert {"planner", "checker.enabled", "hub.contract.import_limit_kw"} <= paths
+    assert {
+        "planner",
+        "checker.enabled",
+        "hub.contract.import_limit_kw",
+        "contracted_base_kw",
+        "contracted_price_eur_kwh",
+    } <= paths
     planner = next(f for f in settings["fields"] if f["path"] == "planner")
     assert planner["value"] == "rule-based"
     assert "learned" in planner["choices"]
@@ -115,6 +121,56 @@ def test_collaborative_run_uses_grower_policy(ui):
     assert result["policy"]["avoid_chp_night"] is True
     for hour in (22, 23, 0, 1, 2, 3, 4, 5):
         assert result["plan"][hour]["chp_mode"] == "off"
+
+
+def test_run_exposes_procurement_position(ui):
+    result = ui.run(
+        {
+            "planner": "collaborative",
+            "contracted_base_kw": 1600,
+            "contracted_price_eur_kwh": 0.08,
+        },
+        policy={"priority": "balanced"},
+    )
+    summary = result["position"]["summary"]
+    assert summary["contracted_energy_kwh"] == pytest.approx(1600 * 24)
+    assert summary["absolute_deviation_kwh"] >= 0
+    assert summary["short_hours"] + summary["long_hours"] <= 24
+    assert result["model"]["planner"] == "collaborative"
+
+
+@pytest.mark.parametrize(
+    ("dimension", "expected_priority"),
+    [
+        ("money", "cost"),
+        ("crop", "crop"),
+        ("grid", "grid"),
+        ("work", "balanced"),
+    ],
+)
+def test_dimension_disagreement_returns_specific_alternative(
+    ui, dimension, expected_priority
+):
+    result = ui.run(
+        {"planner": "collaborative"},
+        policy={"priority": "balanced", "battery_reserve_pct": 45},
+    )
+    reply = ui.deliberate(
+        {
+            "run_id": result["run_id"],
+            "revision": result["revision"],
+            "plan_hash": result["plan_hash"],
+            "dimension": dimension,
+            "response": "disagree",
+            "session_id": f"test-{dimension}",
+            "time_to_first_response_s": 3.5,
+        }
+    )
+    assert reply["dimension"] == dimension
+    assert reply["counter_response"]
+    assert reply["alternative"]
+    assert reply["alternative"]["policy"]["priority"] == expected_priority
+    assert ui.list_deliberations(f"test-{dimension}")["records"]
 
 
 def test_plan_rows_carry_context_for_the_operator(base_run):
@@ -222,6 +278,45 @@ def test_the_checker_catches_what_disabling_it_lets_through(ui):
     assert on["fell_back"] is True
 
 
+def test_collaborative_demo_can_run_with_checker_on_or_off(ui):
+    on = ui.run({"planner": "collaborative", "checker.enabled": True})
+    off = ui.run({"planner": "collaborative", "checker.enabled": False})
+    assert on["checker_enabled"] is True
+    assert off["checker_enabled"] is False
+
+
+def test_crop_disagreement_returns_a_crop_specific_alternative(ui):
+    run = ui.run(
+        {"planner": "collaborative", "data_source": "synthetic"},
+        policy={"priority": "balanced", "battery_reserve_pct": 45},
+    )
+    reply = ui.deliberate({
+        "run_id": run["run_id"],
+        "revision": run["revision"],
+        "plan_hash": run["plan_hash"],
+        "dimension": "crop",
+        "response": "disagree",
+    })
+    assert reply["dimension"] == "crop"
+    assert reply["response"] == "disagree"
+    assert reply["alternative"] is not None
+    assert reply["alternative"]["policy"]["priority"] == "crop"
+    assert "crop" in reply["counter_response"].lower()
+
+
+def test_agreeing_with_one_dimension_does_not_regenerate_the_plan(ui):
+    run = ui.run({"planner": "collaborative", "data_source": "synthetic"})
+    reply = ui.deliberate({
+        "run_id": run["run_id"],
+        "revision": run["revision"],
+        "plan_hash": run["plan_hash"],
+        "dimension": "money",
+        "response": "agree",
+    })
+    assert reply["alternative"] is None
+    assert reply["response"] == "agree"
+
+
 # --- decisions (R25, R26) --------------------------------------------------
 
 
@@ -326,19 +421,25 @@ def test_team_demo_buttons_are_wired_and_do_not_link_to_legacy_ui():
     assert "Detailed report" not in html
     assert "Uitgebreid rapport" not in html
     assert "legacy-grower" not in html
+    assert "/api/deliberate" in script
+    assert 'id="checker-enabled"' in html
+    assert '"checker.enabled":$("checker-enabled").checked' in script
+    assert "/api/validation-status" in script
     assert "failed:" in script
 
 
 def test_stale_grower_url_serves_the_new_demo(live):
     status, body = _get(live + "/grower")
     assert status == 200
-    assert b"Plan the day" in body
-    assert b"Daily energy co-pilot" in body
+    assert b"Make tomorrow" in body
+    assert b"Grower energy co-pilot" in body
 
 
 def test_the_page_and_its_assets_are_served(live):
-    for path, needle in (("/", b"Plan the day"), ("/demo.css", b"--green"),
-                         ("/demo.js", b"/api/day-context"),
+    for path, needle in (("/", b"Make tomorrow"), ("/demo.css", b"--green"),
+                         ("/demo.js", b"/api/deliberate"),
+                         ("/demo.en.json", b"protects the crop"),
+                         ("/demo.nl.json", b"beschermt het gewas"),
                          ("/grower", b"KasFlex"), ("/grower.css", b"--kf-forest"),
                          ("/grower.js", b"api("), ("/mark.svg", b"<svg")):
         status, body = _get(live + path)
@@ -357,6 +458,16 @@ def test_the_page_carries_the_permanent_simulation_notice(live):
 
 def test_favicon_is_answered(live):
     assert _get(live + "/favicon.ico")[0] == 200
+
+
+def test_validation_status_over_http(live):
+    status, body = _get(live + "/api/validation-status")
+    assert status == 200
+    payload = json.loads(body)
+    assert payload["status"] in {"pending", "measured"}
+    assert "doi" in payload
+    if payload["status"] == "pending":
+        assert payload["validated"] is False
 
 
 def test_api_settings_over_http(live):
@@ -381,7 +492,7 @@ def test_api_run_over_http(live):
 
 
 def test_a_bad_override_returns_400(live):
-    status, payload = _post(live + "/api/run", {"overrides": {"hub.pv.peak_kw": 1}})
+    status, payload = _post(live + "/api/run", {"overrides": {"hub.unknown_field": 1}})
     assert status == 400
     assert "not adjustable" in payload["error"]
 
@@ -400,6 +511,26 @@ def test_a_malformed_body_returns_400(live):
         raise AssertionError("should have failed")
     except urllib.error.HTTPError as exc:
         assert exc.code == 400
+
+
+def test_every_numeric_default_sits_inside_its_own_adjustable_range(ui):
+    """A shipped default outside its own range silently blocks the browser form."""
+    offenders = []
+    for field in ui.get_settings()["fields"]:
+        if field["kind"] not in {"number", "int"}:
+            continue
+        value = field.get("value")
+        if not isinstance(value, (int, float)):
+            continue
+        low, high = field.get("min"), field.get("max")
+        if low is not None and value < low:
+            offenders.append(f"{field['path']}={value} below min {low}")
+        if high is not None and value > high:
+            offenders.append(f"{field['path']}={value} above max {high}")
+    assert not offenders, (
+        "these fields ship a default outside their own adjustable range and can "
+        "silently block planning in the browser: " + ", ".join(offenders)
+    )
 
 
 # --- geocoding endpoint (address <-> coordinates) ------------------------
@@ -487,32 +618,3 @@ def test_prepare_demo_refuses_when_neither_network_nor_cache_have_a_day(monkeypa
     monkeypatch.setattr("kasflex.data.demo.prepare_real_demo", fake)
     with pytest.raises(ApiError, match="did not silently substitute"):
         ui.prepare_demo({})
-
-
-def test_every_numeric_default_sits_inside_its_own_adjustable_range(ui):
-    """A default outside its own min/max makes the browser form invalid on load.
-
-    The research UI gates "Generate daily plan" behind form validity, so a field
-    whose shipped default violates its own bounds silently disables planning --
-    the button appears to do nothing. This bit us once: the heat buffer default
-    moved to 43 600 kWh when it was sourced against Dutch practice, while the
-    slider still capped at 40 000. Tests that call ui.run() directly never see
-    it, because they bypass the browser.
-    """
-    offenders = []
-    for field in ui.get_settings()["fields"]:
-        if field["kind"] not in {"number", "int"}:
-            continue
-        value = field.get("value")
-        if not isinstance(value, (int, float)):
-            continue
-        low, high = field.get("min"), field.get("max")
-        if low is not None and value < low:
-            offenders.append(f"{field['path']}={value} below min {low}")
-        if high is not None and value > high:
-            offenders.append(f"{field['path']}={value} above max {high}")
-    assert not offenders, (
-        "these fields ship a default outside their own adjustable range, which "
-        "makes the configuration form invalid on load and blocks planning: "
-        + ", ".join(offenders)
-    )

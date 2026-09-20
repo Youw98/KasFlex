@@ -67,6 +67,7 @@ class ScheduleScore:
     margin_violations: int = 0
     peak_import_kw: float = 0.0
     buffer_discharge_kwh: float = 0.0
+    crop_distance_mol_m2: float = 0.0
 
     def objective(
         self,
@@ -82,6 +83,14 @@ class ScheduleScore:
             return (self.peak_import_kw, self.margin_violations, self.cost_eur, stored)
         if mode == "cost":
             return (self.margin_violations, self.cost_eur, self.peak_import_kw, stored)
+        if mode == "crop":
+            return (
+                self.margin_violations,
+                self.crop_distance_mol_m2,
+                self.cost_eur,
+                self.peak_import_kw,
+                stored,
+            )
         # Balanced: cost still matters, but a very peaky plan pays a visible penalty.
         balanced = self.cost_eur + 0.06 * self.peak_import_kw
         return (self.margin_violations, balanced, self.cost_eur, self.peak_import_kw, stored)
@@ -176,6 +185,7 @@ def score_plan(
         margin_violations=margin_hits,
         peak_import_kw=peak_import,
         buffer_discharge_kwh=buffer_discharge,
+        crop_distance_mol_m2=abs(dli - crop.dli_target_mol_m2),
     )
 
 

@@ -97,6 +97,7 @@ def simulate_day(request: dict) -> dict:
 
     heat_kw, co2_kg_h, temp_c, rh_pct, co2_ppm = [], [], [], [], []
     natural_dli = 0.0
+    lighting_electricity_kwh = 0.0
     fruit_start = float(raw.x[25])
     truncated_at = None
 
@@ -129,6 +130,10 @@ def simulate_day(request: dict) -> dict:
             hour_heat_kw += heat_w_m2 * floor_area_m2 / 1000.0
             co2_mg_s_m2 = u[1] * p[P_MAX_CO2_DOSING] / model_area
             hour_co2 += co2_mg_s_m2 * floor_area_m2 * 3600e-6 / STEPS_PER_HOUR
+            lamp_w_m2 = u[4] * p[P_LAMP_POWER] / model_area
+            lighting_electricity_kwh += (
+                lamp_w_m2 * floor_area_m2 / 1000.0 * float(raw.dt) / 3600.0
+            )
 
             climate = np.asarray(obs["IndoorClimateObservations"], dtype=float)
             hour_co2ppm += climate[0]
@@ -174,6 +179,9 @@ def simulate_day(request: dict) -> dict:
             "lamp_power_w_m2": float(p[P_LAMP_POWER]),
             "max_heating_power_w_m2": float(p[P_MAX_HEATING_POWER] / model_area),
             "truncated_at_hour": -1 if truncated_at is None else truncated_at,
+            "heating_energy_kwh": float(sum(heat_kw)),
+            "lighting_electricity_kwh": float(lighting_electricity_kwh),
+            "co2_dosed_kg": float(sum(co2_kg_h)),
         },
     }
 

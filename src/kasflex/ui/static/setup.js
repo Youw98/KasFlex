@@ -308,6 +308,135 @@ async function loadReliance() {
 
 $("condition-filter").addEventListener("change", loadReliance);
 
+/* ---------------------------------------------------------- experiments */
+
+const EXPERIMENT_PRESETS_KEY = "kasflex.experiment.presets";
+let latestExperimentCsv = "";
+
+function experimentSettings() {
+  return {
+    days: Number($("experiment-days").value || 3),
+    planners: [...document.querySelectorAll(".experiment-planner:checked")].map((n) => n.value),
+    checker_modes: [
+      $("experiment-verified").checked ? "verified" : null,
+      $("experiment-unverified").checked ? "unverified" : null,
+    ].filter(Boolean),
+    feedback: $("experiment-feedback").checked,
+  };
+}
+
+function readExperimentPresets() {
+  try { return JSON.parse(localStorage.getItem(EXPERIMENT_PRESETS_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function renderExperimentPresets() {
+  const select = $("experiment-presets");
+  select.replaceChildren();
+  const empty = document.createElement("option");
+  empty.value = "";
+  empty.textContent = "saved setups";
+  select.append(empty);
+  for (const name of Object.keys(readExperimentPresets()).sort()) {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    select.append(option);
+  }
+}
+
+function saveExperimentPreset() {
+  const name = $("experiment-name").value.trim();
+  if (!name) { $("experiment-name").focus(); return; }
+  const presets = readExperimentPresets();
+  presets[name] = {experiment:experimentSettings(), overrides:overridesFromState()};
+  localStorage.setItem(EXPERIMENT_PRESETS_KEY, JSON.stringify(presets));
+  renderExperimentPresets();
+  $("experiment-presets").value = name;
+  $("status").textContent = `Saved experiment setup "${name}".`;
+}
+
+function loadExperimentPreset() {
+  const name = $("experiment-presets").value;
+  const preset = readExperimentPresets()[name];
+  if (!preset) return;
+  const ex = preset.experiment || {};
+  $("experiment-days").value = ex.days || 3;
+  for (const box of document.querySelectorAll(".experiment-planner")) {
+    box.checked = (ex.planners || []).includes(box.value);
+  }
+  $("experiment-verified").checked = (ex.checker_modes || []).includes("verified");
+  $("experiment-unverified").checked = (ex.checker_modes || []).includes("unverified");
+  $("experiment-feedback").checked = ex.feedback !== false;
+  if (preset.overrides) {
+    state.values = {...state.defaults, ...preset.overrides};
+    renderSettings();
+    markDirty();
+  }
+  $("status").textContent = `Loaded experiment setup "${name}".`;
+}
+
+async function runExperiment() {
+  const button = $("run-experiment");
+  button.disabled = true;
+  $("experiment-result").textContent = "Running…";
+  try {
+    const result = await api("/api/experiment", {
+      ...experimentSettings(),
+      overrides:overridesFromState(),
+    });
+    latestExperimentCsv = result.csv || "";
+    $("download-experiment").disabled = !latestExperimentCsv;
+    const root = $("experiment-result");
+    root.replaceChildren();
+    const table = document.createElement("table");
+    table.className = "people";
+    table.innerHTML = "<thead><tr><th>Condition</th><th>Runs</th><th>Mean cost</th><th>Violations</th><th>Peak kW</th></tr></thead><tbody></tbody>";
+    const body = table.querySelector("tbody");
+    for (const [condition, row] of Object.entries(result.summary || {})) {
+      const tr = document.createElement("tr");
+      for (const value of [
+        condition,
+        row.runs,
+        `€${Number(row.mean_cost_eur || 0).toFixed(0)}`,
+        row.mean_violations,
+        Number(row.mean_peak_import_kw || 0).toFixed(0),
+      ]) {
+        const td = document.createElement("td");
+        td.textContent = String(value);
+        tr.append(td);
+      }
+      body.append(tr);
+    }
+    root.append(table);
+    const path = document.createElement("p");
+    path.className = "muted small";
+    path.textContent = `Raw records: ${result.output_path}`;
+    root.append(path);
+  } catch (error) {
+    showError(error);
+    $("experiment-result").textContent = "";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function downloadExperimentCsv() {
+  if (!latestExperimentCsv) return;
+  const url = URL.createObjectURL(new Blob([latestExperimentCsv], {type:"text/csv"}));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "kasflex-experiment-summary.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+$("save-experiment").addEventListener("click", saveExperimentPreset);
+$("load-experiment").addEventListener("click", loadExperimentPreset);
+$("run-experiment").addEventListener("click", runExperiment);
+$("download-experiment").addEventListener("click", downloadExperimentCsv);
+renderExperimentPresets();
+
 /* ----------------------------------------------------------------- boot */
 
 $("apply").addEventListener("click", () => {

@@ -26,7 +26,8 @@ is discoverable.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+import math
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -36,6 +37,8 @@ from typing import Any
 AGC_ROOT_NAME = "agc2"
 AGC_MANIFEST = "MANIFEST.json"
 AGC_MEASURED_DIR = "measured"
+AGC_REPLAY_DIR = "replay"
+DEFAULT_RESULT_PATH = "results/validation-agc2.json"
 """Where the AGC reference compartment's measured hourly series are expected.
 
 Each day is one CSV file named ``YYYY-MM-DD.csv`` with, at minimum, columns
@@ -101,6 +104,10 @@ class DatasetMissing(FileNotFoundError):
     """The AGC dataset is not on disk. The exception message names the remedy."""
 
 
+class ValidationNotRunnable(RuntimeError):
+    """Measured data exist, but a real simulator replay cannot yet be performed."""
+
+
 def _agc_root(cache_dir: str | Path) -> Path:
     return Path(cache_dir) / AGC_ROOT_NAME
 
@@ -122,9 +129,12 @@ def instructions_when_missing(cache_dir: str | Path) -> str:
         f"Then arrange the files as:\n"
         f"  {root}/\n"
         f"    {AGC_MANIFEST}                 (name, licence, retrieval date)\n"
-        f"    {AGC_MEASURED_DIR}/YYYY-MM-DD.csv    (one file per compared day)\n\n"
-        f"Each CSV needs at least the columns:\n"
-        f"  heating_kwh, electricity_kwh, co2_kg\n\n"
+        f"    {AGC_MEASURED_DIR}/YYYY-MM-DD.csv    (measured daily totals)\n"
+        f"    {AGC_REPLAY_DIR}/YYYY-MM-DD.json      (24 h measured-day replay)\n\n"
+        f"Each measured CSV needs at least the columns:\n"
+        f"  heating_kwh, electricity_kwh, co2_kg\n"
+        f"Each replay JSON carries the same day's 24 hourly intent rows, external\n"
+        f"conditions, the 96 m2 floor area, and the GreenLight scenario.\n\n"
         f"Read Hemming et al., Sensors 2020, first -- it is the paper that\n"
         f"describes the compartment. Configure the scenario at 96 m2 (the\n"
         f"AGC compartment area) and 2019-2020 weather (see docs/DECISIONS.md\n"
@@ -178,35 +188,125 @@ def _read_manifest(cache_dir: str | Path) -> dict[str, Any]:
         return {}
 
 
+def _replay_path(cache_dir: str | Path, iso_date: str) -> Path:
+    return _agc_root(cache_dir) / AGC_REPLAY_DIR / f"{iso_date}.json"
+
+
+def replay_simulator(cache_dir: str | Path, model: str = "greenlight"):
+    """Build a simulator callback from canonical AGC replay files.
+
+    A replay file contains the 24 hourly intent rows, external conditions,
+    the 96 m2 compartment scale and, for GreenLight, its weather scenario.
+    Missing replay input is a hard stop: KasFlex never replaces it with NaN.
+    """
+    if model not in {"greenlight", "surrogate"}:
+        raise ValueError("validation model must be greenlight or surrogate")
+
+    def simulate(iso_date: str) -> dict[str, float]:
+        replay_path = _replay_path(cache_dir, iso_date)
+        if not replay_path.is_file():
+            raise ValidationNotRunnable(
+                f"Measured AGC data exist for {iso_date}, but {replay_path} is missing. "
+                "Prepare the canonical replay from the AGC Reference compartment first."
+            )
+        try:
+            payload = json.loads(replay_path.read_text())
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValidationNotRunnable(f"Cannot read AGC replay {replay_path}: {exc}") from exc
+
+        from kasflex.energy.dispatch import HourlyConditions
+        from kasflex.intent import Plan
+
+        try:
+            plan = Plan.from_dict(payload["plan"])
+            conditions = tuple(HourlyConditions(**row) for row in payload["conditions"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValidationNotRunnable(
+                f"{replay_path} is not a valid canonical replay: {exc}"
+            ) from exc
+        if len(conditions) != 24:
+            raise ValidationNotRunnable(f"{replay_path}: expected 24 hourly conditions")
+
+        floor_area = float(payload.get("floor_area_m2", 96.0))
+        if abs(floor_area - 96.0) > 1e-6:
+            raise ValidationNotRunnable(
+                f"{replay_path}: validation must use the 96 m2 AGC compartment, "
+                f"not {floor_area:g} m2"
+            )
+
+        if model == "greenlight":
+            from kasflex.adapters.greenlight_worker import GreenLightWorker
+
+            greenhouse = GreenLightWorker(
+                scenario=dict(payload.get("greenlight_scenario") or {}),
+                seed=int(payload.get("seed", 0)),
+            )
+        else:
+            from kasflex.adapters.greenhouse import SurrogateGreenhouse
+
+            greenhouse = SurrogateGreenhouse()
+
+        outcome = greenhouse.simulate_day(plan, conditions, floor_area)
+        diagnostics = outcome.diagnostics
+        heating = float(diagnostics.get("heating_energy_kwh", sum(outcome.heat_demand_kw)))
+        lighting = diagnostics.get("lighting_electricity_kwh")
+        if lighting is None:
+            lamp_power_w_m2 = float(payload.get("lamp_power_w_m2", 110.0))
+            lighting = sum(
+                float(iv.lighting_level) * lamp_power_w_m2 * floor_area / 1000.0
+                for iv in plan.intervals
+            )
+        co2 = float(diagnostics.get("co2_dosed_kg", sum(outcome.co2_demand_kg_h)))
+        return {
+            "heating_kwh": heating,
+            "electricity_kwh": float(lighting),
+            "co2_kg": co2,
+        }
+
+    return simulate
+
+
 def validate_against_agc(
     cache_dir: str | Path,
-    simulate_day: Any = None,
+    simulate_day: Any,
 ) -> ValidationReport:
-    """Compare simulated to measured daily totals for the AGC compartment.
+    """Compare a real simulator replay to measured AGC daily totals.
 
-    Args:
-        cache_dir: root under which ``agc2/measured/*.csv`` lives.
-        simulate_day: ``(iso_date) -> {quantity: value}``. Left ``None``, the
-            simulated numbers are recorded as NaN and the report reads "not
-            simulated yet" for each column. This is deliberate: the point of
-            wiring the CLI now is that anybody with the dataset in hand can
-            run the command, see the measurement stub, and only the
-            greenhouse-side glue is missing. The plan (stage 1) is to plug in
-            :class:`kasflex.adapters.greenhouse.SurrogateGreenhouse` and later
-            the GreenLight worker.
+    The simulator callback is mandatory. This prevents an empty/NaN table from
+    looking like completed measured-data validation.
     """
+    if simulate_day is None:
+        raise ValidationNotRunnable(
+            "No simulator replay was supplied. KasFlex refuses to create a validation "
+            "report from measured data alone."
+        )
+
     measured = read_agc_measured(cache_dir)
     deviations: list[ValidationDeviation] = []
-    for date, quantities in measured.items():
-        simulated = simulate_day(date) if simulate_day is not None else {}
-        for quantity, value in quantities.items():
-            sim = float(simulated.get(quantity, float("nan")))
-            unit = quantity.split("_")[-1] if "_" in quantity else ""
+    required = ("heating_kwh", "electricity_kwh", "co2_kg")
+    for iso_date, quantities in measured.items():
+        simulated = simulate_day(iso_date)
+        for quantity in required:
+            if quantity not in quantities:
+                raise ValidationNotRunnable(
+                    f"{iso_date}: measured AGC file is missing required column {quantity!r}"
+                )
+            if quantity not in simulated:
+                raise ValidationNotRunnable(
+                    f"{iso_date}: simulator replay did not return {quantity!r}"
+                )
+            value = float(quantities[quantity])
+            sim = float(simulated[quantity])
+            if not math.isfinite(value) or not math.isfinite(sim):
+                raise ValidationNotRunnable(
+                    f"{iso_date} {quantity}: validation values must be finite"
+                )
+            unit = quantity.split("_")[-1]
             deviations.append(
                 ValidationDeviation(
-                    date=date,
+                    date=iso_date,
                     quantity=quantity,
-                    measured=float(value),
+                    measured=value,
                     simulated=sim,
                     unit=unit,
                 )
@@ -218,6 +318,69 @@ def validate_against_agc(
         deviations=tuple(deviations),
         generated_at=datetime.now(UTC).isoformat(timespec="seconds"),
     )
+
+
+def write_validation_json(
+    report: ValidationReport,
+    path: str | Path = DEFAULT_RESULT_PATH,
+    *,
+    model: str = "unknown",
+) -> None:
+    """Persist only a completed numeric report for the browser status indicator."""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        json.dumps(
+            {
+                "dataset": report.dataset,
+                "dataset_root": report.dataset_root,
+                "days_compared": report.days_compared,
+                "generated_at": report.generated_at,
+                "model": model,
+                "deviations": [asdict(item) for item in report.deviations],
+            },
+            indent=2,
+            sort_keys=True,
+        ) + "\n"
+    )
+
+
+def validation_status(path: str | Path = DEFAULT_RESULT_PATH) -> dict[str, Any]:
+    """Return an honest browser status; incomplete reports count as pending."""
+    target = Path(path)
+    pending = {
+        "validated": False,
+        "status": "pending",
+        "days_compared": 0,
+        "dataset": "Autonomous Greenhouse Challenge, Second Edition (2019)",
+        "doi": AGC_DOI,
+        "message": "No completed measured-data replay has been published yet.",
+    }
+    if not target.is_file():
+        return pending
+    try:
+        payload = json.loads(target.read_text())
+        deviations = payload.get("deviations") or []
+        days = int(payload.get("days_compared", 0))
+        if days <= 0 or not deviations:
+            return pending
+        for row in deviations:
+            if not all(
+                math.isfinite(float(row[key])) for key in ("measured", "simulated")
+            ):
+                return pending
+    except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError):
+        return pending
+    return {
+        "validated": True,
+        "status": "measured",
+        "days_compared": days,
+        "dataset": str(payload.get("dataset") or pending["dataset"]),
+        "doi": AGC_DOI,
+        "generated_at": str(payload.get("generated_at") or ""),
+        "model": str(payload.get("model") or "unknown"),
+        "message": f"Measured simulator deviation published for {days} day(s).",
+    }
 
 
 def write_validation_doc(report: ValidationReport, doc_path: str | Path) -> None:

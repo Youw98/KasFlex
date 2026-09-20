@@ -8,8 +8,10 @@
 
 **AI-assisted greenhouse energy planning with an independent safety check and a human in the loop.**
 
-KasFlex creates a 24-hour energy plan for a greenhouse, checks that plan against
-hard constraints, and lets a grower review, edit, approve, or reject it.
+KasFlex creates a checked 24-hour greenhouse energy plan and then **negotiates it
+with the grower dimension by dimension**: money, crop protection, grid impact and
+practical fit. A disagreement gets a specific alternative rather than a silent
+whole-plan regeneration.
 
 > **Simulation only — alpha research software.** The demo can use real historical
 > Dutch electricity prices and weather. Greenhouse climate, heat demand, crop
@@ -19,7 +21,9 @@ hard constraints, and lets a grower review, edit, approve, or reject it.
 · [Usage guide](docs/USAGE.md)
 · [Architecture](docs/ARCHITECTURE.md)
 · [Data & provenance](docs/DATA.md)
+· [Parameters](docs/PARAMETERS.md)
 · [Validation](docs/VALIDATION.md)
+· [MCP integration](docs/MCP.md)
 
 ---
 
@@ -32,12 +36,19 @@ hard constraints, and lets a grower review, edit, approve, or reject it.
    electricity-price and weather context first.
 4. Choose what matters to the grower: **Balanced**, **Lowest cost**, or
    **Grid relief**, plus battery reserve and operating preferences.
-5. Click **Build tomorrow's plan**.
-6. Review the checked proposal, switch individual suggestions back to normal
-   control if desired, and approve the final revision.
+5. Keep the **independent safety check** on for the real grower decision. Switch it
+   off only to demonstrate which hard violations the checker prevents.
+6. Click **Build tomorrow's plan**.
+7. Respond separately to **saves money**, **protects the crop**, **respects the
+   grid**, and **fits how I work**.
+8. Disagree with one dimension to see KasFlex produce a targeted alternative and
+   the trade-off. Approval unlocks only after all four dimensions have been reviewed
+   and the current revision passes the checker.
 
 The prepared real-input day is cached with provenance and checksums. Later demo
-runs reuse it instead of silently substituting synthetic data.
+runs reuse it instead of silently substituting synthetic data. A separate badge
+shows the greenhouse-model validation state: it stays **pending** until a finite
+measured AGC2 replay has actually been published.
 
 | Platform | Release file |
 |---|---|
@@ -90,7 +101,10 @@ real/synthetic inputs
  deterministic checker
         │
         ▼
- human review / change
+ dimension-level negotiation
+        │
+        ▼
+ targeted alternative / keep plan
         │
         ▼
  re-check + final plan
@@ -105,9 +119,11 @@ In practice:
 - the collaborative planner proposes when to use lighting, battery, CHP, boiler,
   heat storage, and other flexible assets;
 - a deterministic checker independently verifies limits;
-- a grower can inspect and change the plan;
-- every edit must be checked again;
-- the run is recorded with provenance and audit information.
+- the grower responds separately on money, crop, grid and practical fit;
+- a disagreement produces a specific alternative with a visible trade-off;
+- every changed plan is checked again before it can become the final plan;
+- the run records provenance, model identity, timing and deliberation data when
+  research consent allows it.
 
 The planner does **not** get to redefine the constraints that judge its own plan.
 
@@ -332,6 +348,7 @@ should be treated as **apparatus, not findings**.
 
 | Planner | Role |
 |---|---|
+| `collaborative` | current-day optimisation driven by explicit grower priorities |
 | `rule-based` | conventional baseline |
 | `learned` | demand forecast + schedule optimisation |
 | `naive` | deliberately simple comparison |
@@ -371,6 +388,10 @@ kasflex run --data-source cache --date 2026-09-21
 
 # Compare experiment conditions
 kasflex experiment --days 3
+
+# Optional agent-framework integration
+pip install -e ".[mcp]"
+kasflex mcp
 
 # Validate against measured greenhouse data
 kasflex validate
@@ -444,8 +465,10 @@ tests/                   offline test suite
 | [Guide](docs/GUIDE.md) | conceptual walkthrough |
 | [Architecture](docs/ARCHITECTURE.md) | components and boundaries |
 | [Data](docs/DATA.md) | datasets and acquisition |
-| [Provenance](docs/PROVENANCE.md) | assumptions and parameter sources |
+| [Provenance](docs/PROVENANCE.md) | engineering provenance notes |
+| [Parameters](docs/PARAMETERS.md) | every shipped parameter: source or explicit **ASSUMPTION** |
 | [Validation](docs/VALIDATION.md) | measured-data validation status |
+| [MCP](docs/MCP.md) | optional agent-agnostic integration surface |
 | [Decisions](docs/DECISIONS.md) | architecture decision records |
 | [FAIR](docs/FAIR.md) | research-data principles |
 

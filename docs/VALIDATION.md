@@ -1,85 +1,121 @@
 # Validation against measured data (stage 1)
 
-> **Status: not yet run.** Until this document contains a deviation table
-> filled in from real AGC data, every figure KasFlex produces is apparatus,
-> not a finding. This is by design: the greenhouse model prints a warning on
-> every run, and each result record carries `greenhouse_validated: false`.
-> The whole point of the MVP plan's stage 1 is to close that gap.
+> **Status: not yet run on the public AGC2 archive in this repository.** Until the
+> machine-generated table below contains finite measured-vs-simulated deviations,
+> every greenhouse result remains **not validated for operational use**.
 
-## What has to happen
+KasFlex now refuses to create a validation result unless a real greenhouse simulator
+replay ran. A missing replay, missing GreenLight worker, malformed file, or non-finite
+number is a hard failure; it does not become a table full of NaN values.
 
-1. **Get the dataset.** The Autonomous Greenhouse Challenge, Second Edition
-   (2019), from 4TU.ResearchData —
-   [10.4121/uuid:88d22c60-21b3-4ea8-90db-20249a5be2a7](https://doi.org/10.4121/uuid:88d22c60-21b3-4ea8-90db-20249a5be2a7).
-   The landing page carries the terms; accepting them is a person's decision,
-   not the tool's.
+## Validation reference
 
-2. **Read the paper first.** Hemming et al., *Sensors* 2020, describes the
-   reference compartment: floor area, lamp power, heating capacity, screens,
-   and the sensors the measured series come from. Configuring the model to a
-   different compartment produces a plausible-looking deviation table that
-   means nothing.
+The reference is the **Autonomous Greenhouse Challenge, Second Edition (2019)**,
+DOI `10.4121/uuid:88d22c60-21b3-4ea8-90db-20249a5be2a7`.
 
-3. **Arrange the files.** KasFlex expects:
+Use the grower-operated **Reference** compartment at the research-compartment scale
+(96 m²). Do not mix this with the 5 ha commercial demonstration scenario.
 
-   ```
-   data/cache/agc2/
-     MANIFEST.json                (dataset name, licence, retrieval date)
-     measured/YYYY-MM-DD.csv      (one file per compared day)
-   ```
+The public dataset is CC0 and contains measured greenhouse climate, control/setpoint
+information and resource consumption. The raw archive is not committed to KasFlex.
 
-   Each daily CSV needs at minimum the columns `heating_kwh`,
-   `electricity_kwh`, `co2_kg` (a whole-day total per row is fine; hourly
-   rows are summed).
+## Canonical local layout
 
-4. **Configure the scenario for the AGC compartment.** 96 m² floor area,
-   2019–2020 weather, GreenLight-Gym2 as the greenhouse model. Do not mix
-   this with the 5 ha commercial scenarios that run in the same repository
-   (see [DECISIONS.md](DECISIONS.md) ADR-0004).
+```text
+data/cache/agc2/
+├── MANIFEST.json
+├── measured/
+│   └── YYYY-MM-DD.csv
+└── replay/
+    └── YYYY-MM-DD.json
+```
 
-5. **Run it.**
+The measured CSV contains daily totals, at minimum:
 
-   ```bash
-   kasflex validate --write-doc docs/VALIDATION.md
-   ```
+```text
+heating_kwh,electricity_kwh,co2_kg
+```
 
-   The command prints the deviation table, and if `--write-doc` points at
-   this file, updates the block below in place. Committed history therefore
-   carries the measurement.
+The replay JSON is deliberately explicit rather than hiding a raw-column mapping in
+the validator:
 
-6. **Publish the deviation, whatever it is.** Acceptance criterion 1 asks
-   for the deviation to be quantified, not for it to be small. A large
-   deviation is still a finding; a missing table is not.
+```json
+{
+  "floor_area_m2": 96.0,
+  "greenlight_scenario": {
+    "location": "...",
+    "growth_year": 2019,
+    "start_day": 1
+  },
+  "plan": {
+    "date": "YYYY-MM-DD",
+    "planner": "measured-replay",
+    "intervals": ["24 hourly KasFlex intent rows derived from measured controls"]
+  },
+  "conditions": ["24 hourly external-condition rows"]
+}
+```
+
+Only controls and external conditions derived from the same measured AGC day belong
+in that replay. If the source mapping is uncertain, stop and document it instead of
+guessing.
+
+## Run the comparison
+
+Create the separate GreenLight environment first, then:
+
+```bash
+kasflex validate \
+  --cache-dir data/cache \
+  --greenhouse greenlight \
+  --result-json results/validation-agc2.json \
+  --write-doc docs/VALIDATION.md
+```
+
+For development tests only, `--greenhouse surrogate` exercises the same replay and
+report pipeline. A surrogate result is not a substitute for the intended
+GreenLight-vs-measurement comparison.
+
+A successful command:
+
+1. replays every canonical day through the selected greenhouse model;
+2. compares heating, lighting electricity and CO₂ totals against measured values;
+3. prints finite absolute and relative errors;
+4. writes the table below; and
+5. writes `results/validation-agc2.json`, which is the only file that can turn the
+   grower demo's validation badge from **pending** to **measured validation**.
 
 ## Deviation table
 
-The block between the machine markers below is regenerated by `kasflex
-validate --write-doc`. Anything outside those markers survives.
-
 <!-- kasflex:validation:start -->
-_Not yet run. See “What has to happen” above._
+_Not yet run. See “Run the comparison” above._
 <!-- kasflex:validation:end -->
 
-## What the table means
+## Interpretation
 
-For each day and quantity the table reports:
+For every day and quantity:
 
-| column | meaning |
+| Column | Meaning |
 |---|---|
-| Measured | the AGC compartment's actual metered value for that day |
-| Simulated | KasFlex's greenhouse model driven by the same weather and control setpoints |
-| Error | `simulated − measured` in the same unit |
-| Rel. error | error as a percentage of measured; `n/a` when measured is zero |
+| Measured | Metered AGC Reference-compartment value |
+| Simulated | Output from the selected KasFlex greenhouse replay |
+| Error | simulated − measured |
+| Rel. error | error divided by measured value |
 
-A well-validated model has small, mean-zero errors across a heterogeneous
-set of days. A large mean error is a model bias. A large scatter around
-zero is model noise. Either is a finding — both are reasons to add days,
-not to hide the deviation.
+A large error is still a valid finding. A missing or non-finite simulated value is
+not.
 
-## Where in the code
+The first publishable validation result should report the per-day table plus
+aggregate MAE / relative-error summaries over a heterogeneous set of days. It should
+also state the exact GreenLight-Gym2 version and replay mapping used.
 
-* `src/kasflex/validation.py` — reads the AGC folder, computes the table,
-  writes back into this file between the markers.
-* `kasflex validate --help` — CLI usage.
-* `workers/greenlight/worker.py` — the greenhouse model that will be
-  compared. AGPL, own venv (see [DECISIONS.md](DECISIONS.md) ADR-0001).
+## Code
+
+- `src/kasflex/validation.py` — measured data, canonical replay, finite-value gate,
+  report and browser validation status.
+- `workers/greenlight/worker.py` — isolated GreenLight-Gym2 model process.
+- `kasflex validate --help` — executable validation entry point.
+
+GreenLight-Gym2 is AGPL-3.0-or-later and remains isolated in its own environment.
+Process isolation is a technical boundary, **not legal confirmation**; public
+promotion still requires the WUR licensing check noted in the project brief.

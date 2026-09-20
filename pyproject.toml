@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kasflex"
-version = "0.1.3a2"
+version = "0.1.3a3"
 description = "Verified agentic energy management for greenhouse horticulture under electrical constraints"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -38,6 +38,7 @@ grid = ["power-grid-model>=1.10", "power-grid-model-ds>=1.5"]
 data = ["pandas>=2.0", "pyarrow>=15", "entsoe-py>=0.6", "requests>=2.32"]
 # Language-model planners. Any subset may be installed.
 llm = ["anthropic>=0.40"]
+mcp = ["mcp>=2,<3"]
 dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6"]
 
 [project.urls]

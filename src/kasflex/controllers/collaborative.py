@@ -37,7 +37,7 @@ def _policy(context: base.PlanningContext) -> dict[str, object]:
         raw = {}
 
     priority = str(raw.get("priority", "balanced")).lower()
-    if priority not in {"balanced", "cost", "grid"}:
+    if priority not in {"balanced", "cost", "grid", "crop"}:
         priority = "balanced"
 
     reserve = raw.get("battery_reserve_pct", 45)

@@ -36,14 +36,16 @@ On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`.
 The main page is the team-demo workspace. It prepares the real historical demo day
 and shows the day context before it asks for a plan.
 
-1. Check the electricity-price, weather and grid cards.
-2. Pick **Balanced**, **Lowest cost**, or **Grid relief**.
-3. Set the battery reserve and any operating preferences.
-4. Click **Build tomorrow's plan**.
-5. Review the independently checked proposal.
-6. Change individual suggestions back to normal control if needed; every change is
-   re-verified.
-7. Record the checked revision as the final day plan.
+1. Check the electricity-price and weather context.
+2. Pick **Balanced**, **Lowest cost**, or **Grid relief**, plus practical operating preferences.
+3. Click **Build tomorrow's plan**.
+4. Respond separately to four dimensions: **saves money**, **protects the crop**,
+   **respects the grid**, and **fits how I work**.
+5. If you disagree, KasFlex proposes a dimension-specific alternative and shows the
+   trade-off rather than silently regenerating the whole plan.
+6. Review position/risk/data detail only when you need it.
+7. Approve only after all four dimensions have a response and the current revision
+   passes the independent checker.
 
 The first successful demo-data load is cached; later runs reuse it. Market/weather
 inputs are real historical data, while greenhouse response, crop outcomes and asset
@@ -103,6 +105,12 @@ The first proposes a constraint-blind plan and executes it. The second has the s
 planner rejected by the checker until control falls back to the baseline.
 
 ## Run the experiment matrix
+
+From the browser, open the researcher setup page at `/setup`. The **Experiment
+batch** section lets you choose planners, repetitions, checker on/off and feedback
+on/off, save named browser presets, run the matrix, and download the summary CSV.
+
+The same workflow is available from the CLI:
 
 ```bash
 kasflex experiment --days 3
@@ -348,6 +356,19 @@ class MyPlanner:
 ```
 
 Register it in `kasflex.experiment.build_planner` to make it available from the CLI.
+
+## Connect an external agent with MCP
+
+KasFlex exposes the same planning/checking functions through an optional Model
+Context Protocol server. The core does not depend on MCP.
+
+```bash
+pip install -e ".[mcp]"
+kasflex mcp
+```
+
+The stdio server exposes day context, collaborative planning, re-verification of
+edited saved plans, and experiment batches. See [MCP.md](MCP.md).
 
 ## Run the tests
 

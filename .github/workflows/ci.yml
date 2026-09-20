@@ -40,6 +40,22 @@ jobs:
             exit 1
           fi
 
+  mcp-extra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[mcp]"
+      - name: MCP server imports and exposes tools
+        run: |
+          python - <<'PY'
+          from kasflex.mcp_server import mcp
+          assert mcp is not None
+          print("MCP server import OK")
+          PY
+
   # The AGPL worker environment, isolated. gl-gym pins numpy<2.
   greenlight-worker:
     runs-on: ubuntu-latest

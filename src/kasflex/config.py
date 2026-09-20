@@ -99,6 +99,14 @@ class ScenarioConfig:
     gas_price_eur_kwh: float = 0.035
     """TTF gas price. There is no free public API for this, so it is configured
     rather than fetched; update it when the market moves materially."""
+    contracted_base_kw: float = 1800.0
+    """Base-load electricity volume already contracted before day-ahead operation."""
+    contracted_price_eur_kwh: float = 0.085
+    """Price paid for the contracted base volume."""
+    imbalance_short_spread_eur_kwh: float = 0.012
+    """Illustrative settlement spread added when planned use is above the position."""
+    imbalance_long_spread_eur_kwh: float = 0.008
+    """Illustrative settlement spread subtracted when the site is long."""
     history_days: int = 60
     """Days of past operation the learned planner trains its demand forecaster on.
     Below about 21 the lag features leave too little to fit; more is better."""
