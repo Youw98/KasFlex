@@ -11,7 +11,7 @@ seed: 0
 winter: true
 planner: rule-based        # rule-based | naive | llm | mpc
 greenhouse: surrogate      # surrogate | greenlight
-data_source: synthetic     # synthetic | cache
+data_source: synthetic     # synthetic | cache | demo (browser-prepared historical replay)
 brief: >-
   Cold, still day. Keep the crop in band and hold the evening peak import under the
   congestion limit. Do not buy power above 0.35 EUR/kWh.
