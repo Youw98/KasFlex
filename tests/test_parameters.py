@@ -5,7 +5,7 @@ PARAMETERS = Path("docs/PARAMETERS.md")
 
 
 def test_parameter_table_is_canonical_and_uses_explicit_assumptions():
-    text = PARAMETERS.read_text(encoding="utf-8")
+    text = _parameters()
     assert "# Parameter provenance" in text
     assert "**ASSUMPTION**" in text
     assert "guess" not in text.lower()
@@ -13,7 +13,7 @@ def test_parameter_table_is_canonical_and_uses_explicit_assumptions():
 
 
 def test_parameter_table_covers_every_tahir_demo_domain():
-    text = PARAMETERS.read_text(encoding="utf-8").lower()
+    text = _parameters().lower()
     required = (
         "greenhouse floor area",
         "grid import contract",
@@ -38,7 +38,7 @@ def test_parameter_table_covers_every_tahir_demo_domain():
 
 
 def test_high_value_unknowns_are_called_out_for_replacement():
-    text = PARAMETERS.read_text(encoding="utf-8")
+    text = _parameters()
     assert "What still needs replacing first" in text
     assert "contracted base volume and contract price" in text
     assert "heat-buffer standing loss" in text
