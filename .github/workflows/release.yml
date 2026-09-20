@@ -75,7 +75,9 @@ jobs:
             curl -fsS http://127.0.0.1:8765/api/settings > /dev/null 2>&1 && break
             sleep 1
           done
-          for path in / /style.css /app.js /api/settings; do
+          # Exercise both current front ends and the settings API.
+          # "/" is the grower UI; "/advanced" is the researcher UI.
+          for path in / /grower.css /grower.js /advanced /design.css /app.js /api/settings; do
             code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8765$path")
             echo "  $path -> $code"
             [ "$code" = "200" ] || { echo "FAILED: $path returned $code"; exit 1; }
