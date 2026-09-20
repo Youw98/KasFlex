@@ -112,10 +112,16 @@ experiment matrix, CLI, FAIR metadata. Tested end to end, offline.
 
 *Complete when:* `kasflex experiment` runs offline on a bare clone. **It does.**
 
-### Stage 1 — GreenLight-Gym2, validated against AGC ⬜ next
+### Stage 1 — GreenLight-Gym2, validated against AGC 🔶 tool wired, dataset next
 
 The worker exists and drives the real model today; what is missing is the
-validation.
+validation itself. The tool that runs the comparison and writes the
+deviation table is now wired up (`kasflex validate`,
+`src/kasflex/validation.py`, [`docs/VALIDATION.md`](VALIDATION.md)). It
+refuses to invent numbers when the dataset is absent: it prints exactly
+what to fetch, from where, and stops. Once the AGC files land on disk,
+the deviation table appears between machine markers in
+`docs/VALIDATION.md` with one command.
 
 - Download AGC 2nd edition (D1). Read Hemming et al., *Sensors* 2020, **first**.
 - Configure GL-Gym to the AGC compartment: floor area, lamp power, heating capacity,

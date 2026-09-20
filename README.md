@@ -198,6 +198,8 @@ outcomes and deserve real sources.
 | [Decisions](docs/DECISIONS.md) | Why things are the way they are |
 | [Usage](docs/USAGE.md) | Every command |
 | [Data](docs/DATA.md) | Datasets, DOIs, licences, provenance |
+| [Provenance](docs/PROVENANCE.md) | Every parameter, next to where it came from |
+| [Validation](docs/VALIDATION.md) | Deviation of the greenhouse model against measured AGC data |
 | [FAIR](docs/FAIR.md) | FAIR assessment, including the gaps |
 | [Packaging](packaging/README.md) | Building the double-clickable application |
 
