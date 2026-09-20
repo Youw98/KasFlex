@@ -608,6 +608,12 @@ class UiServer:
             },
         }
 
+    def measured_validation_status(self) -> dict[str, Any]:
+        """Status shown beside the real-data badge in the grower workspace."""
+        from kasflex.validation import validation_status
+
+        return validation_status(resolve_output("results/validation-agc2.json"))
+
     # -- uncertainty --------------------------------------------------------
 
     def _novelty_history(self, config: ScenarioConfig) -> list[dict[str, float]]:
@@ -1828,6 +1834,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json({"runs": self.ui.reviews.history()})
             elif self.path.startswith("/api/reviews/"):
                 self._json(self.ui.reviews.get(self.path.removeprefix("/api/reviews/")))
+            elif self.path == "/api/validation-status":
+                self._json(self.ui.measured_validation_status())
             elif self.path.startswith("/api/settings"):
                 self._json(self.ui.get_settings())
             elif self.path.startswith("/api/i18n"):
