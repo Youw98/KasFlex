@@ -185,7 +185,9 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
      "min": 1, "max": 12, "step": 1, "unit": "h"},
 
     {"path": "hub.buffer.capacity_kwh", "label": "Heat buffer", "kind": "number",
-     "min": 0, "max": 40000, "step": 500, "unit": "kWh"},
+     # 43 600 kWh is the sourced 5 ha default; 200 MWh also covers the 20 ha
+     # maximum demo site without making the browser form invalid on load.
+     "min": 0, "max": 200000, "step": 500, "unit": "kWh"},
     {"path": "hub.pv.peak_kw", "label": "PV peak power", "kind": "number",
      "min": 0, "max": 20000, "step": 100, "unit": "kWp"},
     {"path": "hub.crop.dli_target_mol_m2", "label": "Light target", "kind": "number",
