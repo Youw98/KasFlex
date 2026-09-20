@@ -153,7 +153,14 @@ async function runPlan({ silent = false } = {}) {
   try {
     // The request goes out first and runs while the grower answers, so the wait
     // sits behind the question rather than in front of it.
-    const pendingRun = api("/api/run", { overrides: overrides() });
+    let runOverrides = overrides();
+    if (runOverrides.data_source === "demo") {
+      const prepared = await api("/api/demo-prepare", { overrides: runOverrides });
+      state.settings.date = prepared.date;
+      LS.set("kasflex.grower.settings", state.settings);
+      runOverrides = { ...runOverrides, date: prepared.date, data_source: "demo" };
+    }
+    const pendingRun = api("/api/run", { overrides: runOverrides });
     pendingRun.catch(() => {});
 
     let answer = null;
@@ -1054,9 +1061,9 @@ async function loadSettings() {
   const data = $("data-settings");
   data.replaceChildren();
   const list = el("div", { className: "choice-list" });
-  for (const [value, label] of [["synthetic", t("settings.data.demo")], ["cache", t("settings.data.real")]]) {
+  for (const [value, label] of [["demo", t("settings.data.demo")], ["cache", t("settings.data.real")]]) {
     const input = el("input", { type: "radio", name: "data_source", value });
-    input.checked = (state.settings.data_source || "synthetic") === value;
+    input.checked = (state.settings.data_source || "demo") === value;
     input.addEventListener("change", () => {
       state.settings.data_source = value;
       LS.set("kasflex.grower.settings", state.settings);
@@ -1226,7 +1233,19 @@ function renderWelcome(body, actions) {
       onclick: () => { onboardingStep = 0; renderOnboarding(); } }),
     el("button", { textContent: t("onboard.welcome.load"), onclick: renderProfilePicker }),
     el("button", { className: "quiet", textContent: t("onboard.welcome.demo"),
-      onclick: () => { saveProfileLocally({ name: "Demo", settings: { data_source: "synthetic" } }); finishOnboarding(); } }));
+      onclick: async (event) => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        const previous = button.textContent;
+        button.textContent = t("onboard.welcome.demo.loading");
+        try {
+          const prepared = await api("/api/demo-prepare", { overrides: { ...overrides(), data_source: "demo" } });
+          state.settings = { ...state.settings, data_source: "demo", date: prepared.date };
+          saveProfileLocally({ name: "Demo", settings: { ...state.settings } });
+          finishOnboarding();
+        } catch (error) { showError(error); }
+        finally { button.disabled = false; button.textContent = previous; }
+      } }));
 }
 
 async function renderProfilePicker() {
