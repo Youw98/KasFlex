@@ -99,6 +99,12 @@ def test_experiment_writes_records_and_prints_the_table(tmp_path, capsys):
     assert out.exists()
 
 
+def test_run_accepts_cache_and_date_overrides(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit, match="Real data is not available for 2026-09-21"):
+        main(["run", "--data-source", "cache", "--date", "2026-09-21", "--quiet"])
+
+
 def test_cache_data_source_needs_fetched_data(tmp_path):
     """Cache mode exits clearly when no data has been downloaded yet."""
     config = Path(CONFIG).read_text().replace("data_source: synthetic", "data_source: cache")
