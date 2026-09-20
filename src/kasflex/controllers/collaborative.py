@@ -12,7 +12,6 @@ demo with no model account configured.
 from __future__ import annotations
 
 import dataclasses
-from dataclasses import dataclass
 from typing import Any
 
 from kasflex.controllers.base import PlanningContext
@@ -84,7 +83,7 @@ def _apply_blackout(plan: Plan, forbidden: tuple[int, ...]) -> Plan:
     return dataclasses.replace(plan, intervals=tuple(intervals))
 
 
-@dataclass
+@dataclasses.dataclass
 class CollaborativePlanner:
     """Optimise one real day while keeping the grower's structured choices visible."""
 
