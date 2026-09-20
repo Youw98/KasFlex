@@ -11,9 +11,9 @@
 KasFlex creates a 24-hour energy plan for a greenhouse, checks that plan against
 hard constraints, and lets a grower review, edit, approve, or reject it.
 
-> **Alpha research software.** The demo can use real historical Dutch electricity
-> prices and weather. Greenhouse climate, heat demand, crop response, and asset
-> behavior are still simulated and are not validated for operational control.
+> **Simulation only — alpha research software.** The demo can use real historical
+> Dutch electricity prices and weather. Greenhouse climate, heat demand, crop
+> response, and asset behavior are simulated and **not validated for operational use**.
 
 [**Download the latest release**](https://github.com/Youw98/KasFlex/releases/latest)
 · [Usage guide](docs/USAGE.md)
@@ -23,16 +23,21 @@ hard constraints, and lets a grower review, edit, approve, or reject it.
 
 ---
 
-## Try KasFlex in 30 seconds
+## Try the team demo
 
 1. Download the file for your operating system from
    [Releases](https://github.com/Youw98/KasFlex/releases).
-2. Start KasFlex.
-3. In the browser, click **Just show me a demo first**.
-4. Review the proposed plan and safety verdict.
+2. Start KasFlex. The browser opens the new daily-planning workspace.
+3. KasFlex prepares a real historical Dutch market/weather day and shows the
+   electricity-price and weather context first.
+4. Choose what matters to the grower: **Balanced**, **Lowest cost**, or
+   **Grid relief**, plus battery reserve and operating preferences.
+5. Click **Build tomorrow's plan**.
+6. Review the checked proposal, switch individual suggestions back to normal
+   control if desired, and approve the final revision.
 
-The demo prepares a real historical Dutch market/weather day on first use, caches
-it, and reuses it later.
+The prepared real-input day is cached with provenance and checksums. Later demo
+runs reuse it instead of silently substituting synthetic data.
 
 | Platform | Release file |
 |---|---|
@@ -73,7 +78,10 @@ kasflex ui
 real/synthetic inputs
         │
         ▼
-   AI / planner
+ grower priorities + limits
+        │
+        ▼
+ collaborative planner
         │
         ▼
  proposed 24h plan
@@ -82,7 +90,10 @@ real/synthetic inputs
  deterministic checker
         │
         ▼
-  human review/edit
+ human review / change
+        │
+        ▼
+ re-check + final plan
         │
         ▼
  simulated outcome
@@ -90,8 +101,9 @@ real/synthetic inputs
 
 In practice:
 
-- a planner proposes when to use lighting, battery, CHP, boiler, heat storage, and
-  other flexible assets;
+- the grower chooses the day's priority and operating preferences;
+- the collaborative planner proposes when to use lighting, battery, CHP, boiler,
+  heat storage, and other flexible assets;
 - a deterministic checker independently verifies limits;
 - a grower can inspect and change the plan;
 - every edit must be checked again;
@@ -143,10 +155,15 @@ KasFlex is a research testbed for that second question.
 
 ## Demo mode vs research-data mode
 
-### One-click demo
+### Team demo
 
-The grower-facing **Demo** button uses a public convenience mirror of ENTSO-E-derived
-Dutch day-ahead prices plus Open-Meteo historical forecast data.
+The main workspace prepares a real historical Dutch day automatically. It uses a
+public convenience mirror of ENTSO-E-derived Dutch day-ahead prices plus Open-Meteo
+historical forecast data.
+
+Before making a plan, the interface shows the actual input story: cheap/expensive
+hours, temperature range, daylight and grid limits. Grower priorities then become
+structured planner policy rather than decorative UI settings.
 
 The prepared demo day is cached with source metadata and checksums. Reopening the
 demo reuses the cached data instead of downloading it again.
@@ -177,7 +194,7 @@ Synthetic data still exists intentionally for:
 - controlled experiments;
 - reproducing scenarios without network dependencies.
 
-It is not what the normal one-click Demo button uses.
+It is not what the normal team-demo workspace uses.
 
 ---
 

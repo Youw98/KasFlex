@@ -11,12 +11,14 @@ test of the model, only in a test of the interface.
 from __future__ import annotations
 
 import json
+import re
 import threading
 import urllib.error
 import urllib.request
 
 import pytest
 
+from kasflex.resources import static_dir
 from kasflex.ui.server import ADJUSTABLE, ApiError, UiServer, serve
 
 CONFIG = "configs/scenario_westland_winter.yaml"
@@ -87,6 +89,32 @@ def test_run_returns_a_full_day(base_run):
     assert len(base_run["plan"]) == 24
     assert [row["hour"] for row in base_run["plan"]] == list(range(24))
     assert base_run["metrics"]["net_cost_eur"] > 0
+
+
+def test_day_context_explains_the_day_before_planning(ui):
+    context = ui.day_context({"data_source": "synthetic"})
+    assert len(context["price"]["series"]) == 24
+    assert len(context["weather"]["temperature_series"]) == 24
+    assert context["price"]["min_eur_kwh"] <= context["price"]["max_eur_kwh"]
+    assert context["grid"]["import_limit_kw"] > 0
+    assert "provenance" in context
+
+
+def test_collaborative_run_uses_grower_policy(ui):
+    result = ui.run(
+        {"planner": "collaborative"},
+        policy={
+            "priority": "grid",
+            "avoid_chp_night": True,
+            "battery_reserve_pct": 45,
+            "brief": "Keep the night quiet.",
+        },
+    )
+    assert result["planner"] == "collaborative"
+    assert result["policy"]["priority"] == "grid"
+    assert result["policy"]["avoid_chp_night"] is True
+    for hour in (22, 23, 0, 1, 2, 3, 4, 5):
+        assert result["plan"][hour]["chp_mode"] == "off"
 
 
 def test_plan_rows_carry_context_for_the_operator(base_run):
@@ -284,8 +312,34 @@ def _post(url: str, payload: dict) -> tuple[int, dict]:
         return exc.code, json.loads(exc.read())
 
 
+def test_team_demo_buttons_are_wired_and_do_not_link_to_legacy_ui():
+    html = (static_dir() / "demo.html").read_text(encoding="utf-8")
+    script = (static_dir() / "demo.js").read_text(encoding="utf-8")
+
+    button_ids = re.findall(r'<button[^>]*\bid="([^"]+)"', html)
+    assert button_ids
+    for button_id in button_ids:
+        assert f'$("{button_id}").addEventListener' in script, button_id
+
+    hrefs = set(re.findall(r'<a[^>]*href="([^"]+)"', html))
+    assert hrefs <= {"/", "#workspace"}
+    assert "Detailed report" not in html
+    assert "Uitgebreid rapport" not in html
+    assert "legacy-grower" not in html
+    assert "failed:" in script
+
+
+def test_stale_grower_url_serves_the_new_demo(live):
+    status, body = _get(live + "/grower")
+    assert status == 200
+    assert b"Plan the day" in body
+    assert b"Daily energy co-pilot" in body
+
+
 def test_the_page_and_its_assets_are_served(live):
-    for path, needle in (("/", b"KasFlex"), ("/grower.css", b"--kf-forest"),
+    for path, needle in (("/", b"Plan the day"), ("/demo.css", b"--green"),
+                         ("/demo.js", b"/api/day-context"),
+                         ("/grower", b"KasFlex"), ("/grower.css", b"--kf-forest"),
                          ("/grower.js", b"api("), ("/mark.svg", b"<svg")):
         status, body = _get(live + path)
         assert status == 200, path
@@ -309,6 +363,15 @@ def test_api_settings_over_http(live):
     status, body = _get(live + "/api/settings")
     assert status == 200
     assert len(json.loads(body)["fields"]) == len(ADJUSTABLE)
+
+
+def test_day_context_over_http(live):
+    status, payload = _post(
+        live + "/api/day-context",
+        {"overrides": {"data_source": "synthetic"}},
+    )
+    assert status == 200
+    assert len(payload["price"]["series"]) == 24
 
 
 def test_api_run_over_http(live):

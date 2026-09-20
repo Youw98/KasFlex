@@ -100,7 +100,7 @@ function buildSettings(payload) {
       input = document.createElement("select");
       for (const c of f.choices) {
         const o = document.createElement("option");
-        o.value = c; o.textContent = ({synthetic:'Demo data — explore safely',cache:'Downloaded real data', 'rule-based':'Standard planner (recommended)', learned:'Experimental demand planner', naive:'Simple planner',llm:'Language model — setup required',mpc:'MPC — not available yet'})[c] || c;
+        o.value = c; o.textContent = ({demo:'Real-input demo',synthetic:'Synthetic test data',cache:'Downloaded real data', collaborative:'KasFlex collaborative planner', 'rule-based':'Standard baseline', learned:'Research demand planner', naive:'Simple planner',llm:'Language model — setup required',mpc:'MPC — not available yet'})[c] || c;
         if(c==='mpc' || c==='llm')o.disabled=true;
         input.appendChild(o);
       }
@@ -221,7 +221,7 @@ function renderOutcome(r) {
   $("export-plan").disabled = false;
   renderSnapshot(r);
   $("revision-label").textContent = `Saved plan ${r.run_id.slice(0,8)} · revision ${r.revision}`;
-  $('data-basis').textContent = r.data_source === 'cache' ? (r.actuals_available ? 'Downloaded real inputs · evaluated with weather reanalysis · greenhouse outcomes remain simulated.' : 'Estimated cost · published electricity prices and forecast weather · observed outcomes are not available yet.') : 'Demo result · generated prices and weather. This is not a forecast of your actual bill.';
+  $('data-basis').textContent = (r.data_source === 'cache' || r.data_source === 'demo') ? (r.actuals_available ? 'Real market/weather inputs · evaluated with separate realised weather · greenhouse outcomes remain simulated.' : 'Real market prices and forecast weather · realised weather is not available yet · greenhouse outcomes remain simulated.') : 'Synthetic test inputs · greenhouse outcomes are simulated.';
   const m = r.metrics;
   renderCostForecast(r.cost_forecast);
   $("stat-cost").textContent = eur(m.net_cost_eur);
@@ -1024,7 +1024,7 @@ async function loadReviewHistory() {
       const r=entry.result,card=document.createElement('article');card.className='history-item';
       const detail=document.createElement('div');
       const title=document.createElement('h3');title.textContent=`${r.date} · ${r.planner}`;
-      const info=document.createElement('p');info.textContent=`${r.data_source==='cache'?'Downloaded data':'Demo'} · revision ${r.revision} · ${entry.decision?entry.decision.decision:'Awaiting review'}`;
+      const info=document.createElement('p');info.textContent=`${(r.data_source==='cache'||r.data_source==='demo')?'Real-input data':'Synthetic test'} · revision ${r.revision} · ${entry.decision?entry.decision.decision:'Awaiting review'}`;
       const money=document.createElement('strong');money.textContent=eur(r.metrics.net_cost_eur);
       const open=document.createElement('button');open.type='button';open.textContent='Open saved plan';
       open.addEventListener('click',async()=>{

@@ -239,7 +239,7 @@ class PlanContext:
         language = i18n.normalise(self.language)
         dutch = language == "nl"
         cost = self.metrics.get("net_cost_eur")
-        real = self.data_source == "cache"
+        real = self.data_source in {"cache", "demo"}
 
         lines = [
             f"{'Geplande dag' if dutch else 'Date planned'}: {self.date}",

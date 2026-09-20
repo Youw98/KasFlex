@@ -65,13 +65,26 @@ class ScheduleScore:
     dli_mol_m2: float
     violations: tuple[str, ...] = ()
     margin_violations: int = 0
+    peak_import_kw: float = 0.0
+    buffer_discharge_kwh: float = 0.0
 
-    @property
-    def objective(self) -> tuple[int, float]:
-        """Lexicographic: fewer margin violations first, then lower cost."""
+    def objective(
+        self,
+        mode: str = "balanced",
+        *,
+        prefer_stored_heat: bool = False,
+    ) -> tuple[float, ...]:
+        """Return the optimisation objective for a grower-selected priority."""
         if not self.feasible:
-            return (10**9, INFEASIBLE)
-        return (self.margin_violations, self.cost_eur)
+            return (10**9, INFEASIBLE, INFEASIBLE)
+        stored = -self.buffer_discharge_kwh if prefer_stored_heat else 0.0
+        if mode == "grid":
+            return (self.peak_import_kw, self.margin_violations, self.cost_eur, stored)
+        if mode == "cost":
+            return (self.margin_violations, self.cost_eur, self.peak_import_kw, stored)
+        # Balanced: cost still matters, but a very peaky plan pays a visible penalty.
+        balanced = self.cost_eur + 0.06 * self.peak_import_kw
+        return (self.margin_violations, balanced, self.cost_eur, self.peak_import_kw, stored)
 
 
 def score_plan(
@@ -107,6 +120,8 @@ def score_plan(
     violations: list[str] = []
     run_state: list[bool] = []
     margin_hits = 0
+    peak_import = 0.0
+    buffer_discharge = 0.0
     b, buf = hub.battery, hub.buffer
     soc_span = (b.soc_max_kwh - b.soc_min_kwh) * margin / 2.0
     buf_span = (buf.level_max_kwh - buf.level_min_kwh) * margin / 2.0
@@ -115,6 +130,8 @@ def score_plan(
         interval, state = dispatch_hour(intent, hub, cond, state)
         total += interval.energy_cost_eur
         dli += interval.dli_contribution_mol_m2
+        peak_import = max(peak_import, interval.grid_import_kw)
+        buffer_discharge += interval.buffer_discharge_kw
         run_state.append(interval.chp_running)
 
         import_limit, export_limit = hub.contract.limits_at(intent.hour)
@@ -157,6 +174,8 @@ def score_plan(
         dli_mol_m2=dli,
         violations=tuple(violations),
         margin_violations=margin_hits,
+        peak_import_kw=peak_import,
+        buffer_discharge_kwh=buffer_discharge,
     )
 
 
@@ -257,6 +276,9 @@ class OptimizingScheduler:
     max_evaluations: int = 20_000
     battery_levels: tuple[float, ...] = (0.0, 0.5, 1.0)
     safety_margin: float = 0.45
+    objective_mode: str = "balanced"
+    forbidden_chp_hours: tuple[int, ...] = ()
+    prefer_stored_heat: bool = False
     evaluations: int = field(default=0, init=False)
     margin_used: float = field(default=0.0, init=False)
     sweeps_used: int = field(default=0, init=False)
@@ -291,7 +313,15 @@ class OptimizingScheduler:
                         self.final_cost_eur = best_score.cost_eur
                         return best
                     score = self._score(candidate, hub, conditions, self.margin_used)
-                    if _better(score.objective, best_score.objective):
+                    if _better(
+                        score.objective(
+                            self.objective_mode,
+                            prefer_stored_heat=self.prefer_stored_heat,
+                        ),
+                        best_score.objective(
+                            self.objective_mode, prefer_stored_heat=self.prefer_stored_heat
+                        ),
+                    ):
                         best, best_score = candidate, score
                         improved = True
             if not improved:
@@ -314,13 +344,18 @@ class OptimizingScheduler:
         """Every single-field alternative for one hour. One field at a time keeps
         each move cheap to evaluate and makes the search easy to reason about."""
         current = plan.intervals[hour]
+        blocked_chp = hour in set(self.forbidden_chp_hours)
         for level in LIGHT_LEVELS:
             if abs(level - current.lighting_level) > 1e-9:
                 yield _with(plan, hour, lighting_level=level)
         for source in HEAT_SOURCES:
+            if blocked_chp and source == "chp":
+                continue
             if source != current.heat_source:
                 yield _with(plan, hour, heat_source=source)
         for mode in CHP_MODES:
+            if blocked_chp and mode != "off":
+                continue
             if mode != current.chp_mode:
                 yield _with(plan, hour, chp_mode=mode)
         for action in ("idle", "charge", "discharge"):
@@ -359,7 +394,7 @@ def _explain(plan: Plan, conditions: Sequence[HourlyConditions], margin: float) 
     return dataclasses.replace(plan, intervals=tuple(lines))
 
 
-def _better(candidate: tuple[int, float], incumbent: tuple[int, float]) -> bool:
+def _better(candidate: tuple[float, ...], incumbent: tuple[float, ...]) -> bool:
     """Strict lexicographic improvement, with a tolerance on the cost component."""
     if candidate[0] != incumbent[0]:
         return candidate[0] < incumbent[0]

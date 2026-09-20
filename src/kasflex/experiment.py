@@ -73,6 +73,10 @@ def build_planner(name: str, config: ScenarioConfig) -> Planner:
     """
     if name == "rule-based":
         return RuleBasedPlanner()
+    if name == "collaborative":
+        from kasflex.controllers.collaborative import CollaborativePlanner  # noqa: PLC0415
+
+        return CollaborativePlanner()
     if name == "naive":
         return NaivePlanner()
     if name == "mpc":
@@ -116,7 +120,7 @@ def build_planner(name: str, config: ScenarioConfig) -> Planner:
             traces=TraceStore(resolve_output(config.trace_path)),
         )
     raise ValueError(
-        f"unknown planner {name!r}; available: rule-based, naive, learned, mpc, llm"
+        f"unknown planner {name!r}; available: collaborative, rule-based, naive, learned, mpc, llm"
     )
 
 

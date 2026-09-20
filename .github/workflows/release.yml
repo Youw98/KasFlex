@@ -77,7 +77,7 @@ jobs:
           done
           # Exercise both current front ends and the settings API.
           # "/" is the grower UI; "/advanced" is the researcher UI.
-          for path in / /grower.css /grower.js /advanced /design.css /app.js /api/settings; do
+          for path in / /demo.css /demo.js /grower /grower.css /grower.js /advanced /design.css /app.js /api/settings; do
             code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8765$path")
             echo "  $path -> $code"
             [ "$code" = "200" ] || { echo "FAILED: $path returned $code"; exit 1; }

@@ -119,6 +119,7 @@ def run_scenario(
     brief: str = "",
     seed: int = 0,
     provenance: dict[str, Any] | None = None,
+    planning_metadata: dict[str, Any] | None = None,
 ) -> RunResult:
     """Plan, verify, approve, execute and score one day.
 
@@ -185,6 +186,7 @@ def run_scenario(
             previous_verdict=verdict,
             previous_plan=plan,
             revision=attempt,
+            metadata=dict(planning_metadata or {}),
         )
         try:
             candidate = planner.plan(context)
@@ -217,7 +219,13 @@ def run_scenario(
         # Every attempt was rejected: hand control to the baseline (R18).
         fell_back = True
         plan = baseline.plan(
-            PlanningContext(date=date, forecast=forecast_conditions, hub=hub, brief=brief)
+            PlanningContext(
+                date=date,
+                forecast=forecast_conditions,
+                hub=hub,
+                brief=brief,
+                metadata=dict(planning_metadata or {}),
+            )
         )
         verdict = checker.verify(plan, forecast_conditions, forecast_outcome.projection())
         log("fallback_to_baseline", {"after_revisions": revisions_used,
@@ -239,7 +247,13 @@ def run_scenario(
         # A rejected plan is never executed. The day falls back to the baseline,
         # which is what an operator would actually do.
         plan = baseline.plan(
-            PlanningContext(date=date, forecast=forecast_conditions, hub=hub, brief=brief)
+            PlanningContext(
+                date=date,
+                forecast=forecast_conditions,
+                hub=hub,
+                brief=brief,
+                metadata=dict(planning_metadata or {}),
+            )
         )
         fell_back = True
         log("human_rejected_using_baseline", {})

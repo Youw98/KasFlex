@@ -119,7 +119,7 @@ CODEBOOK: dict[str, dict[str, str]] = {
     },
     "run.data_source": {
         "type": "enum",
-        "description": "synthetic | cache",
+        "description": "synthetic | demo | cache",
         "note": "synthetic runs use generated prices and weather and must not be "
                 "reported as findings about real operation.",
     },

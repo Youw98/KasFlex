@@ -3,7 +3,7 @@
   "@type": "SoftwareSourceCode",
   "name": "KasFlex",
   "description": "Verified agentic energy management for greenhouse horticulture under electrical constraints. An LLM planner proposes hourly energy intent, a deterministic checker verifies it against electrical, asset and crop limits, and a human approves it; the day is then simulated and compared against conventional control.",
-  "version": "0.1.3-alpha",
+  "version": "0.1.3-alpha.2",
   "license": "https://spdx.org/licenses/Apache-2.0",
   "codeRepository": "https://github.com/Youw98/KasFlex",
   "programmingLanguage": "Python",
