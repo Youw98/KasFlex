@@ -474,6 +474,26 @@ def test_a_malformed_body_returns_400(live):
         assert exc.code == 400
 
 
+def test_every_numeric_default_sits_inside_its_own_adjustable_range(ui):
+    """A shipped default outside its own range silently blocks the browser form."""
+    offenders = []
+    for field in ui.get_settings()["fields"]:
+        if field["kind"] not in {"number", "int"}:
+            continue
+        value = field.get("value")
+        if not isinstance(value, (int, float)):
+            continue
+        low, high = field.get("min"), field.get("max")
+        if low is not None and value < low:
+            offenders.append(f"{field['path']}={value} below min {low}")
+        if high is not None and value > high:
+            offenders.append(f"{field['path']}={value} above max {high}")
+    assert not offenders, (
+        "these fields ship a default outside their own adjustable range and can "
+        "silently block planning in the browser: " + ", ".join(offenders)
+    )
+
+
 # --- geocoding endpoint (address <-> coordinates) ------------------------
 
 
