@@ -24,7 +24,7 @@ h1 span{color:var(--green2)}.hero-copy{font-size:20px;color:#4d5d55;max-width:72
 .hero-date span,.hero-date small{display:block;color:#cfe1d7}.hero-date strong{display:block;font-size:30px;margin:2px 0 6px;letter-spacing:-.025em}
 .section{margin-bottom:64px}.section-heading{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:22px}
 .section-heading h2{font-size:31px;letter-spacing:-.035em;margin:0}.section-heading p:not(.eyebrow){color:var(--muted);margin:5px 0 0}
-.context-grid,.result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.metric,.result-metric{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+.context-grid,.result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.result-grid{grid-template-columns:repeat(3,1fr)}.metric,.result-metric{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
 padding:20px 21px;min-height:128px}.metric span,.result-metric span{display:block;font-size:12px;font-weight:750;color:var(--muted);text-transform:uppercase;letter-spacing:.055em}
 .metric strong,.result-metric strong{display:block;font-size:27px;margin:12px 0 3px;letter-spacing:-.035em}.metric small,.result-metric small{color:var(--muted)}
 .chart-card,.proposal-card,.timeline-card,.detail-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r2);padding:25px;margin-top:14px}
