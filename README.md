@@ -31,29 +31,77 @@ It combines a planner, deterministic safety verification, greenhouse simulation,
 
 The main scientific gap is still greenhouse-model validation against measured operation. See [`docs/VALIDATION.md`](docs/VALIDATION.md).
 
-## Try it
+## Start here
+
+There are four normal ways to use KasFlex.
+
+### 1. Download the app — easiest
+
+Open the [latest release](https://github.com/Youw98/KasFlex/releases/latest) and download:
+
+- **Windows:** `KasFlex-windows.exe`
+- **macOS:** `KasFlex-macos`
+- **Linux:** `KasFlex-linux`
+
+Windows: double-click the `.exe`.
+
+On macOS or Linux, make the download executable once:
 
 ```bash
+chmod +x KasFlex-macos
+# or: chmod +x KasFlex-linux
+```
+
+Then run it. KasFlex opens its browser interface locally.
+
+### 2. Run from source
+
+```bash
+git clone https://github.com/Youw98/KasFlex.git
+cd KasFlex
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 kasflex ui
 ```
 
-On Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
+git clone https://github.com/Youw98/KasFlex.git
+cd KasFlex
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 kasflex ui
 ```
 
-Then choose **“Just show me a demo first.”**
+### 3. Try the one-click real-input demo
 
-The demo prepares a historical Dutch replay using real day-ahead electricity prices and archived weather forecast data. Separate realised weather is used for evaluation when available. The series are cached locally with provenance and checksums, so the prepared demo can be replayed offline.
+In the browser choose **“Just show me a demo first.”**
 
-The word **demo** still matters: asset configuration and greenhouse response remain simulated.
+The first demo run prepares a complete Dutch historical day with real Dutch
+day-ahead prices, archived forecast weather, and separate realised weather when
+available. The prepared day is cached with provenance and checksums, and later demo
+runs reuse it instead of downloading it again.
+
+The public price mirror is a convenience source for the demo. For research runs,
+use the direct ENTSO-E workflow below.
+
+### 4. Run a specific real-data day
+
+```bash
+export ENTSOE_API_KEY=...
+kasflex fetch --date 2026-09-21
+kasflex run --data-source cache --date 2026-09-21
+```
+
+The fetch and run dates must match. After the fetch succeeds, the run itself is
+offline-safe.
+
+> Real electricity and weather inputs do not make greenhouse outputs validated.
+> Greenhouse climate, heat demand and crop outcomes remain simulated until measured
+> validation is complete.
 
 ## How it works
 
@@ -148,33 +196,15 @@ The manifest records source, terms/licence, retrieval date, schema, row count an
 
 Synthetic data remains available for tests and deliberate synthetic experiments. It is simply no longer what the normal Demo button means.
 
-## Normal real-data operation
-
-Set an ENTSO-E API key:
-
-```bash
-export ENTSOE_API_KEY=...
-```
-
-Fetch a day:
+## Real-data CLI reminder
 
 ```bash
 kasflex fetch --date 2026-09-21
+kasflex run --data-source cache --date 2026-09-21
 ```
 
-Run from the cache:
-
-```bash
-kasflex run --config configs/scenario_westland_winter.yaml
-```
-
-Or run the daily job:
-
-```bash
-kasflex daily
-```
-
-KasFlex is cache-first. Once inputs have been acquired, planning does not need a live service.
+See [docs/USAGE.md](docs/USAGE.md) for installation, offline replay, automated
+operation, validation, GreenLight and researcher workflows.
 
 ## Greenhouse physics
 
