@@ -65,5 +65,6 @@
   "consent.copy": "The demo works fully without research consent. Identifiable interaction data is recorded only when you explicitly choose to participate.",
   "consent.participant": "Participant ID",
   "consent.anonymous": "Continue anonymously",
-  "consent.study": "Consent & continue"
+  "consent.study": "Consent & continue",
+  "decision.crop": "Simulated crop outcome"
 }
