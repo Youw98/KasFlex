@@ -126,6 +126,8 @@ function renderResult(result) {
   const saving=normal?Number(normal.saving_eur||0):0;
   $("result-cost").textContent=euro(result.metrics?.net_cost_eur);
   $("result-saving").textContent=normal ? (saving>=0 ? `${euro(saving)} below normal plan` : `${euro(-saving)} above normal plan`) : "No baseline comparison";
+  $("result-grid-energy").textContent=(Number(result.metrics?.grid_import_kwh||0)/1000).toFixed(1)+" MWh";
+  $("result-gas").textContent=(Number(result.metrics?.gas_input_kwh||0)/1000).toFixed(1)+" MWh";
   $("result-peak").textContent=(Number(result.metrics?.peak_import_kw||0)/1000).toFixed(2)+" MW";
   $("result-band").textContent=Math.round(Number(result.metrics?.temperature_band_hours||0))+"/24 h";
   $("result-actions").textContent=String((result.actions||[]).length);
