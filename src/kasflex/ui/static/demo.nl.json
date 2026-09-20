@@ -65,5 +65,6 @@
   "consent.copy": "De demo werkt volledig zonder onderzoeksdeelname. Herleidbare interactiedata wordt alleen opgeslagen als u daar expliciet voor kiest.",
   "consent.participant": "Deelnemer-ID",
   "consent.anonymous": "Anoniem doorgaan",
-  "consent.study": "Toestemming geven & doorgaan"
+  "consent.study": "Toestemming geven & doorgaan",
+  "decision.crop": "Gesimuleerde gewasopbrengst"
 }
