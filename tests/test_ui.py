@@ -383,6 +383,9 @@ def test_team_demo_buttons_are_wired_and_do_not_link_to_legacy_ui():
     assert "Uitgebreid rapport" not in html
     assert "legacy-grower" not in html
     assert "/api/deliberate" in script
+    assert 'id="checker-enabled"' in html
+    assert '"checker.enabled":$("checker-enabled").checked' in script
+    assert "/api/validation-status" in script
     assert "failed:" in script
 
 
@@ -416,6 +419,16 @@ def test_the_page_carries_the_permanent_simulation_notice(live):
 
 def test_favicon_is_answered(live):
     assert _get(live + "/favicon.ico")[0] == 200
+
+
+def test_validation_status_over_http(live):
+    status, body = _get(live + "/api/validation-status")
+    assert status == 200
+    payload = json.loads(body)
+    assert payload["status"] in {"pending", "measured"}
+    assert "doi" in payload
+    if payload["status"] == "pending":
+        assert payload["validated"] is False
 
 
 def test_api_settings_over_http(live):
