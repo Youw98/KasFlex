@@ -103,6 +103,10 @@ def cmd_run(args: argparse.Namespace) -> int:
         config = ScenarioConfig(**{**config.__dict__, "planner": args.planner})
     if args.greenhouse:
         config = ScenarioConfig(**{**config.__dict__, "greenhouse": args.greenhouse})
+    if args.data_source:
+        config = ScenarioConfig(**{**config.__dict__, "data_source": args.data_source})
+    if args.date:
+        config = ScenarioConfig(**{**config.__dict__, "date": args.date})
     if args.no_checker:
         config = ScenarioConfig(
             **{**config.__dict__, "checker": CheckerConfig(**{**config.checker.__dict__,
@@ -422,6 +426,9 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--planner",
                        choices=["rule-based", "naive", "learned", "llm", "mpc"])
     p_run.add_argument("--greenhouse", choices=["surrogate", "greenlight"])
+    p_run.add_argument("--data-source", choices=["synthetic", "cache"],
+                       help="override the scenario input mode for this run")
+    p_run.add_argument("--date", help="override the scenario date (YYYY-MM-DD)")
     p_run.add_argument("--no-checker", action="store_true",
                        help="run unverified (the 'checker disabled' arm)")
     p_run.add_argument("--json-out")

@@ -107,6 +107,20 @@ DATASETS: dict[str, DatasetRef] = {
             ),
         ),
         DatasetRef(
+            key="openmeteo_archive",
+            title="Open-Meteo historical weather archive (realised weather)",
+            kind="measurement",
+            source="https://open-meteo.com/en/docs/historical-weather-api",
+            licence="CC-BY 4.0 (non-commercial tier free)",
+            phase="mvp",
+            access="HTTP API, no key required for the free tier",
+            notes=(
+                "Realised weather used for post-plan evaluation when available. "
+                "Never shown to the planner. KNMI remains an independent Dutch "
+                "measurement source for validation and cross-checking."
+            ),
+        ),
+        DatasetRef(
             key="ttf_gas",
             title="TTF natural gas front-month settlement prices",
             kind="price",

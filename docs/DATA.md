@@ -13,27 +13,26 @@ its licence and how it was obtained. The registry is machine-readable
 | `entsoe_da` | ENTSO-E day-ahead electricity prices, Dutch bidding zone | price | mvp | ENTSO-E Transparency Platform terms; free with a registered API key | https://transparency.entsoe.eu/ |
 | `knmi_hourly` | KNMI hourly measured weather (radiation, temperature, humidity, wind) | measurement | mvp | KNMI open data | https://www.knmi.nl/nederland-nu/klimatologie/uurgegevens |
 | `openmeteo_hist_forecast` | Open-Meteo historical forecast archive | forecast | mvp | CC-BY 4.0 (non-commercial tier free) | https://open-meteo.com/en/docs/historical-forecast-api |
+| `openmeteo_archive` | Open-Meteo historical weather archive (realised weather) | measurement | mvp | CC-BY 4.0 (non-commercial tier free) | https://open-meteo.com/en/docs/historical-weather-api |
 | `ttf_gas` | TTF natural gas front-month settlement prices | price | mvp | Check redistribution terms before publishing derived series | https://www.theice.com/products/27996665/Dutch-TTF-Gas-Futures |
 | `netbeheer_congestion` | Netbeheer Nederland capacity map (regional congestion status) | grid | phase2 | Check terms; used here only to parameterise scenarios | https://capaciteitskaart.netbeheernederland.nl/ |
 | `tennet_imbalance` | TenneT imbalance and balancing prices | price | optional | TenneT developer portal terms | https://developer.tennet.eu/ |
 
 ## The rule that matters most
 
-**D7 (KNMI measured) and D8 (Open-Meteo archived forecast) are two requirements,
-not alternatives.**
+**Forecast and realised weather are different datasets and are never interchangeable.**
 
-The planner sees the forecast. Results are evaluated against what actually
-happened. Confusing the two invalidates every result — a planner scored against the
-weather it was given is an oracle, and its performance means nothing. The separation
-is structural in KasFlex rather than conventional: `PlanningContext` carries only
-forecast series, so a planner cannot reach the actuals even by accident. See
-[DECISIONS.md](DECISIONS.md) ADR-0005.
+The planner sees forecast information available at planning time. Post-plan
+evaluation can use realised weather. The automated pipeline currently obtains
+realised weather from the Open-Meteo historical weather archive; KNMI remains an
+independent Dutch measurement source for validation and cross-checking.
 
-The archived forecast (D8) does **not** reach back to the 2019–2020 AGC period.
-That is the reason for the two-period rule: validate on 2019–2020 where AGC
-measurements exist, run scenarios on 2022 onwards where volatility, congestion and
-archived forecasts coexist. **Verify Open-Meteo's actual coverage before fixing
-scenario dates.**
+This separation is structural: planner context exposes forecast series, not realised
+weather. See [DECISIONS.md](DECISIONS.md) ADR-0005.
+
+The Open-Meteo historical forecast archive does not cover the 2019–2020 AGC
+validation period. KasFlex therefore keeps measured-model validation and modern
+market/forecast scenarios as separate evidence tracks.
 
 ## Automated acquisition
 
