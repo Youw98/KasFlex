@@ -1385,7 +1385,8 @@ class _Handler(BaseHTTPRequestHandler):
     #: from it. A grower who has been told "just open KasFlex" must not land in a
     #: screen built for someone comparing planners.
     _PAGES = {"": "demo.html", "/": "demo.html",
-              "/grower": "grower.html",
+              "/grower": "demo.html",
+              "/legacy-grower": "grower.html",
               "/advanced": "index.html", "/research": "index.html",
               "/setup": "setup.html"}
 
