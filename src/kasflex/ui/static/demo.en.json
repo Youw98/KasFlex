@@ -66,5 +66,9 @@
   "consent.participant": "Participant ID",
   "consent.anonymous": "Continue anonymously",
   "consent.study": "Consent & continue",
-  "decision.crop": "Simulated crop outcome"
+  "decision.crop": "Simulated crop outcome",
+  "checker.toggle": "Independent safety check",
+  "checker.toggle.note": "Keep this on for the grower plan. Turn it off only to demonstrate what the checker prevents.",
+  "validation.pending": "Model validation pending",
+  "validation.ready": "Measured validation available"
 }
