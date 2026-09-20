@@ -12,7 +12,6 @@ demo with no model account configured.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Any
 
 from kasflex.controllers.base import PlanningContext
 from kasflex.controllers.rule_based import RuleBasedPlanner
@@ -23,7 +22,7 @@ from kasflex.intent import Plan
 NIGHT_HOURS = (22, 23, 0, 1, 2, 3, 4, 5)
 
 
-def _hours(raw: Any) -> tuple[int, ...]:
+def _hours(raw: object) -> tuple[int, ...]:
     if not isinstance(raw, (list, tuple, set)):
         return ()
     out: list[int] = []
@@ -37,7 +36,7 @@ def _hours(raw: Any) -> tuple[int, ...]:
     return tuple(sorted(out))
 
 
-def _policy(context: PlanningContext) -> dict[str, Any]:
+def _policy(context: PlanningContext) -> dict[str, object]:
     raw = context.metadata.get("policy", {}) if context.metadata else {}
     if not isinstance(raw, dict):
         raw = {}
@@ -74,7 +73,7 @@ def _apply_blackout(plan: Plan, forbidden: tuple[int, ...]) -> Plan:
         if iv.hour not in blocked:
             intervals.append(iv)
             continue
-        changes: dict[str, Any] = {"chp_mode": "off"}
+        changes: dict[str, object] = {"chp_mode": "off"}
         if iv.heat_source == "chp":
             changes["heat_source"] = "boiler"
         if iv.co2_source == "chp":
@@ -88,7 +87,7 @@ class CollaborativePlanner:
     """Optimise one real day while keeping the grower's structured choices visible."""
 
     name: str = "collaborative"
-    last_policy: dict[str, Any] = field(default_factory=dict, init=False)
+    last_policy: dict[str, object] = field(default_factory=dict, init=False)
     last_diagnostics: dict[str, float | str] = field(default_factory=dict, init=False)
 
     def plan(self, context: PlanningContext) -> Plan:
