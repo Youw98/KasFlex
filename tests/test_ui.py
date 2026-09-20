@@ -382,19 +382,22 @@ def test_team_demo_buttons_are_wired_and_do_not_link_to_legacy_ui():
     assert "Detailed report" not in html
     assert "Uitgebreid rapport" not in html
     assert "legacy-grower" not in html
+    assert "/api/deliberate" in script
     assert "failed:" in script
 
 
 def test_stale_grower_url_serves_the_new_demo(live):
     status, body = _get(live + "/grower")
     assert status == 200
-    assert b"Plan the day" in body
-    assert b"Daily energy co-pilot" in body
+    assert b"Make tomorrow" in body
+    assert b"Grower energy co-pilot" in body
 
 
 def test_the_page_and_its_assets_are_served(live):
-    for path, needle in (("/", b"Plan the day"), ("/demo.css", b"--green"),
-                         ("/demo.js", b"/api/day-context"),
+    for path, needle in (("/", b"Make tomorrow"), ("/demo.css", b"--green"),
+                         ("/demo.js", b"/api/deliberate"),
+                         ("/demo.en.json", b"protects the crop"),
+                         ("/demo.nl.json", b"beschermt het gewas"),
                          ("/grower", b"KasFlex"), ("/grower.css", b"--kf-forest"),
                          ("/grower.js", b"api("), ("/mark.svg", b"<svg")):
         status, body = _get(live + path)
