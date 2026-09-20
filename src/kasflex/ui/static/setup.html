@@ -104,6 +104,50 @@
   </section>
 
   <section class="card">
+    <h2 style="margin-bottom:6px">Experiment batch</h2>
+    <p class="muted small" style="margin-bottom:14px">
+      Run a reproducible matrix without editing code. The batch uses the current
+      settings above; save the setup locally if you want to reuse it later.
+    </p>
+    <div class="setting">
+      <div><div class="label">Repetitions</div><div class="help">1–30 runs per condition.</div></div>
+      <input id="experiment-days" type="number" min="1" max="30" value="3">
+    </div>
+    <div class="setting">
+      <div><div class="label">Planners</div><div class="help">Choose one or more.</div></div>
+      <div class="stack">
+        <label><input type="checkbox" class="experiment-planner" value="collaborative" checked> collaborative</label>
+        <label><input type="checkbox" class="experiment-planner" value="rule-based" checked> rule-based</label>
+        <label><input type="checkbox" class="experiment-planner" value="learned"> learned</label>
+        <label><input type="checkbox" class="experiment-planner" value="naive"> naive</label>
+        <label><input type="checkbox" class="experiment-planner" value="llm"> llm</label>
+      </div>
+    </div>
+    <div class="setting">
+      <div><div class="label">Conditions</div><div class="help">Verification and feedback are separate experimental factors.</div></div>
+      <div class="stack">
+        <label><input id="experiment-verified" type="checkbox" checked> checker enabled</label>
+        <label><input id="experiment-unverified" type="checkbox"> checker disabled</label>
+        <label><input id="experiment-feedback" type="checkbox" checked> feedback/explanation enabled</label>
+      </div>
+    </div>
+    <div class="setting">
+      <div><div class="label">Named setup</div><div class="help">Saved in this browser only.</div></div>
+      <div class="button-row">
+        <input id="experiment-name" type="text" placeholder="workshop-default">
+        <button id="save-experiment" type="button">Save</button>
+        <select id="experiment-presets"></select>
+        <button id="load-experiment" type="button">Load</button>
+      </div>
+    </div>
+    <div class="button-row" style="margin-top:14px">
+      <button id="run-experiment" class="primary" type="button">Run experiment</button>
+      <button id="download-experiment" type="button" disabled>Download summary CSV</button>
+    </div>
+    <div id="experiment-result" class="stack" style="margin-top:16px"></div>
+  </section>
+
+  <section class="card">
     <h2 style="margin-bottom:14px">Export</h2>
     <div class="button-row">
       <a href="/api/export/fair" download="kasflex-study.json"><button type="button">Research bundle (JSON-LD)</button></a>
