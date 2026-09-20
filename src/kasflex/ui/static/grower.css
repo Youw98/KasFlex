@@ -481,3 +481,13 @@ details.more summary { cursor: pointer; font-weight: 700; color: var(--brand-tex
   body { background: #fff; }
   .card { box-shadow: none; break-inside: avoid; }
 }
+
+/* Compact variant of choice-list, for the address-or-coordinates picker. */
+.choice-list.compact { gap: 8px; grid-template-columns: 1fr 1fr; }
+.choice-list.compact .choice-item { padding: 10px 12px; }
+.choice-list.compact .choice-item input { width: 20px; height: 20px; }
+.choice-list.compact .title { font-size: 16px; }
+.choice-list.compact .desc { font-size: 14px; }
+@media (max-width: 640px) {
+  .choice-list.compact { grid-template-columns: 1fr; }
+}

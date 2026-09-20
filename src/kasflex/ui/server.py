@@ -880,6 +880,36 @@ class UiServer:
         return check_provider(provider, model,
                               base_url=str(payload.get("base_url") or "") or None)
 
+    def geocode(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a grower's typed address to latitude/longitude.
+
+        Kept as a thin wrapper so the endpoint is discoverable next to the other
+        onboarding calls, and so the network transport is injectable. Tests
+        monkeypatch :mod:`kasflex.data.geocode` -- there is no dependency on the
+        UI to reach the real Open-Meteo endpoint.
+        """
+        from kasflex.data.geocode import GeocodingError, geocode  # noqa: PLC0415
+
+        query = str(payload.get("address") or payload.get("query") or "").strip()
+        if not query:
+            raise ApiError("Enter a place name or address to look up.")
+        # Prefer the interface language when the client hasn't passed one, so the
+        # resolved place name reads back in the grower's own language.
+        language = str(payload.get("language") or self.base.language or "en")
+        try:
+            place = geocode(query, language=language)
+        except GeocodingError as exc:
+            # 404 is right for "no such place"; the message is safe to display.
+            raise ApiError(str(exc), status=404) from exc
+        return {
+            "latitude": round(place.latitude, 4),
+            "longitude": round(place.longitude, 4),
+            "name": place.name,
+            "country": place.country,
+            "admin": place.admin,
+            "query": query,
+        }
+
     # -- language -----------------------------------------------------------
 
     def translations(self, language: str) -> dict[str, Any]:
@@ -1351,6 +1381,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(self.ui.find_compromise(body))
             elif self.path == "/api/models/test":
                 self._json(self.ui.test_model(body))
+            elif self.path == "/api/geocode":
+                self._json(self.ui.geocode(body))
             elif self.path == "/api/consent":
                 with self.ui._lock:
                     self._json(self.ui.grant_consent(body))

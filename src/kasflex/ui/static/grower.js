@@ -1297,18 +1297,129 @@ function stepSite(body, actions) {
   const name = textField("site-name-in", t("onboard.site.name"), t("onboard.site.name.hint"), onboardingDraft.name || "");
   const area = numberField("site-area", t("onboard.site.area"), t("onboard.site.area.hint"),
     onboardingDraft.area ?? 5, { min: 0.01, max: 20, step: 0.01 });
-  const lat = numberField("site-lat", t("onboard.site.location"), t("onboard.site.location.hint"),
-    onboardingDraft.latitude ?? 51.99, { min: -90, max: 90, step: 0.001 });
-  body.append(name.wrap, area.wrap, lat.wrap);
+  body.append(name.wrap, area.wrap);
+
+  // Address or coordinates. Some greenhouses have a street address a grower can
+  // just type; some are on remote polders where the only sensible thing to give
+  // is a lat/lon pair from a map. Offer both, remember which was used.
+  const locationMode = onboardingDraft.locationMode
+    || (onboardingDraft.address ? "address" : "coordinates");
+  const locationWrap = el("div", { className: "field" },
+    el("label", { textContent: t("onboard.site.location") }),
+    el("p", { className: "hint", textContent: t("onboard.site.location.hint") }));
+
+  const modes = el("div", { className: "choice-list compact" });
+  const modeChoice = (value, labelKey, hintKey) => {
+    const input = el("input", { type: "radio", name: "loc-mode", value });
+    input.checked = value === locationMode;
+    input.addEventListener("change", () => {
+      onboardingDraft.locationMode = value;
+      renderOnboarding();
+    });
+    return el("label", { className: "choice-item" }, input,
+      el("span", {},
+        el("span", { className: "title", textContent: t(labelKey) }),
+        el("span", { className: "desc", textContent: t(hintKey) })));
+  };
+  modes.append(
+    modeChoice("address", "onboard.site.location.mode.address",
+               "onboard.site.location.mode.address.hint"),
+    modeChoice("coordinates", "onboard.site.location.mode.coords",
+               "onboard.site.location.mode.coords.hint"));
+  locationWrap.append(modes);
+
+  let addressInput = null;
+  let latInput = null;
+  let lonInput = null;
+  let lookupStatus = null;
+
+  if (locationMode === "address") {
+    const address = textField("site-address", t("onboard.site.address"),
+      t("onboard.site.address.hint"), onboardingDraft.address || "");
+    addressInput = address.input;
+    lookupStatus = el("p", { className: "hint muted", textContent: "" });
+    if (onboardingDraft.resolvedName && onboardingDraft.latitude != null) {
+      lookupStatus.textContent = t("onboard.site.address.resolved")
+        .replace("{place}", onboardingDraft.resolvedName)
+        .replace("{lat}", onboardingDraft.latitude.toFixed(3))
+        .replace("{lon}", (onboardingDraft.longitude ?? 0).toFixed(3));
+    }
+    const lookup = el("button", { className: "secondary",
+      textContent: t("onboard.site.address.lookup") });
+    lookup.addEventListener("click", async (event) => {
+      event.preventDefault();
+      const query = addressInput.value.trim();
+      if (!query) { addressInput.focus(); return; }
+      lookup.disabled = true;
+      lookupStatus.textContent = t("onboard.site.address.searching");
+      try {
+        const result = await api("/api/geocode", { address: query,
+          language: state.lang || "en" });
+        onboardingDraft.latitude = result.latitude;
+        onboardingDraft.longitude = result.longitude;
+        onboardingDraft.resolvedName =
+          result.name + (result.country ? `, ${result.country}` : "");
+        lookupStatus.textContent = t("onboard.site.address.resolved")
+          .replace("{place}", onboardingDraft.resolvedName)
+          .replace("{lat}", result.latitude.toFixed(3))
+          .replace("{lon}", result.longitude.toFixed(3));
+      } catch (error) {
+        lookupStatus.textContent = String(error.message || error);
+        onboardingDraft.latitude = null;
+        onboardingDraft.longitude = null;
+        onboardingDraft.resolvedName = "";
+      } finally {
+        lookup.disabled = false;
+      }
+    });
+    locationWrap.append(address.wrap, lookup, lookupStatus);
+  } else {
+    const lat = numberField("site-lat", t("onboard.site.latitude"),
+      t("onboard.site.latitude.hint"), onboardingDraft.latitude ?? 51.99,
+      { min: -90, max: 90, step: 0.001 });
+    const lon = numberField("site-lon", t("onboard.site.longitude"),
+      t("onboard.site.longitude.hint"), onboardingDraft.longitude ?? 4.25,
+      { min: -180, max: 180, step: 0.001 });
+    latInput = lat.input;
+    lonInput = lon.input;
+    locationWrap.append(lat.wrap, lon.wrap);
+  }
+  body.append(locationWrap);
+
   actions.append(nextButton(() => {
     if (!name.input.value.trim()) { name.input.focus(); return false; }
     const hectares = Number(area.input.value);
     if (!(hectares > 0)) { area.input.focus(); return false; }
+
+    if (locationMode === "address") {
+      // The grower has to see the resolved place before continuing. Without a
+      // resolved match we would fall back to whatever coordinates are already
+      // in the draft, which is exactly the "quiet wrong location" trap this
+      // pair of modes exists to prevent.
+      if (onboardingDraft.latitude == null || onboardingDraft.longitude == null) {
+        if (lookupStatus) {
+          lookupStatus.textContent = t("onboard.site.address.needlookup");
+        }
+        if (addressInput) addressInput.focus();
+        return false;
+      }
+      onboardingDraft.address = (addressInput?.value || "").trim();
+    } else {
+      const lat = Number(latInput.value);
+      const lon = Number(lonInput.value);
+      if (!Number.isFinite(lat) || lat < -90 || lat > 90) { latInput.focus(); return false; }
+      if (!Number.isFinite(lon) || lon < -180 || lon > 180) { lonInput.focus(); return false; }
+      onboardingDraft.latitude = lat;
+      onboardingDraft.longitude = lon;
+      onboardingDraft.resolvedName = "";
+      onboardingDraft.address = "";
+    }
+    onboardingDraft.locationMode = locationMode;
     onboardingDraft.name = name.input.value.trim();
     onboardingDraft.area = hectares;
-    onboardingDraft.latitude = Number(lat.input.value);
     onboardingDraft.settings["hub.floor_area_m2"] = Math.round(hectares * 10000);
-    onboardingDraft.settings.latitude = Number(lat.input.value);
+    onboardingDraft.settings.latitude = onboardingDraft.latitude;
+    onboardingDraft.settings.longitude = onboardingDraft.longitude;
     return true;
   }), backButton());
 }
