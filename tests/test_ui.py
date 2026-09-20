@@ -41,7 +41,13 @@ def test_settings_expose_current_values(ui):
     settings = ui.get_settings()
     assert settings["scenario"] == "westland-winter"
     paths = {f["path"] for f in settings["fields"]}
-    assert {"planner", "checker.enabled", "hub.contract.import_limit_kw"} <= paths
+    assert {
+        "planner",
+        "checker.enabled",
+        "hub.contract.import_limit_kw",
+        "contracted_base_kw",
+        "contracted_price_eur_kwh",
+    } <= paths
     planner = next(f for f in settings["fields"] if f["path"] == "planner")
     assert planner["value"] == "rule-based"
     assert "learned" in planner["choices"]
@@ -115,6 +121,56 @@ def test_collaborative_run_uses_grower_policy(ui):
     assert result["policy"]["avoid_chp_night"] is True
     for hour in (22, 23, 0, 1, 2, 3, 4, 5):
         assert result["plan"][hour]["chp_mode"] == "off"
+
+
+def test_run_exposes_procurement_position(ui):
+    result = ui.run(
+        {
+            "planner": "collaborative",
+            "contracted_base_kw": 1600,
+            "contracted_price_eur_kwh": 0.08,
+        },
+        policy={"priority": "balanced"},
+    )
+    summary = result["position"]["summary"]
+    assert summary["contracted_energy_kwh"] == pytest.approx(1600 * 24)
+    assert summary["absolute_deviation_kwh"] >= 0
+    assert summary["short_hours"] + summary["long_hours"] <= 24
+    assert result["model"]["planner"] == "collaborative"
+
+
+@pytest.mark.parametrize(
+    ("dimension", "expected_priority"),
+    [
+        ("money", "cost"),
+        ("crop", "crop"),
+        ("grid", "grid"),
+        ("work", "balanced"),
+    ],
+)
+def test_dimension_disagreement_returns_specific_alternative(
+    ui, dimension, expected_priority
+):
+    result = ui.run(
+        {"planner": "collaborative"},
+        policy={"priority": "balanced", "battery_reserve_pct": 45},
+    )
+    reply = ui.deliberate(
+        {
+            "run_id": result["run_id"],
+            "revision": result["revision"],
+            "plan_hash": result["plan_hash"],
+            "dimension": dimension,
+            "response": "disagree",
+            "session_id": f"test-{dimension}",
+            "time_to_first_response_s": 3.5,
+        }
+    )
+    assert reply["dimension"] == dimension
+    assert reply["counter_response"]
+    assert reply["alternative"]
+    assert reply["alternative"]["policy"]["priority"] == expected_priority
+    assert ui.list_deliberations(f"test-{dimension}")["records"]
 
 
 def test_plan_rows_carry_context_for_the_operator(base_run):
