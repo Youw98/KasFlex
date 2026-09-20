@@ -65,7 +65,12 @@ def default_config_path() -> Path:
         candidates.insert(0, Path(sys.executable).resolve().parent / "configs" / name)
         candidates.append(resource_root() / "configs" / name)
     else:
-        candidates.append(Path(__file__).resolve().parents[2] / "configs" / name)
+        # The first location is present in an installed wheel; the second is the
+        # repository-level configuration used from a source checkout.
+        candidates.extend([
+            resource_root() / "configs" / name,
+            Path(__file__).resolve().parents[2] / "configs" / name,
+        ])
 
     for candidate in candidates:
         if candidate.is_file():

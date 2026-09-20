@@ -14,7 +14,7 @@ def test_parameter_table_is_canonical_and_uses_explicit_assumptions():
     assert "industry norm" not in text.lower()
 
 
-def test_parameter_table_covers_every_tahir_demo_domain():
+def test_parameter_table_covers_every_grower_demo_domain():
     text = _parameters().lower()
     required = (
         "greenhouse floor area",

@@ -20,6 +20,8 @@
   "priority.balanced.note": "Cost, grid and margin together.",
   "priority.cost": "Lowest cost",
   "priority.cost.note": "Expected euros first.",
+  "priority.crop": "Crop first",
+  "priority.crop.note": "Climate and tomato margin first.",
   "priority.grid": "Grid relief",
   "priority.grid.note": "Lower import peak first.",
   "policy.chp": "Avoid CHP overnight",
@@ -69,6 +71,8 @@
   "decision.crop": "Simulated tomato growth",
   "checker.toggle": "Independent safety check",
   "checker.toggle.note": "Keep this on for the grower plan. Turn it off only to demonstrate what the checker prevents.",
+  "checker.compare": "Show what the check prevents",
+  "checker.compare.note": "Safety demonstration on the same day with a constraint-blind baseline; not your grower plan.",
   "validation.pending": "Model validation pending",
   "validation.ready": "Measured validation available"
 }

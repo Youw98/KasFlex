@@ -34,14 +34,19 @@ whole-plan regeneration.
 2. Start KasFlex. The browser opens the new daily-planning workspace.
 3. KasFlex prepares a real historical Dutch market/weather day and shows the
    electricity-price and weather context first.
-4. Choose what matters to the grower: **Balanced**, **Lowest cost**, or
-   **Grid relief**, plus battery reserve and operating preferences.
+4. Choose what matters to the grower: **Balanced**, **Lowest cost**,
+   **Crop first**, or **Grid relief**, plus battery reserve and operating
+   preferences.
 5. Keep the **independent safety check** on for the real grower decision. Switch it
    off only to demonstrate which hard violations the checker prevents.
-6. Click **Build tomorrow's plan**.
-7. Respond separately to **saves money**, **protects the crop**, **respects the
+6. Use **Show what the check prevents** for a clearly labelled safety demonstration
+   on the same day. It compares a constraint-blind baseline with and without
+   independent verification, including hard breaches, cost and tomato growth. This
+   demonstration is separate from the grower's actual plan.
+7. Click **Build tomorrow's plan**.
+8. Respond separately to **saves money**, **protects the crop**, **respects the
    grid**, and **fits how I work**.
-8. Disagree with one dimension to see KasFlex produce a targeted alternative and
+9. Disagree with one dimension to see KasFlex produce a targeted alternative and
    the trade-off. Approval unlocks only after all four dimensions have been reviewed
    and the current revision passes the checker.
 
@@ -126,8 +131,6 @@ In practice:
   research consent allows it.
 
 The planner does **not** get to redefine the constraints that judge its own plan.
-
-![KasFlex interface](docs/ui.png)
 
 ---
 
@@ -249,6 +252,9 @@ The default interface focuses on the decision:
 - Are the constraints satisfied?
 - Do I agree?
 
+The grower can compare verification on/off before making a plan and can object to
+money, crop, grid or practical fit separately without discarding accepted parts.
+
 ### Research UI — `/advanced`
 
 The advanced interface exposes:
@@ -261,6 +267,11 @@ The advanced interface exposes:
 - metrics;
 - human edits;
 - audit information.
+
+![KasFlex advanced research interface](docs/ui.png)
+
+_The advanced research workspace exposes the full schedule and audit context. The
+default `/` route is the compact grower decision workflow described above._
 
 ---
 

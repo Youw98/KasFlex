@@ -8,6 +8,7 @@ an unwritable audit log loses the human decisions the project exists to record.
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -32,6 +33,17 @@ def test_default_config_exists_and_loads():
     path = resources.default_config_path()
     assert path.is_file(), f"default scenario not found at {path}"
     assert ScenarioConfig.from_yaml(path).name
+
+
+def test_wheel_manifest_has_one_interface_copy_and_the_default_config():
+    """Duplicate force-includes make wheel creation fail before installation."""
+    root = Path(__file__).resolve().parents[1]
+    build = tomllib.loads((root / "pyproject.toml").read_text())["tool"]["hatch"]["build"]
+    forced = build["targets"]["wheel"]["force-include"]
+    assert "src/kasflex/ui/static" not in forced
+    assert forced["configs/scenario_westland_winter.yaml"] == (
+        "kasflex/configs/scenario_westland_winter.yaml"
+    )
 
 
 def test_config_can_be_overridden_by_environment(monkeypatch, tmp_path):

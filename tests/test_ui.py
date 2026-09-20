@@ -285,6 +285,30 @@ def test_collaborative_demo_can_run_with_checker_on_or_off(ui):
     assert off["checker_enabled"] is False
 
 
+def test_checker_comparison_runs_the_same_policy_both_ways(ui):
+    result = ui.compare_checker(
+        {"planner": "naive", "data_source": "synthetic"},
+        {"priority": "crop", "battery_reserve_pct": 55},
+    )
+    assert [row["checker_enabled"] for row in result["rows"]] == [False, True]
+    assert all(row["growth_kg_m2"] >= 0 for row in result["rows"])
+    assert result["rows"][0]["accepted"] is None
+    assert result["rows"][0]["verified"] is False
+
+
+def test_grower_ui_exposes_crop_priority_and_checker_comparison():
+    root = static_dir()
+    html = (root / "demo.html").read_text(encoding="utf-8")
+    script = (root / "demo.js").read_text(encoding="utf-8")
+    assert 'name="priority" value="crop"' in html
+    assert 'id="compare-checker"' in html
+    assert 'id="checker-comparison"' in html
+    assert 'api("/api/checker-comparison"' in script
+    assert 'planner:"naive"' in script
+    assert 'id="build-plan" type="button" class="primary"' in html
+    assert "card.innerHTML" not in script
+
+
 def test_crop_disagreement_returns_a_crop_specific_alternative(ui):
     run = ui.run(
         {"planner": "collaborative", "data_source": "synthetic"},
@@ -302,6 +326,7 @@ def test_crop_disagreement_returns_a_crop_specific_alternative(ui):
     assert reply["alternative"] is not None
     assert reply["alternative"]["policy"]["priority"] == "crop"
     assert "crop" in reply["counter_response"].lower()
+    assert "kg/m²" in reply["counter_response"]
 
 
 def test_agreeing_with_one_dimension_does_not_regenerate_the_plan(ui):
