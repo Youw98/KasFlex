@@ -11,12 +11,14 @@ test of the model, only in a test of the interface.
 from __future__ import annotations
 
 import json
+import re
 import threading
 import urllib.error
 import urllib.request
 
 import pytest
 
+from kasflex.resources import static_dir
 from kasflex.ui.server import ADJUSTABLE, ApiError, UiServer, serve
 
 CONFIG = "configs/scenario_westland_winter.yaml"
@@ -307,6 +309,28 @@ def _post(url: str, payload: dict) -> tuple[int, dict]:
             return r.status, json.loads(r.read())
     except urllib.error.HTTPError as exc:
         return exc.code, json.loads(exc.read())
+
+
+def test_team_demo_buttons_are_wired_and_do_not_link_to_legacy_ui():
+    html = (static_dir() / "demo.html").read_text(encoding="utf-8")
+    script = (static_dir() / "demo.js").read_text(encoding="utf-8")
+
+    button_ids = re.findall(r'<button[^>]*\\bid="([^"]+)"', html)
+    assert button_ids
+    for button_id in button_ids:
+        assert f'$("{button_id}").addEventListener' in script, button_id
+
+    assert 'href="/advanced"' not in html
+    assert 'href="/grower"' not in html
+    assert "legacy-grower" not in html
+    assert "failed:" in script
+
+
+def test_stale_grower_url_serves_the_new_demo(live):
+    status, body = _get(live + "/grower")
+    assert status == 200
+    assert b"Plan the day" in body
+    assert b"Daily energy co-pilot" in body
 
 
 def test_the_page_and_its_assets_are_served(live):
