@@ -98,11 +98,26 @@ class CollaborativePlanner:
         seed = rule_based.RuleBasedPlanner().plan(context)
         seed = _apply_blackout(seed, policy["avoid_chp_hours"])
 
+        margin = float(policy["battery_reserve_pct"]) / 100.0
+        forbidden = tuple(policy["avoid_chp_hours"])
+        prefer_stored = bool(policy["prefer_stored_heat"])
+
+        # Grid relief is a deliberate choice: start from the cost-improved plan,
+        # then only accept moves that reduce (or preserve) peak import.
+        if policy["priority"] == "grid":
+            warmup = scheduler.OptimizingScheduler(
+                safety_margin=margin,
+                objective_mode="cost",
+                forbidden_chp_hours=forbidden,
+                prefer_stored_heat=prefer_stored,
+            )
+            seed = warmup.optimise(seed, context.hub, context.forecast)
+
         optimiser = scheduler.OptimizingScheduler(
-            safety_margin=float(policy["battery_reserve_pct"]) / 100.0,
+            safety_margin=margin,
             objective_mode=str(policy["priority"]),
-            forbidden_chp_hours=tuple(policy["avoid_chp_hours"]),
-            prefer_stored_heat=bool(policy["prefer_stored_heat"]),
+            forbidden_chp_hours=forbidden,
+            prefer_stored_heat=prefer_stored,
         )
         best = optimiser.optimise(seed, context.hub, context.forecast)
 
