@@ -983,6 +983,29 @@ class UiServer:
             alternative = self.run(alt_overrides, policy)
             counter = self._counter_response(dimension, current, alternative, language)
 
+        counter_model = "collaborative-deterministic-v1"
+        if response == "disagree":
+            try:
+                explainer, _ = self._explainer(overrides)
+                system = (
+                    "You are rewriting a factual greenhouse-energy counterproposal. "
+                    "Do not add, remove or change any number, constraint, causal claim or "
+                    "recommended action. Use plain grower language, at most three sentences. "
+                    "Do not sound certain about unvalidated greenhouse outcomes."
+                )
+                prompt = (
+                    f"Language: {language}. Rewrite this text without changing its facts:\n"
+                    f"{counter}"
+                )
+                rewritten = explainer.call_fn(explainer.model, system, prompt).strip()
+                if rewritten:
+                    counter = rewritten
+                    provider, model, *_ = self._model_settings(overrides)
+                    counter_model = f"{provider}:{model}"
+            except (ApiError, LlmError):
+                # The demo must remain fully functional without any external model.
+                pass
+
         participant = str(payload.get("participant_id") or "")
         session_id = str(payload.get("session_id") or "")
         recorded = False
@@ -997,7 +1020,7 @@ class UiServer:
                     participant_id=participant,
                     scenario_id=str(snapshot["config"].get("name", "")),
                     plan_id=f"{current['run_id']}:{current['revision']}",
-                    model_id=self._model_id(current),
+                    model_id=counter_model,
                     dimension=dimension,
                     initial_response=response,
                     ai_counter_response=counter,
@@ -1017,6 +1040,7 @@ class UiServer:
             "dimension": dimension,
             "response": response,
             "counter_response": counter,
+            "counter_model": counter_model,
             "alternative": alternative,
             "recorded": recorded,
         }
@@ -1043,7 +1067,7 @@ class UiServer:
                     participant_id=participant,
                     scenario_id=str(snapshot["config"].get("name", "")),
                     plan_id=f"{current['run_id']}:{current['revision']}",
-                    model_id=self._model_id(current),
+                    model_id=str(payload.get("counter_model") or self._model_id(current)),
                     dimension=dimension,
                     initial_response=str(payload.get("initial_response") or ""),
                     ai_counter_response=str(payload.get("ai_counter_response") or ""),
