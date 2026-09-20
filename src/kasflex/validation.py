@@ -320,6 +320,8 @@ def validate_against_agc(
 def write_validation_json(
     report: ValidationReport,
     path: str | Path = DEFAULT_RESULT_PATH,
+    *,
+    model: str = "unknown",
 ) -> None:
     """Persist only a completed numeric report for the browser status indicator."""
     target = Path(path)
@@ -331,6 +333,7 @@ def write_validation_json(
                 "dataset_root": report.dataset_root,
                 "days_compared": report.days_compared,
                 "generated_at": report.generated_at,
+                "model": model,
                 "deviations": [asdict(item) for item in report.deviations],
             },
             indent=2,
@@ -372,6 +375,7 @@ def validation_status(path: str | Path = DEFAULT_RESULT_PATH) -> dict[str, Any]:
         "dataset": str(payload.get("dataset") or pending["dataset"]),
         "doi": AGC_DOI,
         "generated_at": str(payload.get("generated_at") or ""),
+        "model": str(payload.get("model") or "unknown"),
         "message": f"Measured simulator deviation published for {days} day(s).",
     }
 
