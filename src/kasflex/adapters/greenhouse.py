@@ -187,5 +187,13 @@ class SurrogateGreenhouse:
             natural_dli_mol_m2=natural_dli,
             model=self.name,
             validated=False,
-            diagnostics={"mean_heat_kw": sum(heat) / len(heat) if heat else 0.0},
+            diagnostics={
+                "mean_heat_kw": sum(heat) / len(heat) if heat else 0.0,
+                "heating_energy_kwh": sum(heat),
+                "lighting_electricity_kwh": sum(
+                    iv.lighting_level * lamp_kw_per_m2 * floor_area_m2
+                    for iv in plan.intervals
+                ),
+                "co2_dosed_kg": sum(co2_demand),
+            },
         )
