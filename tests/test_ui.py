@@ -384,3 +384,43 @@ def test_geocode_endpoint_surfaces_no_match_as_404(monkeypatch, ui):
     with pytest.raises(ApiError, match="No place matched") as exc_info:
         ui.geocode({"address": "qqq"})
     assert exc_info.value.status == 404
+
+
+# --- one-click demo preparation --------------------------------------------
+
+
+def test_prepare_demo_reuses_a_cached_day_when_the_network_fails(monkeypatch, ui, tmp_path):
+    """The endpoint must NEVER silently substitute synthetic data. When the network
+    fetch fails and a cached demo day already exists, it hands that back; when both
+    fail it raises 400 rather than inventing numbers."""
+    from kasflex.data import demo as demo_module
+    from kasflex.data.sources import FetchError
+
+    calls = {"count": 0}
+
+    def fake_online(*, cache, latitude, longitude, allow_network):
+        assert allow_network in (True, False)
+        if allow_network:
+            calls["count"] += 1
+            raise FetchError("simulated offline")
+        return demo_module.DemoPrepared(
+            date="2026-09-19", price_key="entsoe_da_2026-09-19",
+            forecast_key="w_forecast", actual_key=None, reused_cache=True)
+
+    monkeypatch.setattr("kasflex.ui.server.prepare_real_demo", fake_online, raising=False)
+    monkeypatch.setattr("kasflex.data.demo.prepare_real_demo", fake_online)
+    result = ui.prepare_demo({})
+    assert result["date"] == "2026-09-19"
+    assert result["reused_cache"] is True
+    assert calls["count"] == 1
+
+
+def test_prepare_demo_refuses_when_neither_network_nor_cache_have_a_day(monkeypatch, ui):
+    from kasflex.data.sources import FetchError
+
+    def fake(*, cache, latitude, longitude, allow_network):
+        raise FetchError("no data anywhere")
+
+    monkeypatch.setattr("kasflex.data.demo.prepare_real_demo", fake)
+    with pytest.raises(ApiError, match="did not silently substitute"):
+        ui.prepare_demo({})

@@ -164,3 +164,83 @@ def test_clock_change_days_are_refused(day):
     """23 and 25-hour days would corrupt the schedule silently. Better to stop."""
     with pytest.raises(DstDayError, match="hours long"):
         local_day_bounds(day)
+
+
+# --- public demo prices CSV mirror -----------------------------------------
+
+
+def _demo_csv(rows: list[tuple[str, str, float, int]]) -> str:
+    """Compact helper for building the mirror's CSV format (utc, zone, price, resolution)."""
+    out = ["timestamp_utc,zone,price_eur_mwh,resolution_min"]
+    for ts, zone, price, res in rows:
+        out.append(f"{ts},{zone},{price},{res}")
+    return "\n".join(out) + "\n"
+
+
+def test_demo_parser_returns_the_newest_complete_dutch_day():
+    """The mirror carries several zones and several days; the parser must pick the
+    newest day that has all 24 NL hours and ignore other zones entirely."""
+    from kasflex.data.sources import parse_public_demo_prices
+
+    rows = []
+    # Add a full Dutch day at UTC 2026-01-14 22:00 = 2026-01-14 23:00 CET,
+    # then 2026-01-15 00:00-22:00 CET, i.e. 24 CET hours starting at midnight local.
+    import datetime as dt
+    from zoneinfo import ZoneInfo
+
+    cet = ZoneInfo("Europe/Amsterdam")
+    day = dt.date(2026, 1, 15)
+    for hour in range(24):
+        local = dt.datetime.combine(day, dt.time(hour), tzinfo=cet)
+        utc = local.astimezone(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        rows.append((utc, "NL", 90.0 + hour, 60))
+    # Add a Belgian row on the same day to prove the parser filters by zone.
+    rows.append(("2026-01-15T12:00:00Z", "BE", 500.0, 60))
+
+    day_out, prices = parse_public_demo_prices(_demo_csv(rows))
+    assert day_out == day
+    assert len(prices) == 24
+    assert prices[0] == {"hour": 0, "price_eur_kwh": 0.09}
+    assert prices[23] == {"hour": 23, "price_eur_kwh": 0.113}
+
+
+def test_demo_parser_rejects_a_schema_it_does_not_recognise():
+    from kasflex.data.sources import FetchError, parse_public_demo_prices
+
+    with pytest.raises(FetchError, match="unexpected schema"):
+        parse_public_demo_prices("date,zone,price\n2026-01-15,NL,50\n")
+
+
+def test_demo_parser_refuses_a_day_that_is_missing_hours():
+    """A truncated day would silently be reported as a shorter series, which is the
+    'quietly wrong' failure this project is written to prevent."""
+    from kasflex.data.sources import FetchError, parse_public_demo_prices
+
+    rows = [
+        ("2026-01-15T00:00:00Z", "NL", 90.0, 60),
+        ("2026-01-15T01:00:00Z", "NL", 91.0, 60),
+    ]
+    with pytest.raises(FetchError, match="no complete Dutch"):
+        parse_public_demo_prices(_demo_csv(rows))
+
+
+def test_demo_parser_averages_quarter_hour_intervals_within_an_hour():
+    """The mirror also serves 15-minute resolution. Four quarters must average
+    into one hour price; anything else is a data-loss bug."""
+    import datetime as dt
+    from zoneinfo import ZoneInfo
+
+    from kasflex.data.sources import parse_public_demo_prices
+
+    cet = ZoneInfo("Europe/Amsterdam")
+    day = dt.date(2026, 3, 15)
+    rows = []
+    for hour in range(24):
+        for quarter in range(4):
+            local = dt.datetime.combine(day, dt.time(hour, quarter * 15), tzinfo=cet)
+            utc = local.astimezone(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+            # Four quarters at [100, 110, 120, 130] average to 115 -> 0.115 eur/kwh
+            rows.append((utc, "NL", 100.0 + quarter * 10, 15))
+    day_out, prices = parse_public_demo_prices(_demo_csv(rows))
+    assert day_out == day
+    assert prices[0] == {"hour": 0, "price_eur_kwh": 0.115}

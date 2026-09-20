@@ -118,8 +118,9 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
              "string changes. Deliberately not settable from a browser, so that "
              "nobody can switch the consent regime off from the page."},
     {"path": "data_source", "label": "Data mode", "kind": "choice",
-     "choices": ["synthetic", "cache"],
-     "help": "Demo uses generated inputs. Real data reads downloaded prices and weather."},
+     "choices": ["demo", "cache", "synthetic"],
+     "help": ("Demo replays real historical Dutch market/weather inputs; "
+              "cache uses your downloaded day; synthetic is for deliberate tests.")},
     {"path": "llm_provider", "label": "AI service", "kind": "choice",
      "choices": sorted(PROVIDERS),
      "help": "Which model explains plans and answers questions. Ollama runs locally."},
@@ -319,7 +320,7 @@ def _day_for(config: ScenarioConfig):
         target = date.fromisoformat(config.date)
     except ValueError as exc:
         raise ApiError("Choose a valid date in Configuration.") from exc
-    if config.data_source == "cache":
+    if config.data_source in {"cache", "demo"}:
         from types import SimpleNamespace
 
         from kasflex.data.pipeline import ensure_day
@@ -473,7 +474,7 @@ class UiServer:
         then reports epistemic uncertainty as unknown, which is the honest answer.
         """
         try:
-            if config.data_source == "cache":
+            if config.data_source in {"cache", "demo"}:
                 from kasflex.data.cache import DataCache  # noqa: PLC0415
                 from kasflex.data.pipeline import cached_days, ensure_day  # noqa: PLC0415
 
@@ -966,6 +967,40 @@ class UiServer:
             "entsoe_configured": bool(os.environ.get("ENTSOE_API_KEY")),
         }
 
+    def prepare_demo(self, overrides: dict[str, Any]) -> dict[str, Any]:
+        """Prepare a one-click historical demo from real market/weather inputs."""
+        from kasflex.data.cache import DataCache
+        from kasflex.data.demo import prepare_real_demo
+        from kasflex.data.sources import FetchError
+
+        config = _apply_overrides(self.base, {**overrides, "data_source": "demo"})
+        try:
+            prepared = prepare_real_demo(
+                cache=DataCache(),
+                latitude=config.latitude,
+                longitude=config.longitude,
+                allow_network=True,
+            )
+        except (FetchError, ValueError, OSError) as exc:
+            try:
+                prepared = prepare_real_demo(
+                    cache=DataCache(),
+                    latitude=config.latitude,
+                    longitude=config.longitude,
+                    allow_network=False,
+                )
+            except (FetchError, ValueError, OSError):
+                raise ApiError(
+                    "Could not prepare the real-input demo. KasFlex did not "
+                    "silently substitute synthetic data."
+                ) from exc
+        return {
+            "date": prepared.date,
+            "data_source": "demo",
+            "reused_cache": prepared.reused_cache,
+            "actuals_available": prepared.actual_key is not None,
+        }
+
     def data_status(self, overrides: dict[str, Any], download: bool = False) -> dict[str, Any]:
         """Check local coverage or explicitly acquire data; never silently substitute demo data."""
         from kasflex.data.cache import DataCache
@@ -1342,6 +1377,9 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(result)
             elif self.path.startswith("/api/run"):
                 self._json(self.ui.run(overrides))
+            elif self.path == "/api/demo-prepare":
+                with self.ui._lock:
+                    self._json(self.ui.prepare_demo(overrides))
             elif self.path == "/api/data-status":
                 self._json(self.ui.data_status(overrides))
             elif self.path == "/api/data-download":

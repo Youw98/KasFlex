@@ -29,6 +29,8 @@ Design constraints, in the order they mattered:
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import math
 import time
@@ -50,7 +52,12 @@ ENTSOE_NL_ZONE = "10YNL----------L"
 """EIC code for the Dutch bidding zone."""
 
 OPENMETEO_FORECAST = "https://api.open-meteo.com/v1/forecast"
+OPENMETEO_HISTORICAL_FORECAST = "https://historical-forecast-api.open-meteo.com/v1/forecast"
 OPENMETEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
+PUBLIC_DEMO_PRICES = (
+    "https://raw.githubusercontent.com/whipeeer-creator/"
+    "european-power-prices/main/data/latest.csv"
+)
 
 # Westland, the Dutch glasshouse cluster the scenarios are built around.
 DEFAULT_LAT = 51.99
@@ -90,6 +97,17 @@ OPENMETEO_FORECAST_META = SourceMeta(
     source=OPENMETEO_FORECAST,
     licence="CC-BY 4.0 (Open-Meteo free tier)",
     dataset_key="openmeteo_hist_forecast",
+)
+OPENMETEO_HISTORICAL_FORECAST_META = SourceMeta(
+    source=OPENMETEO_HISTORICAL_FORECAST,
+    licence="CC-BY 4.0 (Open-Meteo free tier)",
+    dataset_key="openmeteo_hist_forecast",
+)
+PUBLIC_DEMO_PRICE_META = SourceMeta(
+    source=("whipeeer-creator/european-power-prices GitHub mirror; "
+            "original source ENTSO-E Transparency Platform"),
+    licence="ENTSO-E Transparency Platform terms; mirror code MIT",
+    dataset_key="entsoe_da",
 )
 OPENMETEO_ARCHIVE_META = SourceMeta(
     source=OPENMETEO_ARCHIVE,
@@ -311,6 +329,63 @@ def fetch_entsoe_day_ahead(
     return parse_entsoe_day_ahead(http_get(ENTSOE_ENDPOINT, params, **http_kwargs), day)
 
 
+
+# --------------------------------------------------------------------------
+# Public, no-key demo price snapshot
+# --------------------------------------------------------------------------
+
+def parse_public_demo_prices(payload: str) -> tuple[Date, list[dict[str, float]]]:
+    """Return the newest complete Dutch local day in the public price mirror."""
+    grouped: dict[Date, dict[int, list[tuple[int, float]]]] = {}
+    reader = csv.DictReader(io.StringIO(payload))
+    required = {"timestamp_utc", "zone", "price_eur_mwh", "resolution_min"}
+    if not reader.fieldnames or not required.issubset(reader.fieldnames):
+        raise FetchError("public demo price CSV has an unexpected schema")
+
+    for row in reader:
+        if row.get("zone") != "NL":
+            continue
+        try:
+            stamp = datetime.fromisoformat(row["timestamp_utc"].replace("Z", "+00:00"))
+            if stamp.tzinfo is None:
+                stamp = stamp.replace(tzinfo=UTC)
+            local = stamp.astimezone(LOCAL_TZ)
+            resolution = int(row["resolution_min"])
+            price = float(row["price_eur_mwh"])
+        except (TypeError, ValueError, KeyError) as exc:
+            raise FetchError("public demo price CSV contains a malformed NL row") from exc
+        if resolution not in {15, 60} or not math.isfinite(price):
+            raise FetchError("public demo price CSV contains an unsupported NL interval")
+        grouped.setdefault(local.date(), {}).setdefault(local.hour, []).append(
+            (resolution, price)
+        )
+
+    for day in sorted(grouped, reverse=True):
+        try:
+            local_day_bounds(day)
+        except DstDayError:
+            continue
+        hours = grouped[day]
+        if sorted(hours) != list(range(HOURS)):
+            continue
+        result = []
+        for hour in range(HOURS):
+            intervals = hours[hour]
+            minutes = sum(resolution for resolution, _ in intervals)
+            if minutes != 60:
+                break
+            price = sum(resolution * p for resolution, p in intervals) / minutes
+            result.append({"hour": hour, "price_eur_kwh": round(price / 1000.0, 6)})
+        if len(result) == HOURS:
+            return day, result
+
+    raise FetchError("public demo price mirror has no complete Dutch 24-hour day")
+
+
+def fetch_public_demo_prices(**http_kwargs: Any) -> tuple[Date, list[dict[str, float]]]:
+    return parse_public_demo_prices(http_get(PUBLIC_DEMO_PRICES, {}, **http_kwargs))
+
+
 # --------------------------------------------------------------------------
 # Open-Meteo weather
 # --------------------------------------------------------------------------
@@ -375,6 +450,27 @@ def parse_openmeteo_hourly(payload: str | dict[str, Any], day: Date) -> list[dic
             f"Check the requested date range and timezone."
         )
     return rows
+
+
+def fetch_openmeteo_historical_forecast(
+    day: Date,
+    *,
+    latitude: float = DEFAULT_LAT,
+    longitude: float = DEFAULT_LON,
+    **http_kwargs: Any,
+) -> list[dict[str, float]]:
+    """Fetch an archived forecast for a past day, not realised weather."""
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "hourly": "temperature_2m,shortwave_radiation",
+        "start_date": day.isoformat(),
+        "end_date": day.isoformat(),
+        "timezone": "Europe/Amsterdam",
+    }
+    return parse_openmeteo_hourly(
+        http_get(OPENMETEO_HISTORICAL_FORECAST, params, **http_kwargs), day
+    )
 
 
 def fetch_openmeteo(

@@ -70,6 +70,8 @@ CATALOG: dict[str, dict[str, str]] = {
     "onboard.welcome.load": {"en": "Load a saved setup", "nl": "Opgeslagen instelling laden"},
     "onboard.welcome.demo": {"en": "Just show me a demo first",
                              "nl": "Laat eerst een demo zien"},
+    "onboard.welcome.demo.loading": {"en": "Preparing real demo data…",
+                                     "nl": "Echte demodata voorbereiden…"},
     "onboard.step": {"en": "Step {n} of {total}", "nl": "Stap {n} van {total}"},
     "onboard.language.title": {"en": "Which language do you prefer?",
                                "nl": "Welke taal heeft uw voorkeur?"},
@@ -192,8 +194,10 @@ CATALOG: dict[str, dict[str, str]] = {
     "plan.rejected": {"en": "Noted. Tell us what to change.",
                       "nl": "Genoteerd. Vertel ons wat er anders moet."},
     "plan.demo_notice": {
-        "en": "This is a practice plan with made-up prices, so you can explore safely.",
-        "nl": "Dit is een oefenplan met verzonnen prijzen, zodat u veilig kunt verkennen."},
+        "en": "Demo replay with real historical prices and weather inputs. "
+              "Greenhouse outcomes are still simulated.",
+        "nl": "Demoreplay met echte historische prijzen en weerdata. "
+              "Kasuitkomsten blijven gesimuleerd."},
     "plan.real_notice": {"en": "Using real electricity prices and the weather forecast.",
                          "nl": "Met echte stroomprijzen en de weersverwachting."},
 
@@ -583,8 +587,8 @@ CATALOG: dict[str, dict[str, str]] = {
     "settings.ai.ok": {"en": "Working", "nl": "Werkt"},
     "settings.ai.failed": {"en": "Not working", "nl": "Werkt niet"},
     "settings.data": {"en": "Prices and weather", "nl": "Prijzen en weer"},
-    "settings.data.demo": {"en": "Practice mode — made-up numbers",
-                           "nl": "Oefenmodus — verzonnen getallen"},
+    "settings.data.demo": {"en": "Demo — real historical inputs",
+                            "nl": "Demo — echte historische invoer"},
     "settings.data.real": {"en": "Real prices and weather",
                            "nl": "Echte prijzen en weer"},
     "settings.reset": {"en": "Start over", "nl": "Opnieuw beginnen"},

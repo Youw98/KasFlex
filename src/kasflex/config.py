@@ -60,7 +60,8 @@ class ScenarioConfig:
     seed: int = 0
     brief: str = ""
     data_source: str = "synthetic"
-    """``synthetic`` or ``cache``. Never a live API call at run time (R30)."""
+    """``synthetic``, ``demo`` or ``cache``. Demo preparation acquires real inputs
+    before the run; planning itself reads only the cache (R30)."""
     winter: bool = True
     language: str = "en"
     """``en`` or ``nl``. Sets the interface and the language the model explains in."""
