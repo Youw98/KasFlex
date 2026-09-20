@@ -144,9 +144,11 @@ jobs:
             **Alpha release.** Download the file for your machine. No Python
             installation is required.
 
-            The first browser screen lets you configure a greenhouse or launch the
-            real-input historical demo. Demo market/weather inputs are real;
-            greenhouse outcomes remain simulated and unvalidated.
+            KasFlex opens directly into the grower co-pilot demo: review the real
+            historical market/weather day, choose the grower's priorities, build a
+            checked 24-hour plan, adjust it, and approve the final revision. Demo
+            market/weather inputs are real; greenhouse outcomes remain simulated
+            and unvalidated.
 
             | | |
             |---|---|
