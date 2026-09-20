@@ -402,6 +402,18 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_mcp(args) -> int:
+    """Run the optional MCP stdio server for agent integrations."""
+    try:
+        from kasflex.mcp_server import mcp
+    except ImportError as exc:
+        raise SystemExit(
+            "MCP support is optional. Install it with: pip install -e '.[mcp]'"
+        ) from exc
+    mcp.run()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     from kasflex.api_connections import ApiConnections
     from kasflex.resources import resolve_output
@@ -424,7 +436,7 @@ def main(argv: list[str] | None = None) -> int:
     p_run = sub.add_parser("run", help="run one scenario")
     p_run.add_argument("--config", default=DEFAULT_CONFIG)
     p_run.add_argument("--planner",
-                       choices=["rule-based", "naive", "learned", "llm", "mpc"])
+                       choices=["collaborative", "rule-based", "naive", "learned", "llm", "mpc"])
     p_run.add_argument("--greenhouse", choices=["surrogate", "greenlight"])
     p_run.add_argument("--data-source", choices=["synthetic", "cache"],
                        help="override the scenario input mode for this run")
@@ -496,6 +508,9 @@ def main(argv: list[str] | None = None) -> int:
 
     p_doc = sub.add_parser("doctor", help="check the environment")
     p_doc.set_defaults(func=cmd_doctor)
+
+    p_mcp = sub.add_parser("mcp", help="run the optional MCP stdio server")
+    p_mcp.set_defaults(func=cmd_mcp)
 
     args = parser.parse_args(argv)
     return args.func(args)
