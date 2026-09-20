@@ -137,7 +137,7 @@ def test_safety_can_be_compared_on_and_off_without_saving_runs(ui):
 
 def test_every_operational_number_has_source_or_assumption(ui):
     registry = ui.parameters()
-    assert registry["counts"] == {"sourced": 7, "assumption": 46, "choice": 8}
+    assert registry["counts"] == {"sourced": 7, "assumption": 49, "choice": 8}
     assert all(row["rationale"] for row in registry["parameters"])
     assert all(
         row.get("source_url")

@@ -40,6 +40,9 @@ class ContractLimits:
 
     import_limit_kw: float = 6000.0
     export_limit_kw: float = 4000.0
+    contracted_base_volume_kwh: float = 42_000.0
+    contracted_price_eur_kwh: float = 0.11
+    imbalance_spread_eur_kwh: float = 0.015
     congestion_windows: dict[int, tuple[float, float]] = field(default_factory=dict)
 
     def limits_at(self, hour: int) -> tuple[float, float]:

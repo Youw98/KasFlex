@@ -25,6 +25,10 @@ hub:
   contract:
     import_limit_kw: 6000
     export_limit_kw: 4000
+    # Illustrative supplier position. Replace all three fields with Tahir's contract.
+    contracted_base_volume_kwh: 42000
+    contracted_price_eur_kwh: 0.11
+    imbalance_spread_eur_kwh: 0.015
     # Liander congestion instruction: reduced capacity over the evening peak.
     # In the MVP these are set by hand; the capacity map (D10) is a phase-2 input.
     congestion_windows:

@@ -404,7 +404,7 @@ KasFlex keeps forecast weather and realised weather separate on purpose. A plann
 must not receive future observations during planning.
 
 See [docs/DATA.md](docs/DATA.md) and
-[docs/PROVENANCE.md](docs/PROVENANCE.md).
+[docs/PARAMETERS.md](docs/PARAMETERS.md).
 
 ---
 
@@ -449,7 +449,7 @@ tests/                   offline test suite
 | [Guide](docs/GUIDE.md) | conceptual walkthrough |
 | [Architecture](docs/ARCHITECTURE.md) | components and boundaries |
 | [Data](docs/DATA.md) | datasets and acquisition |
-| [Provenance](docs/PROVENANCE.md) | assumptions and parameter sources |
+| [Parameters](docs/PARAMETERS.md) | assumptions, plausible ranges and parameter sources |
 | [Validation](docs/VALIDATION.md) | measured-data validation status |
 | [Decisions](docs/DECISIONS.md) | architecture decision records |
 | [FAIR](docs/FAIR.md) | research-data principles |

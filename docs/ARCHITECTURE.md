@@ -196,6 +196,7 @@ table would measure nothing.
 | `kasflex.checker.verdict` | Machine-readable rejections and planner feedback. |
 | `kasflex.energy.assets` | Asset models and limits, in explicit units. |
 | `kasflex.energy.dispatch` | Deterministic intent-to-flows, faithful to the plan. |
+| `kasflex.grid_position` | Commercial contracted-versus-planned position and illustrative settlement. |
 | `kasflex.controllers.*` | Rule-based, naive fixture, learned, LLM, MPC (stage 5). |
 | `kasflex.controllers.scheduler` | Learned planner: forecast plus local-search scheduler. |
 | `kasflex.forecast.*` | Demand model, features, history construction, backtesting. |
@@ -218,6 +219,7 @@ table would measure nothing.
 | `kasflex.fair` | FAIR research export: JSON-LD bundle, codebook, conflict CSV. |
 | `kasflex.uncertainty` | Aleatoric cost bands and epistemic novelty, with an explicit basis. |
 | `kasflex.reliance` | Confidence-first elicitation, outcome scoring, appropriate-reliance metrics. |
+| `kasflex.interactions` | Append-only dimension-level grower interaction records. |
 | `kasflex.consent` | Granular informed consent, and the erasure that withdrawal triggers. |
 | `kasflex.actions` | What a plan changes against normal settings, named for a grower. |
 | `kasflex.ui.server` | Local JSON API over the same functions the CLI uses. |
@@ -225,3 +227,4 @@ table would measure nothing.
 | `kasflex.resources` | Where files live when frozen into an executable. |
 | `kasflex.run` | One scenario, end to end, to one result record. |
 | `kasflex.experiment` | The matrix, unattended. |
+| `kasflex.mcp_server` | Optional dependency-free stdio MCP adapter over shared internal functions. |

@@ -126,6 +126,9 @@ class ScenarioConfig:
             contract = ContractLimits(
                 import_limit_kw=contract.import_limit_kw,
                 export_limit_kw=contract.export_limit_kw,
+                contracted_base_volume_kwh=contract.contracted_base_volume_kwh,
+                contracted_price_eur_kwh=contract.contracted_price_eur_kwh,
+                imbalance_spread_eur_kwh=contract.imbalance_spread_eur_kwh,
                 congestion_windows={
                     int(h): (float(v[0]), float(v[1]))
                     for h, v in contract.congestion_windows.items()

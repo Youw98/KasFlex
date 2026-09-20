@@ -47,6 +47,7 @@ Documentation = "https://github.com/Youw98/KasFlex/tree/main/docs"
 
 [project.scripts]
 kasflex = "kasflex.cli:main"
+kasflex-mcp = "kasflex.mcp_server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/kasflex"]

@@ -187,7 +187,7 @@ def test_suggested_questions_need_no_model(server):
 
 def test_tahir_endpoints_are_available_without_a_model(server):
     parameters = get(server, "/api/parameters")
-    assert len(parameters["parameters"]) == 61
+    assert len(parameters["parameters"]) == 64
 
     comparison = post(
         server,

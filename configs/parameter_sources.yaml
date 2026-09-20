@@ -25,7 +25,7 @@ parameters:
     value: 150
     unit: kW
     status: assumption
-    rationale: Placeholder for pumps, fans, screens and site auxiliaries; marked as a guess in PROVENANCE.md.
+    rationale: Placeholder for pumps, fans, screens and site auxiliaries; marked as a guess in PARAMETERS.md.
   hub.contract.import_limit_kw:
     value: 6000
     unit: kW
@@ -36,6 +36,25 @@ parameters:
     unit: kW
     status: assumption
     rationale: Scenario export ceiling; replace with the signed connection agreement.
+    plausible_range: [0, 10000]
+  hub.contract.contracted_base_volume_kwh:
+    value: 42000
+    unit: kWh/day
+    status: assumption
+    rationale: Illustrative day-ahead base position; replace with Tahir's supplier nomination.
+    plausible_range: [0, 150000]
+  hub.contract.contracted_price_eur_kwh:
+    value: 0.11
+    unit: EUR/kWh
+    status: assumption
+    rationale: Illustrative fixed contract price; replace with the applicable supply contract.
+    plausible_range: [0.04, 0.30]
+  hub.contract.imbalance_spread_eur_kwh:
+    value: 0.015
+    unit: EUR/kWh
+    status: assumption
+    rationale: Illustrative settlement spread, not a live imbalance tariff.
+    plausible_range: [0.0, 0.10]
   hub.contract.congestion_windows:
     value: {16: [3000, 1000], 17: [3000, 1000], 18: [3000, 1000], 19: [3000, 1000]}
     unit: hour_to_[import_kw,export_kw]
@@ -47,6 +66,7 @@ parameters:
     unit: kWh
     status: assumption
     rationale: Representative two-hour battery for the 5 ha scenario; replace with the nameplate.
+    plausible_range: [0, 20000]
   hub.battery.max_charge_kw:
     value: 1000
     unit: kW
@@ -91,12 +111,14 @@ parameters:
     unit: 1/hour
     status: assumption
     rationale: Two-hour battery operating envelope; use the supplier's warranted C-rate in a real site profile.
+    plausible_range: [0.25, 2.0]
 
   hub.chp.electrical_capacity_kw:
     value: 1500
     unit: kWe
     status: assumption
     rationale: Representative mid-size greenhouse gas engine; replace with the installation nameplate.
+    plausible_range: [0, 10000]
   hub.chp.heat_to_power_ratio:
     value: 1.1
     unit: kWth/kWe
@@ -111,6 +133,7 @@ parameters:
     source: US EPA Catalog of CHP Technologies, reciprocating engines
     source_url: https://www.epa.gov/chp/catalog-chp-technologies
     rationale: Representative HHV electrical efficiency at this engine scale.
+    plausible_range: [0.30, 0.45]
   hub.chp.min_load_frac:
     value: 0.50
     unit: fraction
@@ -159,6 +182,7 @@ parameters:
     unit: fraction_HHV
     status: assumption
     rationale: Representative modern greenhouse boiler seasonal efficiency; measure or use supplier data.
+    plausible_range: [0.80, 0.98]
   hub.boiler.ramp_kw_per_hour:
     value: 8000
     unit: kW/hour
@@ -172,6 +196,7 @@ parameters:
     source: Derived from 1,500 m3 water and a 25 K working temperature difference
     source_url: https://www.hortinergy.com/knowledgebase/greenhouse-heating-system/
     rationale: Scenario derivation for about 300 m3/ha; replace with tank geometry and operating temperatures.
+    plausible_range: [0, 200000]
   hub.buffer.max_charge_kw:
     value: 3000
     unit: kWth
@@ -213,12 +238,14 @@ parameters:
     unit: fraction
     status: assumption
     rationale: Representative system performance ratio; calculate from the actual array under IEC 61724 practice.
+    plausible_range: [0.70, 0.90]
 
   hub.crop.dli_target_mol_m2:
     value: 10
     unit: mol/m2/day
     status: assumption
     rationale: Supplemental-light scenario target, not a universal tomato optimum.
+    plausible_range: [5, 30]
   hub.crop.dli_tolerance_mol_m2:
     value: 3
     unit: mol/m2/day
@@ -229,6 +256,7 @@ parameters:
     unit: degC
     status: assumption
     rationale: Conservative generic tomato lower limit; Tahir must set cultivar and growth-stage limits.
+    plausible_range: [12, 20]
   hub.crop.temp_max_c:
     value: 32
     unit: degC
@@ -236,11 +264,13 @@ parameters:
     source: Sato et al., high-temperature effects on tomato fruit set
     source_url: https://doi.org/10.1093/jxb/53.371.1187
     rationale: Generic upper stress boundary, not a crop-control setpoint.
+    plausible_range: [26, 35]
   hub.crop.rh_max_pct:
     value: 85
     unit: percent
     status: assumption
     rationale: Generic disease-risk ceiling; cultivar, airflow and condensation conditions matter.
+    plausible_range: [75, 95]
   hub.crop.co2_min_ppm:
     value: 300
     unit: ppm
@@ -294,11 +324,13 @@ parameters:
     unit: degC
     status: assumption
     rationale: Simplified development-model setpoint; not read from a grower climate strategy.
+    plausible_range: [17, 24]
   surrogate.setpoint_night_c:
     value: 16.5
     unit: degC
     status: assumption
     rationale: Simplified development-model setpoint; not read from a grower climate strategy.
+    plausible_range: [14, 20]
   surrogate.heat_loss_kw_per_m2_per_k:
     value: 0.0062
     unit: kW/m2/K

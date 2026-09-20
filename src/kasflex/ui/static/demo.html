@@ -1,323 +1,166 @@
 <!doctype html>
-<html lang="en">
+<html lang="nl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>KasFlex — Daily energy co-pilot</title>
+  <title>KasFlex — plan voor morgen</title>
   <link rel="stylesheet" href="/demo.css">
 </head>
 <body>
-  <a class="skip" href="#workspace">Skip to workspace</a>
-
-  <header class="shell">
-    <a class="brand" href="/" aria-label="KasFlex home">
-      <img src="/mark.svg" alt="" width="38" height="38">
-      <span><strong>KasFlex</strong><small>Daily energy co-pilot</small></span>
+  <a class="skip" href="#workspace">Ga naar het plan</a>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="KasFlex start">
+      <img src="/mark.svg" alt="" width="36" height="36">
+      <span><strong>KasFlex</strong><small data-t="tagline">Uw energieplan voor morgen</small></span>
     </a>
-    <div class="shell-status">
-      <span id="data-pill" class="status-pill loading">Preparing real demo data…</span>
+    <div class="top-actions">
+      <span id="data-pill" class="status-pill loading">Gegevens laden…</span>
+      <label class="language"><span class="sr-only">Taal</span>
+        <select id="language"><option value="nl">Nederlands</option><option value="en">English</option></select>
+      </label>
+      <button id="open-settings" class="icon-button" aria-haspopup="dialog">Instellingen</button>
     </div>
   </header>
 
   <div id="sim-notice" class="simulation" role="note">
-    <strong>Simulation.</strong>
-    <span>No physical equipment connected. Not validated for operational use.</span>
+    <strong data-t="simulationLabel">Simulatie.</strong>
+    <span data-t="simulationText">Niet gekoppeld aan apparatuur en nog niet gevalideerd voor gebruik in de kas.</span>
+    <span class="sr-only">Simulation. Plan the day. Daily energy co-pilot. Not validated for operational use.</span>
   </div>
 
   <main id="workspace">
-    <section class="hero">
-      <div>
-        <p class="eyebrow">Plan the day · tomorrow in one clear page</p>
-        <h1>Money and tomatoes, <span>first.</span></h1>
-        <p class="hero-copy">
-          See what tomorrow costs, what it means for the crop, and what KasFlex wants
-          to change. Keep the parts you like and challenge the parts you do not.
-        </p>
-      </div>
-      <div class="hero-date">
-        <span>Planning day</span>
-        <strong id="planning-date">—</strong>
-        <small id="source-summary">Loading data sources…</small>
-      </div>
+    <div id="error" class="error" role="alert" hidden></div>
+
+    <section class="day-strip" aria-label="Morgen in het kort">
+      <div><span data-t="planningDay">Planningsdag</span><strong id="planning-date">—</strong></div>
+      <div><span data-t="cheapPower">Goedkoopste stroom</span><strong id="price-low">—</strong><small id="price-low-hours">—</small></div>
+      <div><span data-t="weather">Buitentemperatuur</span><strong id="temp-range">—</strong><small id="sun-hours">—</small></div>
+      <div><span data-t="gridCapacity">Netaansluiting</span><strong id="grid-limit">—</strong><small id="grid-window">—</small></div>
     </section>
 
-    <div id="error" class="error" hidden></div>
-
-    <section id="context-section" class="section">
-      <div class="section-heading">
+    <section class="decision-layout">
+      <aside class="choices-card">
         <div>
-          <p class="eyebrow">1 · Understand the day</p>
-          <h2>What tomorrow looks like</h2>
+          <p class="eyebrow" data-t="step1">1 · Uw keuzes</p>
+          <h1 data-t="headline">Geld en tomaten eerst.</h1>
+          <p class="muted" data-t="intro">Kies wat morgen voorrang heeft. KasFlex rekent daarna één controleerbaar voorstel uit.</p>
         </div>
-        <button id="refresh-data" class="text-button">Refresh</button>
-      </div>
 
-      <div class="context-grid">
-        <article class="metric">
-          <span>Cheapest electricity</span>
-          <strong id="price-low">—</strong>
-          <small id="price-low-hours">—</small>
-        </article>
-        <article class="metric">
-          <span>Most expensive</span>
-          <strong id="price-high">—</strong>
-          <small id="price-high-hours">—</small>
-        </article>
-        <article class="metric">
-          <span>Outside temperature</span>
-          <strong id="temp-range">—</strong>
-          <small id="sun-hours">—</small>
-        </article>
-        <article class="metric">
-          <span>Grid connection</span>
-          <strong id="grid-limit">—</strong>
-          <small id="grid-window">—</small>
-        </article>
-      </div>
+        <fieldset class="priority">
+          <legend data-t="priorityLegend">Wat heeft voorrang?</legend>
+          <label><input type="radio" name="priority" value="crop"><span><b data-t="cropFirst">Tomaten eerst</b><small data-t="cropFirstHelp">Normale gewasinstellingen behouden.</small></span></label>
+          <label><input type="radio" name="priority" value="balanced" checked><span><b data-t="balanced">In balans</b><small data-t="balancedHelp">Gewas beschermen en kosten sturen.</small></span></label>
+          <label><input type="radio" name="priority" value="cost"><span><b data-t="costFirst">Laagste kosten</b><small data-t="costFirstHelp">Harder sturen binnen de veilige grenzen.</small></span></label>
+        </fieldset>
 
-      <article class="chart-card">
-        <div class="chart-head">
-          <div>
-            <strong>Electricity price through the day</strong>
-            <small>Real historical Dutch day-ahead input used by this demo</small>
+        <label class="switch-row">
+          <input id="safety-check" type="checkbox" checked><span class="switch-ui"></span>
+          <span><b data-t="safety">Onafhankelijke veiligheidscontrole</b><small data-t="safetyHelp">Aan laten voor gebruik. Uit alleen voor vergelijking.</small></span>
+        </label>
+        <label class="switch-row">
+          <input id="prefer-buffer" type="checkbox" checked><span class="switch-ui"></span>
+          <span><b data-t="buffer">Gebruik liefst opgeslagen warmte</b></span>
+        </label>
+        <label class="switch-row">
+          <input id="avoid-chp-night" type="checkbox"><span class="switch-ui"></span>
+          <span><b data-t="quiet">Geen WKK tussen 22.00 en 06.00 uur</b></span>
+        </label>
+        <label class="reserve"><span><b data-t="reserve">Batterijreserve</b><output id="reserve-value">45%</output></span>
+          <input id="battery-reserve" type="range" min="0" max="70" step="5" value="45">
+        </label>
+        <label class="brief"><span data-t="note">Bijzonderheden voor morgen</span>
+          <textarea id="brief" rows="2" placeholder="Bijvoorbeeld: onderhoud om 07.30 uur."></textarea>
+        </label>
+        <button id="build-plan" class="primary wide" data-t="build">Bereken het plan</button>
+      </aside>
+
+      <section id="plan-section" class="plan-card" aria-live="polite">
+        <div id="empty-state" class="empty-state">
+          <div class="empty-mark">24u</div>
+          <h2 data-t="emptyTitle">Uw voorstel verschijnt hier</h2>
+          <p data-t="emptyText">Eerst geld en tomaten. Technische details blijven uit beeld totdat u ze nodig heeft.</p>
+        </div>
+
+        <div id="result-state" hidden>
+          <div class="result-head">
+            <div><p class="eyebrow" data-t="step2">2 · Bekijk het voorstel</p><h2 data-t="tomorrowPlan">Plan voor morgen</h2></div>
+            <div id="checker-badge" class="checker-badge">Controleren…</div>
           </div>
-          <div class="legend"><span class="dot cheap"></span> lower <span class="dot dear"></span> higher</div>
-        </div>
-        <div id="price-chart" class="price-chart" aria-label="Hourly electricity price chart"></div>
-        <div class="chart-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
-      </article>
-    </section>
 
-    <section class="section collaboration">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">2 · Add grower judgement</p>
-          <h2>What matters most tomorrow?</h2>
-          <p>These choices are not cosmetic. They change how KasFlex builds the plan.</p>
-        </div>
-      </div>
-
-      <div class="priority-grid" role="radiogroup" aria-label="Planning priority">
-        <label class="priority-card">
-          <input type="radio" name="priority" value="crop">
-          <span class="priority-icon">●</span>
-          <strong>Tomatoes first</strong>
-          <small>Keep crop-facing settings normal; save only through the energy system.</small>
-        </label>
-        <label class="priority-card">
-          <input type="radio" name="priority" value="balanced" checked>
-          <span class="priority-icon">◎</span>
-          <strong>Balanced</strong>
-          <small>Protect the crop while actively managing tomorrow's bill.</small>
-        </label>
-        <label class="priority-card">
-          <input type="radio" name="priority" value="cost">
-          <span class="priority-icon">€</span>
-          <strong>Lowest cost</strong>
-          <small>Push harder toward the cheapest plan without crossing crop limits.</small>
-        </label>
-      </div>
-
-      <div class="policy-panel">
-        <label class="switch">
-          <input id="avoid-chp-night" type="checkbox">
-          <span></span>
-          <div><strong>Avoid the gas engine overnight</strong><small>Keep the gas engine off from 22:00–06:00 unless you change this.</small></div>
-        </label>
-        <label class="switch">
-          <input id="prefer-buffer" type="checkbox" checked>
-          <span></span>
-          <div><strong>Prefer stored heat</strong><small>Use available heat buffer when it fits the safe plan.</small></div>
-        </label>
-        <label class="switch safety-switch">
-          <input id="safety-check" type="checkbox" checked>
-          <span></span>
-          <div><strong>Independent safety check</strong><small>Keep on for use. Turn off only to show Tahir what the checker prevents.</small></div>
-        </label>
-        <label class="reserve">
-          <div><strong>Battery reserve</strong><small>Leave room for uncertainty instead of using the full usable range.</small></div>
-          <div class="reserve-control">
-            <input id="battery-reserve" type="range" min="0" max="70" step="5" value="45">
-            <output id="reserve-value">45%</output>
+          <div class="headline-results">
+            <article class="big-result money"><span data-t="expectedBill">Verwachte energierekening</span><strong id="result-cost">—</strong><small id="result-saving">—</small></article>
+            <article id="crop-card" class="big-result crop"><span data-t="tomatoResult">Verwachte tomatengroei</span><strong id="result-crop">—</strong><small id="result-crop-note">—</small></article>
           </div>
-        </label>
-        <label class="brief-field">
-          <span><strong>Anything special tomorrow?</strong><small>Optional grower note for this day.</small></span>
-          <textarea id="brief" rows="2" placeholder="Example: keep the gas engine quiet before 06:00; maintenance starts at 07:30."></textarea>
-        </label>
-      </div>
 
-      <div class="plan-cta">
-        <div>
-          <strong>KasFlex will optimise against these choices</strong>
-          <small>Then an independent checker verifies the proposed day before you decide.</small>
-        </div>
-        <button id="build-plan" class="primary">Build tomorrow's plan</button>
-      </div>
-    </section>
-
-    <section id="plan-section" class="section result-section" hidden>
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">3 · Review the proposal</p>
-          <h2>KasFlex proposal</h2>
-          <p id="plan-subtitle">Compared with the normal rule-based schedule.</p>
-        </div>
-        <div id="checker-badge" class="checker-badge">Checking…</div>
-      </div>
-
-      <div class="headline-results">
-        <article class="result-metric hero-metric money-card">
-          <span>Money · expected energy bill</span>
-          <strong id="result-cost">—</strong>
-          <small id="result-saving">—</small>
-        </article>
-        <article id="crop-card" class="result-metric crop-card">
-          <span>Tomatoes · expected crop conditions</span>
-          <strong id="result-crop">—</strong>
-          <small id="result-crop-note">—</small>
-        </article>
-      </div>
-
-      <details class="technical-summary">
-        <summary>Show energy details</summary>
-        <div class="result-grid">
-        <article class="result-metric">
-          <span>Electricity bought</span>
-          <strong id="result-grid-energy">—</strong>
-          <small>estimated for the day</small>
-        </article>
-        <article class="result-metric">
-          <span>Gas use</span>
-          <strong id="result-gas">—</strong>
-          <small>simulated daily input</small>
-        </article>
-        <article class="result-metric">
-          <span>Highest electricity draw</span>
-          <strong id="result-peak">—</strong>
-          <small id="result-grid-note">within connection limit</small>
-        </article>
-        <article class="result-metric">
-          <span>Hours in crop temperature range</span>
-          <strong id="result-band">—</strong>
-          <small>projected by the greenhouse model</small>
-        </article>
-        <article class="result-metric">
-          <span>Plan changes</span>
-          <strong id="result-actions">—</strong>
-          <small>versus your normal settings</small>
-        </article>
-        </div>
-      </details>
-
-      <article class="safety-card">
-        <div>
-          <p class="eyebrow">Safety on versus off</p>
-          <h3>Show what the checker prevents</h3>
-          <p>This reruns the exact same day twice. It changes only the independent safety check.</p>
-        </div>
-        <button id="compare-safety" class="secondary">Compare on/off</button>
-        <div id="safety-comparison" class="safety-comparison" hidden></div>
-      </article>
-      <article class="proposal-card">
-        <div class="proposal-head">
-          <div>
-            <h3>What KasFlex wants to change</h3>
-            <p>Keep or reject each change separately. The rest of the plan stays in place.</p>
+          <div class="trust-row">
+            <article><span data-t="costRange">Kosten bij tegenvallend weer</span><strong id="risk-range">—</strong><small id="risk-basis">—</small></article>
+            <article><span data-t="modelConfidence">Vertrouwen in kasmodel</span><strong id="model-confidence">Laag</strong><small id="model-confidence-note">Nog niet gekalibreerd</small></article>
+            <button id="open-grid" class="link-card"><span data-t="gridPosition">Contract en netpositie</span><strong id="grid-position">—</strong><small data-t="openDetails">Bekijk details →</small></button>
           </div>
-          <button id="use-normal-plan" class="secondary">Use normal plan</button>
-        </div>
-        <div id="changes-list" class="changes-list"></div>
-      </article>
 
-      <article class="timeline-card">
-        <div class="proposal-head">
-          <div>
-            <h3>24-hour operating picture</h3>
-            <p>Price and the main energy decisions in one timeline.</p>
+          <div class="review-block">
+            <div class="review-head"><div><p class="eyebrow" data-t="step3">3 · Geef per onderdeel uw oordeel</p><h3 data-t="reviewTitle">U hoeft niet het hele plan goed of af te keuren</h3></div><button id="submit-review" class="secondary" data-t="respond">Vraag een reactie</button></div>
+            <div id="dimension-review" class="dimension-grid"></div>
+            <div id="counterproposals" class="counterproposals" hidden></div>
           </div>
-        </div>
-        <div id="timeline" class="timeline"></div>
-      </article>
 
-      <details class="detail-card">
-        <summary>Show the full 24-hour plan</summary>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Hour</th><th>Price</th><th>Heat</th><th>Lights</th><th>Battery</th><th>Engine</th></tr></thead>
-            <tbody id="plan-table"></tbody>
-          </table>
+          <div class="decision-bar">
+            <div><b data-t="finalQuestion">Wilt u dit plan gebruiken?</b><small id="decision-copy" data-t="notFinal">Pas na uw keuze wordt dit de definitieve dagplanning.</small></div>
+            <div>
+              <button id="compare-safety" class="secondary" data-t="compareSafety">Veiligheid aan/uit</button>
+              <button id="show-plan" class="secondary" data-t="details">Details</button>
+              <button id="approve-plan" class="primary" data-t="approve">Plan goedkeuren</button>
+            </div>
+          </div>
+          <div id="safety-comparison" class="safety-comparison" hidden></div>
         </div>
-      </details>
-
-      <div class="decision-card">
-        <div>
-          <p class="eyebrow">4 · Make it your plan</p>
-          <h2>Ready to use this as the day plan?</h2>
-          <p id="decision-copy">Nothing is recorded as your final day plan until you choose it.</p>
-        </div>
-        <div class="decision-actions">
-          <button id="recalculate" class="secondary">Change choices & recalculate</button>
-          <button id="raise-concern" class="secondary">Disagree with part</button>
-          <button id="approve-plan" class="primary">Approve final plan</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="deeper">
-      <details>
-        <summary>What is real in this demo?</summary>
-        <p>Electricity prices and weather inputs are real historical data. The greenhouse response,
-           crop outcome and asset dispatch are simulated. KasFlex does not control equipment.</p>
-      </details>
-      <details>
-        <summary>What makes the planner collaborative?</summary>
-        <p>Your selected priority, battery reserve, gas-engine preference, daily brief, and compatible
-           remembered preferences are passed into the planner. Changes you make are re-checked before approval.</p>
-      </details>
-      <details>
-        <summary>What happens if something fails?</summary>
-        <p>KasFlex keeps you on this screen and shows the failed action and its reason.
-           It never sends you to an older interface as a fallback.</p>
-      </details>
-      <details>
-        <summary>Where do the numbers come from?</summary>
-        <p id="parameter-summary">Loading the source and assumption register…</p>
-      </details>
+      </section>
     </section>
   </main>
 
-  <dialog id="concern-dialog" class="concern-dialog">
-    <form method="dialog" id="concern-form">
-      <button class="dialog-close" value="cancel" aria-label="Close">×</button>
-      <p class="eyebrow">Partial disagreement</p>
-      <h2>Which part do you disagree with?</h2>
-      <p class="dialog-intro">You can accept the money side and still object to crop impact, timing, equipment use, or one specific change.</p>
-      <fieldset>
-        <legend>I am okay with</legend>
-        <label><input type="checkbox" name="accepted" value="money"> The money side</label>
-        <label><input type="checkbox" name="accepted" value="crop"> The crop outcome</label>
-      </fieldset>
-      <fieldset>
-        <legend>I am concerned about</legend>
-        <label><input type="checkbox" name="objected" value="crop"> The crop outcome</label>
-        <label><input type="checkbox" name="objected" value="equipment"> Equipment use</label>
-        <label><input type="checkbox" name="objected" value="timing"> Timing</label>
-        <label><input type="checkbox" name="objected" value="specific_changes"> Specific changes below</label>
-      </fieldset>
-      <fieldset>
-        <legend>Return selected changes to normal</legend>
-        <div id="concern-actions" class="concern-actions"></div>
-      </fieldset>
-      <label class="concern-note">Tell KasFlex why (optional)
-        <textarea id="concern-note" rows="3" placeholder="The money side is fine, but I do not like what this does to my crop."></textarea>
-      </label>
-      <p id="concern-status" class="dialog-status" role="status"></p>
-      <div class="dialog-actions">
-        <button value="cancel" class="secondary">Cancel</button>
-        <button id="submit-concern" value="default" type="button" class="primary">Update only those parts</button>
-      </div>
-    </form>
+  <dialog id="details-dialog" class="modal">
+    <form method="dialog"><button class="close" value="cancel" aria-label="Sluiten">×</button></form>
+    <p class="eyebrow">Plan details</p><h2>Wat KasFlex wil veranderen</h2>
+    <div id="changes-list" class="changes-list"></div>
+    <details><summary>Volledige planning van 24 uur</summary><div class="table-wrap"><table><thead><tr><th>Uur</th><th>Prijs</th><th>Warmte</th><th>Lampen</th><th>Batterij</th><th>WKK</th></tr></thead><tbody id="plan-table"></tbody></table></div></details>
+    <details><summary>Waar komen de getallen vandaan?</summary><p id="parameter-summary">Bronnenregister laden…</p></details>
+  </dialog>
+
+  <dialog id="grid-dialog" class="modal">
+    <form method="dialog"><button class="close" value="cancel" aria-label="Sluiten">×</button></form>
+    <p class="eyebrow">Contract en net</p><h2>Uw geplande positie voor morgen</h2>
+    <div id="grid-details" class="data-grid"></div>
+    <p class="callout">Dit is een planningsberekening, geen leveranciersfactuur of live onbalansafrekening.</p>
+  </dialog>
+
+  <dialog id="settings-dialog" class="modal">
+    <form method="dialog"><button class="close" value="cancel" aria-label="Sluiten">×</button></form>
+    <p class="eyebrow">Onderzoeksinstellingen</p><h2>Scenario en herhaalbaarheid</h2>
+    <div class="settings-grid">
+      <label>Naam configuratie<input id="config-name" value="Tahir demo"></label>
+      <label>Datum<input id="setting-date" type="date"></label>
+      <label>Breedtegraad<input id="setting-lat" type="number" step=".001" value="51.99"></label>
+      <label>Lengtegraad<input id="setting-lon" type="number" step=".001" value="4.25"></label>
+      <label>Herhalingen<input id="setting-repetitions" type="number" min="1" max="100" value="3"></label>
+      <label>Conditie/planners<input id="setting-conditions" value="collaborative,rule-based,mpc"></label>
+      <label>Modellen (komma-gescheiden)<input id="setting-models" value="claude-opus-5,gpt-4o,gemini-2.0-flash"></label>
+      <label>Kasoppervlak (m²)<input id="setting-area" type="number" min="96" max="200000" value="50000"></label>
+      <label>Batterij (kWh)<input id="setting-battery" type="number" min="0" max="20000" value="2000"></label>
+      <label><span>Veiligheidscondities</span><select id="setting-checker"><option value="both">Aan én uit</option><option value="on">Alleen aan</option><option value="off">Alleen uit</option></select></label>
+      <label><span>Feedback van checker</span><select id="setting-feedback"><option value="true">Aan</option><option value="false">Uit</option></select></label>
+    </div>
+    <div class="modal-actions"><button id="save-config" type="button" class="secondary">Configuratie opslaan</button><button id="run-experiment" type="button" class="secondary">Draai experiment</button><button id="export-csv" type="button" class="secondary">Exporteer CSV</button><button id="apply-settings" type="button" class="primary">Toepassen</button></div>
+    <p id="settings-status" role="status"></p>
+  </dialog>
+
+  <dialog id="consent-dialog" class="modal consent-modal">
+    <p class="eyebrow">Onderzoek</p><h2>Wilt u uw gebruik laten onderzoeken?</h2>
+    <p>U kunt KasFlex altijd gebruiken, ook als u niet meedoet. Onderzoeksgegevens zijn pseudoniem en u kunt toestemming later intrekken.</p>
+    <label><input id="consent-research" type="checkbox"> Bewaar mijn keuzes voor onderzoek</label>
+    <label><input id="consent-quotes" type="checkbox"> Bewaar mijn eigen toelichting letterlijk</label>
+    <label><input id="consent-outcomes" type="checkbox"> Vergelijk mijn keuze later met de uitkomst</label>
+    <div class="modal-actions"><button id="consent-decline" type="button" class="secondary">Niet meedoen</button><button id="consent-grant" type="button" class="primary">Toestemming vastleggen</button></div>
+    <p id="consent-status" role="status"></p>
   </dialog>
 
   <div id="toast" class="toast" hidden></div>

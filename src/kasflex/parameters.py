@@ -121,15 +121,16 @@ def parameter_registry(config: ScenarioConfig | None = None) -> dict[str, Any]:
 def render_markdown(config: ScenarioConfig | None = None) -> str:
     registry = parameter_registry(config)
     lines = [
-        "| Parameter | Current value | Unit | Status | Source or rationale |",
-        "|---|---:|---|---|---|",
+        "| Parameter | Current value | Plausible range | Unit | Status | Source or rationale |",
+        "|---|---:|---|---|---|---|",
     ]
     for row in registry["parameters"]:
         source = row.get("source") or row["rationale"]
         if row.get("source_url"):
             source = f"[{source}]({row['source_url']}) — {row['rationale']}"
         lines.append(
-            f"| `{row['path']}` | {row['configured_value']} | {row.get('unit', '')} | "
+            f"| `{row['path']}` | {row['configured_value']} | "
+            f"{row.get('plausible_range', 'site-specific')} | {row.get('unit', '')} | "
             f"{row['status']} | {source} |"
         )
     return "\n".join(lines) + "\n"

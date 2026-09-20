@@ -51,6 +51,7 @@ from kasflex.conversation import (
 from kasflex.fair import DatasetMetadata, build_bundle, conflict_table, to_csv
 from kasflex.forecast.cost import project_cost
 from kasflex.intent import IntentSchemaError, IntervalIntent, Plan
+from kasflex.interactions import InteractionLog
 from kasflex.llm_providers import (
     PROVIDERS,
     LlmError,
@@ -159,6 +160,13 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
     {"path": "hub.contract.export_limit_kw", "label": "Grid export limit", "kind": "number",
      "min": 0, "max": 20000, "step": 100, "unit": "kW",
      "help": "Feed-in limit. Often lower than import, and zero under a non-firm contract."},
+    {"path": "hub.contract.contracted_base_volume_kwh", "label": "Contracted day volume",
+     "kind": "number", "min": 0, "max": 500000, "step": 100, "unit": "kWh",
+     "help": "Energy already contracted for this day; replace the demo assumption."},
+    {"path": "hub.contract.contracted_price_eur_kwh", "label": "Contract price",
+     "kind": "number", "min": -1, "max": 10, "step": 0.001, "unit": "€/kWh"},
+    {"path": "hub.contract.imbalance_spread_eur_kwh", "label": "Settlement spread",
+     "kind": "number", "min": 0, "max": 10, "step": 0.001, "unit": "€/kWh"},
 
     {"path": "hub.battery.capacity_kwh", "label": "Battery capacity", "kind": "number",
      "min": 0, "max": 20000, "step": 100, "unit": "kWh"},
@@ -426,6 +434,7 @@ class UiServer:
     memory: GrowerMemory = field(init=False)
     reliance: RelianceLog = field(init=False)
     consent: ConsentLog = field(init=False)
+    interactions: InteractionLog = field(init=False)
     profiles: ProfileStore = field(init=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
@@ -436,6 +445,7 @@ class UiServer:
         self.memory = GrowerMemory(resolve_output(self.base.memory_path))
         self.reliance = RelianceLog(resolve_output(self.base.memory_path))
         self.consent = ConsentLog(resolve_output("results/consent.sqlite3"))
+        self.interactions = InteractionLog(resolve_output("results/interactions.sqlite3"))
         self.profiles = ProfileStore(resolve_output("results/profiles"))
 
     # -- what this plan changes, against normal settings --------------------
@@ -796,40 +806,100 @@ class UiServer:
         return {**proposal, "pref_id": stored.pref_id}
 
     def respond_to_concern(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Acknowledge a scoped objection without rejecting the whole plan."""
-        self.reviews.current(payload)
-        allowed = {"money", "crop", "equipment", "timing", "specific_changes"}
+        """Answer each dimension separately and keep the rest of the plan intact."""
+        _, current = self.reviews.current(payload)
+        allowed = {"money", "crop", "grid", "work"}
         accepted = {str(value) for value in payload.get("accepted_aspects", [])}
         objected = {str(value) for value in payload.get("objected_aspects", [])}
-        unknown = (accepted | objected) - allowed
+        unsure = {str(value) for value in payload.get("unsure_aspects", [])}
+        unknown = (accepted | objected | unsure) - allowed
         if unknown:
             raise ApiError(f"Unknown concern aspect(s): {sorted(unknown)}")
-        if accepted & objected:
+        accepted_objected = accepted & objected
+        if accepted_objected:
             raise ApiError("An aspect cannot be both accepted and objected to.")
-        if not objected:
-            raise ApiError("Choose at least one part of the plan you disagree with.")
+        overlaps = (accepted & unsure) | (objected & unsure)
+        if overlaps:
+            raise ApiError("A dimension can have only one answer.")
+        # Older clients sent only the dimensions the grower actively judged.
+        # Treat the omitted dimensions as unsure, while the current UI always
+        # asks all four explicitly.
+        unsure |= allowed - accepted - objected
         note = str(payload.get("comment", "")).strip()[:2000]
         action_ids = [str(value) for value in payload.get("rejected_action_ids", [])][:20]
-
-        if "crop" in objected and "money" in accepted:
-            answer = ("Understood: the money side can stay, but crop impact is not accepted. "
-                      "Only the selected changes were returned to normal settings and the "
-                      "revised plan must pass the safety check before approval.")
-        elif action_ids:
-            answer = ("Understood. The rest of the plan can stay; only the selected changes "
-                      "were returned to normal settings and re-checked.")
-        else:
-            answer = ("Understood. This concern applies only to the selected part of the plan. "
-                      "Choose the affected changes below; the rest can remain in place.")
+        overrides = payload.get("overrides") or {}
+        config = _apply_overrides(self.base, overrides)
+        dutch = i18n.normalise(config.language) == "nl"
+        normal = current.get("normal_settings") or {}
+        current_metrics = current.get("metrics") or {}
+        cost_delta = float(normal.get("net_cost_eur", 0.0)) - float(
+            current_metrics.get("net_cost_eur", 0.0))
+        crop_delta = None
+        actions = current.get("actions") or []
+        all_action_ids = [str(item.get("action_id")) for item in actions if item.get("action_id")]
+        proposals = {
+            "money": {
+                "title": ("Behoud het goedkopere plan, maar verhoog de reserve" if dutch else
+                          "Keep the lower-cost plan, but increase the reserve"),
+                "rationale": ("Zo blijft de besparing staan en is er meer ruimte voor "
+                              "voorspelfouten." if dutch else
+                              "This protects the saving while leaving more room "
+                              "for forecast error."),
+                "cost_delta_eur": 0.0, "crop_delta_kg_m2": 0.0,
+                "affected_action_ids": [],
+            },
+            "crop": {
+                "title": ("Zet gewasgerichte wijzigingen terug naar normaal" if dutch else
+                          "Return crop-facing changes to normal"),
+                "rationale": (("Normale gewasinstellingen maken het plan minder afhankelijk "
+                               "van het model; daarna volgt opnieuw de veiligheidscontrole.")
+                              if dutch else
+                              ("Normal crop settings reduce model dependence; the safety "
+                               "check runs again.")),
+                "cost_delta_eur": round(cost_delta, 2),
+                "crop_delta_kg_m2": crop_delta,
+                "affected_action_ids": all_action_ids,
+            },
+            "grid": {
+                "title": ("Houd meer afstand tot de aansluitgrens" if dutch else
+                          "Keep more distance from the connection limit"),
+                "rationale": ("Gebruik normale instellingen in gewijzigde uren en controleer "
+                              "de piek opnieuw." if dutch else
+                              "Use the normal settings for changed hours and re-check the peak."),
+                "cost_delta_eur": round(cost_delta, 2),
+                "crop_delta_kg_m2": crop_delta,
+                "affected_action_ids": all_action_ids,
+            },
+            "work": {
+                "title": ("Gebruik de vertrouwde normale planning" if dutch else
+                          "Use the familiar normal schedule"),
+                "rationale": ("Dit verwijdert de voorgestelde wijzigingen en houdt een "
+                              "gecontroleerd plan over." if dutch else
+                              "This removes the proposed operating changes while "
+                              "retaining a checked plan."),
+                "cost_delta_eur": round(cost_delta, 2),
+                "crop_delta_kg_m2": crop_delta,
+                "affected_action_ids": all_action_ids,
+            },
+        }
+        counterproposals = [{"dimension": key, **proposals[key]}
+                            for key in sorted(objected | unsure)]
+        answer = (("De geaccepteerde onderdelen blijven staan. KasFlex heeft voor elke "
+                   "twijfel of afwijzing een apart, berekend alternatief gemaakt. Na een "
+                   "wijziging volgt altijd opnieuw de veiligheidscontrole.") if dutch else
+                  ("The money side can stay; the dimensions you accepted remain unchanged. "
+                   "KasFlex prepared a separate, quantified response for every concern. "
+                   "Applying an alternative creates a new revision that must pass the "
+                   "safety check again."))
 
         stored_id = None
-        overrides = payload.get("overrides") or {}
         if self._may_record(overrides, "research"):
             run_id = str(payload.get("run_id"))
             self.memory.add_turn(
                 run_id, "grower", note or f"Concern about {', '.join(sorted(objected))}",
                 meta={"kind": "scoped_concern", "accepted_aspects": sorted(accepted),
                       "objected_aspects": sorted(objected),
+                      "unsure_aspects": sorted(unsure),
                       "rejected_action_ids": action_ids})
             preference = self.memory.add_preference(
                 f"Review {', '.join(sorted(objected))} separately from the rest of the plan",
@@ -838,8 +908,39 @@ class UiServer:
                 source="grower", origin_run_id=run_id,
                 origin_revision=int(payload.get("revision", 0)), confirmed=True)
             stored_id = preference.pref_id
+            responses = {
+                **{dimension: "agree" for dimension in accepted},
+                **{dimension: "unsure" for dimension in unsure},
+                **{dimension: "disagree" for dimension in objected},
+            }
+            by_dimension = {proposal["dimension"]: proposal for proposal in counterproposals}
+            for dimension in sorted(allowed):
+                counter = by_dimension.get(dimension)
+                self.interactions.append({
+                    "session_id": run_id,
+                    "participant_id": config.participant_id or "anonymous",
+                    "scenario_id": f"{config.name}/{current.get('date', config.date)}",
+                    "plan_id": str(payload.get("plan_hash")),
+                    "model_id": f"{config.llm_provider}/{config.llm_model}",
+                    "dimension": dimension,
+                    "initial_response": responses[dimension],
+                    "ai_counter_response": counter or {},
+                    "final_response": responses[dimension],
+                    "time_to_first_response_s": payload.get("time_to_first_response_s"),
+                    "time_to_final_response_s": payload.get("time_to_final_response_s"),
+                    "expansions": payload.get("expansions") or [],
+                    "why_clicks": payload.get("why_clicks") or [],
+                    "edits": action_ids,
+                    "reason": note,
+                    "confidence": (payload.get("confidence") or {}).get(dimension),
+                    "final_accepted": dimension in accepted,
+                    "outcome_shown": False,
+                    "outcome_better": None,
+                    "outcome_worse": None,
+                })
         return {"answer": answer, "accepted_aspects": sorted(accepted),
                 "objected_aspects": sorted(objected),
+                "unsure_aspects": sorted(unsure), "counterproposals": counterproposals,
                 "rejected_action_ids": action_ids, "preference_id": stored_id}
 
     # -- conflict and compromise -------------------------------------------
@@ -1279,13 +1380,20 @@ class UiServer:
                 provenance={"data_source": config.data_source, "via": "ui",
                             "actuals_available": getattr(day, "actuals_available", False),
                             "series": getattr(day, "sources", {})},
-                planning_metadata={"policy": compiled_policy},
+                planning_metadata={
+                    "policy": compiled_policy,
+                    "model": {"provider": config.llm_provider, "model": config.llm_model,
+                              "sampling": {"max_tokens": 8000, "temperature": None}},
+                },
             )
         except NotImplementedError as exc:
             raise ApiError(str(exc), status=501) from exc
 
         conditions, _ = _conditions_for(config, greenhouse, day.forecast)
         hard = result.realised_hard_violations
+        cost_forecast = project_cost(result.plan, config.hub, day.forecast, greenhouse)
+        from kasflex.grid_position import position as grid_position  # noqa: PLC0415
+        uncertainty = self._uncertainty(config, result.plan, conditions, greenhouse)
         response = {
             "date": result.date,
             "planner": result.planner,
@@ -1300,8 +1408,9 @@ class UiServer:
             "realised_hard": hard,
             "realised_projected": len(result.realised_violations) - hard,
             "metrics": result.metrics,
-            "uncertainty": self._uncertainty(config, result.plan, conditions, greenhouse),
-            "cost_forecast": project_cost(result.plan, config.hub, day.forecast, greenhouse),
+            "uncertainty": uncertainty,
+            "cost_forecast": cost_forecast,
+            "grid_position": grid_position(config.hub.contract, cost_forecast),
             **self._against_normal(config, result, conditions, greenhouse),
             "plan": _plan_payload(result.plan, conditions),
             "elapsed_s": round(time.time() - started, 2),
@@ -1314,6 +1423,12 @@ class UiServer:
                 "soc_init_kwh": config.hub.battery.soc_init_kwh,
             },
             "policy": compiled_policy,
+            "model_execution": {
+                "provider": config.llm_provider,
+                "model": config.llm_model,
+                "sampling": {"max_tokens": 8000, "temperature": None},
+                "planner_uses_model": config.planner == "llm",
+            },
         }
         snapshot = {"config": dataclasses.asdict(config),
                     "forecast": [dataclasses.asdict(c) for c in day.forecast],
@@ -1377,6 +1492,8 @@ class UiServer:
 
         comparison = self._against_normal(
             config, SimpleNamespace(plan=plan, metrics=metrics), conditions, greenhouse)
+        cost_forecast = project_cost(plan, config.hub, forecast, greenhouse)
+        from kasflex.grid_position import position as grid_position  # noqa: PLC0415
         response = {
             "accepted": verdict.accepted,
             "checker_enabled": True,
@@ -1384,7 +1501,9 @@ class UiServer:
             "feedback": verdict.feedback(explain=config.checker.explain),
             "violations": [v.to_dict() for v in verdict.violations],
             "metrics": metrics,
-            "cost_forecast": project_cost(plan, config.hub, forecast, greenhouse),
+            "cost_forecast": cost_forecast,
+            "grid_position": grid_position(config.hub.contract, cost_forecast),
+            "uncertainty": self._uncertainty(config, plan, conditions, greenhouse),
             **comparison,
         }
         if reference:
@@ -1429,6 +1548,48 @@ class UiServer:
             except ApiError as exc:
                 rows.append({"planner": name, "error": str(exc)})
         return {"rows": rows}
+
+    def run_experiment(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Run a bounded, reproducible planner/checker matrix from the setup UI."""
+        planners = [str(value) for value in payload.get("planners", [])][:8]
+        if not planners:
+            raise ApiError("Choose at least one planner condition.")
+        allowed = {"collaborative", "rule-based", "learned", "naive", "mpc", "llm"}
+        unknown = sorted(set(planners) - allowed)
+        if unknown:
+            raise ApiError(f"Unknown planner condition(s): {unknown}")
+        try:
+            repetitions = int(payload.get("repetitions", 1))
+        except (TypeError, ValueError) as exc:
+            raise ApiError("Repetitions must be a whole number.") from exc
+        if not 1 <= repetitions <= 100:
+            raise ApiError("Repetitions must be between 1 and 100.")
+        checker_mode = str(payload.get("checker", "both"))
+        checker_values = [False, True] if checker_mode == "both" else [checker_mode != "off"]
+        feedback = payload.get("feedback") is not False
+        base_overrides = dict(payload.get("overrides") or {})
+        rows: list[dict[str, Any]] = []
+        for planner in planners:
+            for enabled in checker_values:
+                for repetition in range(repetitions):
+                    cell = {**base_overrides, "planner": planner, "seed": repetition,
+                            "checker.enabled": enabled, "checker.explain": feedback}
+                    try:
+                        result = self.run(cell, persist=False)
+                        metrics = result.get("metrics") or {}
+                        rows.append({
+                            "planner": planner, "checker_enabled": enabled,
+                            "repetition": repetition, "cost_eur": metrics.get("net_cost_eur"),
+                            "growth_kg_m2": metrics.get("fruit_growth_kg_m2"),
+                            "peak_import_kw": metrics.get("peak_import_kw"),
+                            "accepted": result.get("accepted"), "error": "",
+                            "model_execution": result.get("model_execution"),
+                        })
+                    except Exception as exc:  # noqa: BLE001 - preserve other cells
+                        rows.append({"planner": planner, "checker_enabled": enabled,
+                                     "repetition": repetition, "error": str(exc)})
+        return {"rows": rows, "errors": sum(bool(row.get("error")) for row in rows),
+                "models_requested": [str(value) for value in payload.get("models", [])]}
 
     def compare_safety(self, overrides: dict[str, Any],
                        policy: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -1554,6 +1715,8 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/reliance"):
                 query = dict(parse_qsl(urlsplit(self.path).query))
                 self._json(self.ui.reliance_metrics(query.get("condition", "")))
+            elif self.path == "/api/interactions":
+                self._json({"interactions": self.ui.interactions.export()})
             elif self.path.startswith("/api/elicitations"):
                 query = dict(parse_qsl(urlsplit(self.path).query))
                 self._json(self.ui.list_elicitations(query.get("run_id", "")))
@@ -1638,6 +1801,9 @@ class _Handler(BaseHTTPRequestHandler):
                 ))
             elif self.path == "/api/safety-comparison":
                 self._json(self.ui.compare_safety(overrides, body.get("policy")))
+            elif self.path == "/api/experiment":
+                with self.ui._lock:
+                    self._json(self.ui.run_experiment(body))
             elif self.path == "/api/explain":
                 self._json(self.ui.explain(body))
             elif self.path == "/api/suggested-questions":
