@@ -79,7 +79,7 @@ class ScheduleScore:
             return (10**9, INFEASIBLE, INFEASIBLE)
         stored = -self.buffer_discharge_kwh if prefer_stored_heat else 0.0
         if mode == "grid":
-            return (self.margin_violations, self.peak_import_kw, self.cost_eur, stored)
+            return (self.peak_import_kw, self.margin_violations, self.cost_eur, stored)
         if mode == "cost":
             return (self.margin_violations, self.cost_eur, self.peak_import_kw, stored)
         # Balanced: cost still matters, but a very peaky plan pays a visible penalty.
