@@ -278,6 +278,45 @@ def test_the_checker_catches_what_disabling_it_lets_through(ui):
     assert on["fell_back"] is True
 
 
+def test_collaborative_demo_can_run_with_checker_on_or_off(ui):
+    on = ui.run({"planner": "collaborative", "checker.enabled": True})
+    off = ui.run({"planner": "collaborative", "checker.enabled": False})
+    assert on["checker_enabled"] is True
+    assert off["checker_enabled"] is False
+
+
+def test_crop_disagreement_returns_a_crop_specific_alternative(ui):
+    run = ui.run(
+        {"planner": "collaborative", "data_source": "synthetic"},
+        policy={"priority": "balanced", "battery_reserve_pct": 45},
+    )
+    reply = ui.deliberate({
+        "run_id": run["run_id"],
+        "revision": run["revision"],
+        "plan_hash": run["plan_hash"],
+        "dimension": "crop",
+        "response": "disagree",
+    })
+    assert reply["dimension"] == "crop"
+    assert reply["response"] == "disagree"
+    assert reply["alternative"] is not None
+    assert reply["alternative"]["policy"]["priority"] == "crop"
+    assert "crop" in reply["counter_response"].lower()
+
+
+def test_agreeing_with_one_dimension_does_not_regenerate_the_plan(ui):
+    run = ui.run({"planner": "collaborative", "data_source": "synthetic"})
+    reply = ui.deliberate({
+        "run_id": run["run_id"],
+        "revision": run["revision"],
+        "plan_hash": run["plan_hash"],
+        "dimension": "money",
+        "response": "agree",
+    })
+    assert reply["alternative"] is None
+    assert reply["response"] == "agree"
+
+
 # --- decisions (R25, R26) --------------------------------------------------
 
 
