@@ -487,3 +487,32 @@ def test_prepare_demo_refuses_when_neither_network_nor_cache_have_a_day(monkeypa
     monkeypatch.setattr("kasflex.data.demo.prepare_real_demo", fake)
     with pytest.raises(ApiError, match="did not silently substitute"):
         ui.prepare_demo({})
+
+
+def test_every_numeric_default_sits_inside_its_own_adjustable_range(ui):
+    """A default outside its own min/max makes the browser form invalid on load.
+
+    The research UI gates "Generate daily plan" behind form validity, so a field
+    whose shipped default violates its own bounds silently disables planning --
+    the button appears to do nothing. This bit us once: the heat buffer default
+    moved to 43 600 kWh when it was sourced against Dutch practice, while the
+    slider still capped at 40 000. Tests that call ui.run() directly never see
+    it, because they bypass the browser.
+    """
+    offenders = []
+    for field in ui.get_settings()["fields"]:
+        if field["kind"] not in {"number", "int"}:
+            continue
+        value = field.get("value")
+        if not isinstance(value, (int, float)):
+            continue
+        low, high = field.get("min"), field.get("max")
+        if low is not None and value < low:
+            offenders.append(f"{field['path']}={value} below min {low}")
+        if high is not None and value > high:
+            offenders.append(f"{field['path']}={value} above max {high}")
+    assert not offenders, (
+        "these fields ship a default outside their own adjustable range, which "
+        "makes the configuration form invalid on load and blocks planning: "
+        + ", ".join(offenders)
+    )
