@@ -126,6 +126,24 @@ def test_validate_tells_the_user_when_the_dataset_is_missing(tmp_path, capsys):
     assert "measured/YYYY-MM-DD.csv" in err
 
 
+def test_validate_refuses_measured_data_without_a_replay(tmp_path, capsys):
+    root = tmp_path / "agc2"
+    measured = root / "measured"
+    measured.mkdir(parents=True)
+    (measured / "2019-01-15.csv").write_text(
+        "heating_kwh,electricity_kwh,co2_kg\n120,80,55\n"
+    )
+
+    assert main([
+        "validate",
+        "--cache-dir", str(tmp_path),
+        "--greenhouse", "surrogate",
+    ]) == 2
+    err = capsys.readouterr().err
+    assert "Validation has NOT been completed" in err
+    assert "replay" in err.lower()
+
+
 def test_validate_runs_a_real_replay_and_writes_numeric_results(tmp_path):
     """A measured day is only publishable after a simulator replay ran."""
     root = tmp_path / "agc2"
