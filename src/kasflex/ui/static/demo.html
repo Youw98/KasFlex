@@ -74,6 +74,14 @@
             <label><input id="prefer-buffer" type="checkbox" checked><span data-i18n="policy.buffer">Prefer stored heat</span></label>
             <label class="reserve"><span data-i18n="policy.reserve">Battery reserve</span><input id="battery-reserve" type="range" min="0" max="70" step="5" value="45"><output id="reserve-value">45%</output></label>
           </div>
+          <label class="checker-toggle">
+            <span>
+              <strong data-i18n="checker.toggle">Independent safety check</strong>
+              <small data-i18n="checker.toggle.note">Keep this on for the grower plan. Turn it off only to demonstrate what the checker prevents.</small>
+            </span>
+            <input id="checker-enabled" type="checkbox" checked>
+            <span class="switch-ui" aria-hidden="true"></span>
+          </label>
           <label class="brief"><span data-i18n="policy.brief">Anything special tomorrow?</span><textarea id="brief" rows="2" data-i18n-placeholder="policy.brief.placeholder" placeholder="Maintenance, noise, crop work, staffing…"></textarea></label>
         </article>
 
