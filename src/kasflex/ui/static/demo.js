@@ -21,7 +21,13 @@ function euro(value, digits=0) {
 }
 function cents(value) { return (Number(value || 0) * 100).toFixed(1) + " ct/kWh"; }
 function hours(list) { return (list || []).map(h => String(h).padStart(2,"0")+":00").join(", "); }
-function showError(error) { const box=$("error"); box.hidden=false; box.textContent=String(error.message||error); box.scrollIntoView({behavior:"smooth",block:"center"}); }
+function showError(error, action="This action") {
+  const box=$("error");
+  const reason=String(error && error.message ? error.message : error || "Unknown error");
+  box.hidden=false;
+  box.textContent=`${action} failed: ${reason}`;
+  box.scrollIntoView({behavior:"smooth",block:"center"});
+}
 function clearError(){ $("error").hidden=true; }
 function toast(text){ const el=$("toast"); el.textContent=text; el.hidden=false; clearTimeout(el._t); el._t=setTimeout(()=>el.hidden=true,3200); }
 
@@ -59,7 +65,7 @@ async function loadContext() {
   } catch (error) {
     $("data-pill").className="status-pill loading";
     $("data-pill").textContent="Demo data unavailable";
-    showError(error);
+    showError(error, "Preparing the real demo data");
   } finally {
     $("refresh-data").disabled=false;
   }
@@ -106,7 +112,7 @@ async function buildPlan() {
     renderResult(result);
     $("plan-section").hidden=false;
     $("plan-section").scrollIntoView({behavior:"smooth",block:"start"});
-  } catch(error){showError(error)}
+  } catch(error){showError(error, "Building tomorrow's plan")}
   finally{state.busy=false;btn.disabled=false;btn.textContent=old}
 }
 
@@ -171,7 +177,7 @@ async function verifyPlan(rows, message) {
     const revised=await api("/api/verify",payload);
     state.run=revised; state.currentPlan=(revised.plan||[]).map(r=>({...r}));
     renderResult(revised); toast(message);
-  }catch(error){showError(error)}
+  }catch(error){showError(error, "Checking your plan change")}
 }
 
 async function applyNormalForAction(action){
@@ -235,7 +241,7 @@ async function approve(){
     await api("/api/decision",{run_id:state.run.run_id,revision:state.run.revision,plan_hash:state.run.plan_hash,decision:"approve",comment:"Approved in team demo"});
     $("decision-copy").textContent="Approved. This revision is now recorded as the final day plan.";
     btn.textContent="✓ Approved";toast("Final plan approved.");
-  }catch(error){showError(error);btn.disabled=false}
+  }catch(error){showError(error, "Approving the final plan");btn.disabled=false}
 }
 
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
