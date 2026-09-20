@@ -66,9 +66,9 @@
   "consent.participant": "Deelnemer-ID",
   "consent.anonymous": "Anoniem doorgaan",
   "consent.study": "Toestemming geven & doorgaan",
-  "decision.crop": "Gesimuleerde gewasopbrengst",
+  "decision.crop": "Gesimuleerde tomatengroei",
   "checker.toggle": "Onafhankelijke veiligheidscheck",
-  "checker.toggle.note": "Laat dit aan voor het telersplan. Zet het alleen uit om te laten zien wat de checker voorkomt.",
+  "checker.toggle.note": "Laat deze aan voor het telerplan. Zet hem alleen uit om te laten zien wat de checker voorkomt.",
   "validation.pending": "Modelvalidatie nog niet uitgevoerd",
   "validation.ready": "Validatie met meetdata beschikbaar"
 }
