@@ -15,6 +15,7 @@ from kasflex.adapters.greenhouse import SurrogateGreenhouse
 from kasflex.checker.rules import SafetyChecker
 from kasflex.config import ScenarioConfig
 from kasflex.controllers.base import PlanningContext
+from kasflex.controllers.collaborative import CollaborativePlanner
 from kasflex.controllers.rule_based import RuleBasedPlanner
 from kasflex.controllers.scheduler import (
     LearnedPlanner,
@@ -139,6 +140,43 @@ def test_margin_keeps_storage_away_from_its_limits(setup):
 
 # --- the planner -----------------------------------------------------------
 
+
+
+def test_collaborative_planner_uses_structured_grower_policy(setup):
+    hub, history = setup
+    base = _context(hub, history, 35)
+    planner = CollaborativePlanner()
+    context = PlanningContext(
+        date=base.date,
+        forecast=base.forecast,
+        hub=base.hub,
+        metadata={"policy": {
+            "priority": "balanced",
+            "avoid_chp_night": True,
+            "battery_reserve_pct": 45,
+        }},
+    )
+    plan = planner.plan(context)
+    for hour in (22, 23, 0, 1, 2, 3, 4, 5):
+        assert plan.intervals[hour].chp_mode == "off"
+        assert plan.intervals[hour].heat_source != "chp"
+    assert planner.last_policy["priority"] == "balanced"
+
+
+def test_grid_priority_does_not_raise_peak_import(setup):
+    hub, history = setup
+    base = _context(hub, history, 40)
+    cost = CollaborativePlanner().plan(PlanningContext(
+        date=base.date, forecast=base.forecast, hub=base.hub,
+        metadata={"policy": {"priority": "cost", "battery_reserve_pct": 35}},
+    ))
+    grid = CollaborativePlanner().plan(PlanningContext(
+        date=base.date, forecast=base.forecast, hub=base.hub,
+        metadata={"policy": {"priority": "grid", "battery_reserve_pct": 35}},
+    ))
+    cost_score = score_plan(cost, hub, base.forecast)
+    grid_score = score_plan(grid, hub, base.forecast)
+    assert grid_score.peak_import_kw <= cost_score.peak_import_kw + 1e-6
 
 def test_learned_planner_beats_the_rule_based_baseline(setup):
     hub, history = setup
