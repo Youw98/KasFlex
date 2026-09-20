@@ -1608,6 +1608,111 @@ class UiServer:
                                                      operator=saved["operator"])
         return {"recorded": True, "anonymous": self.anonymous, **saved}
 
+    def run_experiment_batch(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Run a configurable experiment matrix from the browser."""
+
+        import csv
+        import io
+
+        from kasflex.checker.rules import CheckerConfig  # noqa: PLC0415
+        from kasflex.experiment import (  # noqa: PLC0415
+            Condition,
+            ExperimentMatrix,
+            summarise,
+        )
+
+        overrides = payload.get("overrides") or {}
+        config = _apply_overrides(self.base, overrides)
+        try:
+            days = int(payload.get("days", 3))
+        except (TypeError, ValueError) as exc:
+            raise ApiError("Repetitions must be a whole number.") from exc
+        if not 1 <= days <= 30:
+            raise ApiError("Repetitions must be between 1 and 30.")
+
+        allowed = {"collaborative", "rule-based", "learned", "naive", "llm"}
+        planners = [str(p) for p in (payload.get("planners") or ["collaborative", "rule-based"])]
+        if not planners or set(planners) - allowed:
+            raise ApiError(f"Planners must be chosen from {sorted(allowed)}.")
+
+        checker_modes = payload.get("checker_modes") or ["verified"]
+        if not set(checker_modes) <= {"verified", "unverified"}:
+            raise ApiError("Checker modes must be verified and/or unverified.")
+        explain = payload.get("feedback", True) is not False
+
+        conditions = []
+        for planner in planners:
+            for mode in checker_modes:
+                enabled = mode == "verified"
+                label = f"{planner}-{mode}" + ("" if explain else "-silent")
+                conditions.append(
+                    Condition(
+                        label=label,
+                        planner=planner,
+                        checker=CheckerConfig(
+                            enabled=enabled,
+                            explain=explain,
+                            max_revisions=config.checker.max_revisions,
+                            fail_on_projected=config.checker.fail_on_projected,
+                            excluded_checks=config.checker.excluded_checks,
+                        ),
+                    )
+                )
+
+        stamp = int(time.time())
+        output = resolve_output(f"results/experiments/batch-{stamp}.jsonl")
+        records = ExperimentMatrix(
+            config=config,
+            conditions=conditions,
+            days=days,
+            output_path=str(output),
+            continue_on_error=True,
+        ).run(verbose=False)
+        summary = summarise(records)
+
+        stream = io.StringIO()
+        writer = csv.writer(stream)
+        writer.writerow(
+            [
+                "condition",
+                "runs",
+                "mean_cost_eur",
+                "mean_violations",
+                "hard_violations",
+                "fallback_rate",
+                "mean_peak_import_kw",
+            ]
+        )
+        for label, row in summary.items():
+            writer.writerow(
+                [
+                    label,
+                    row.get("runs"),
+                    row.get("mean_cost_eur"),
+                    row.get("mean_violations"),
+                    row.get("hard_violations"),
+                    row.get("fallback_rate"),
+                    row.get("mean_peak_import_kw"),
+                ]
+            )
+        return {
+            "summary": summary,
+            "records": len(records),
+            "output_path": str(output),
+            "csv": stream.getvalue(),
+            "settings": {
+                "days": days,
+                "planners": planners,
+                "checker_modes": checker_modes,
+                "feedback": explain,
+                "date": config.date,
+                "latitude": config.latitude,
+                "longitude": config.longitude,
+                "model": {"provider": config.llm_provider, "model": config.llm_model},
+            },
+        }
+
+
     def compare(self, overrides: dict[str, Any], planners: list[str]) -> dict[str, Any]:
         """Run several planners on the identical scenario (R29)."""
         rows = []
@@ -1804,6 +1909,9 @@ class _Handler(BaseHTTPRequestHandler):
                     overrides,
                     body.get("planners") or ["rule-based", "learned", "naive"],
                 ))
+            elif self.path == "/api/experiment":
+                with self.ui._lock:
+                    self._json(self.ui.run_experiment_batch(body))
             elif self.path == "/api/deliberate":
                 with self.ui._lock:
                     self._json(self.ui.deliberate(body))
