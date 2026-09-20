@@ -533,11 +533,34 @@ class UiServer:
         dear = sorted(range(24), key=lambda h: prices[h], reverse=True)[:4]
         sun_hours = sum(1 for value in irradiance if value >= 50.0)
 
+        provenance: dict[str, Any] = {}
+        if config.data_source in {"cache", "demo"}:
+            from kasflex.data.cache import DataCache  # noqa: PLC0415
+
+            site = f"{config.latitude:.3f}_{config.longitude:.3f}"
+            entries = DataCache().entries()
+            keys = {
+                "prices": f"entsoe_da_{config.date}",
+                "forecast_weather": f"weather_forecast_{config.date}_{site}",
+                "actual_weather": f"weather_actual_{config.date}_{site}",
+            }
+            for role, key in keys.items():
+                entry = entries.get(key)
+                if entry is not None:
+                    provenance[role] = {
+                        "dataset_key": entry.dataset_key,
+                        "source": entry.source,
+                        "licence": entry.licence,
+                        "retrieved_on": entry.retrieved_on,
+                        "sha256": entry.sha256,
+                    }
+
         return {
             "date": config.date,
             "data_source": config.data_source,
             "actuals_available": getattr(day, "actuals_available", False),
             "sources": getattr(day, "sources", {}),
+            "provenance": provenance,
             "price": {
                 "min_eur_kwh": min(prices),
                 "max_eur_kwh": max(prices),
