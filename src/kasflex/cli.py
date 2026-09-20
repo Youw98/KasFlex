@@ -1,15 +1,17 @@
 """Command line interface.
 
-Five commands, each of which does one thing:
+Six commands, each of which does one thing:
 
     kasflex run         one scenario, printed as a plan the operator can read
     kasflex experiment  the full matrix, unattended, writing structured records
     kasflex verify      check a plan file against a scenario's limits
+    kasflex validate    compare the greenhouse model against measured AGC data
     kasflex datasets    the data provenance registry
     kasflex doctor      what is installed and what is missing
 
 ``run`` and ``experiment`` work offline on a bare clone with no API key and no
-downloads, which is acceptance criteria 2 and 7.
+downloads, which is acceptance criteria 2 and 7. ``validate`` requires the AGC
+dataset on disk; it explains where to get it when the dataset is missing.
 """
 
 from __future__ import annotations
@@ -320,6 +322,42 @@ def cmd_datasets(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_validate(args: argparse.Namespace) -> int:
+    """Compare the greenhouse model against measured AGC data (stage 1)."""
+    from kasflex.validation import (
+        DatasetMissing,
+        instructions_when_missing,
+        validate_against_agc,
+        write_validation_doc,
+    )
+
+    try:
+        report = validate_against_agc(args.cache_dir, simulate_day=None)
+    except DatasetMissing:
+        # Not an error to the shell -- an explanation. Print the message and
+        # exit with code 2 (dataset missing) so a scripted caller can tell
+        # this apart from an accidental non-zero.
+        print(instructions_when_missing(args.cache_dir), file=sys.stderr)
+        return 2
+
+    if report.days_compared == 0:
+        print(
+            "AGC folder exists but no daily CSVs were readable. "
+            "See kasflex validate --help.",
+            file=sys.stderr,
+        )
+        return 2
+
+    print(f"Compared {report.days_compared} day(s) against {report.dataset}.")
+    print("Deviations (simulated - measured):\n")
+    print(report.to_markdown())
+
+    if args.write_doc:
+        write_validation_doc(report, args.write_doc)
+        print(f"Wrote {args.write_doc}")
+    return 0
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     print("KasFlex environment check\n")
     import importlib.util
@@ -433,6 +471,21 @@ def main(argv: list[str] | None = None) -> int:
     p_daily.add_argument("--offline", action="store_true", help="run from cache only")
     p_daily.add_argument("--output", default="results/daily.jsonl")
     p_daily.set_defaults(func=cmd_daily)
+
+    p_val = sub.add_parser(
+        "validate",
+        help="compare the greenhouse model against measured AGC data (stage 1)",
+    )
+    p_val.add_argument(
+        "--cache-dir", default="data/cache",
+        help="root that holds agc2/measured/*.csv",
+    )
+    p_val.add_argument(
+        "--write-doc", default=None,
+        help="also write the deviation table into this docs file "
+             "(usually docs/VALIDATION.md)",
+    )
+    p_val.set_defaults(func=cmd_validate)
 
     p_doc = sub.add_parser("doctor", help="check the environment")
     p_doc.set_defaults(func=cmd_doctor)

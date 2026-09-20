@@ -208,6 +208,7 @@ table would measure nothing.
 | `kasflex.data.sources` | ENTSO-E and Open-Meteo fetchers; parsers pure and testable. |
 | `kasflex.data.pipeline` | The daily job: cache-first, offline-safe, idempotent. |
 | `kasflex.oversight` | Approval, edits, append-only audit log. |
+| `kasflex.validation` | Greenhouse-model deviation table against AGC measurements (stage 1). |
 | `kasflex.llm_providers` | Pluggable model transports: Anthropic, OpenAI, Gemini, Ollama, any OpenAI-compatible endpoint. |
 | `kasflex.memory` | Grower preferences, human/AI conflicts and conversation, append-only. |
 | `kasflex.conversation` | Explaining a plan, extracting a preference from an objection, proposing a compromise. |

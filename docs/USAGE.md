@@ -153,6 +153,21 @@ kasflex verify --plan my_plan.json
 Exit code 0 if accepted, 1 if rejected, 2 if the file is not a plan. Rejections name
 the constraint, the hour, the actual value and the feasible bound.
 
+## Validate the greenhouse model against measured data
+
+```bash
+kasflex validate --write-doc docs/VALIDATION.md
+```
+
+Compares KasFlex's greenhouse model to the [Autonomous Greenhouse Challenge
+2nd edition](https://doi.org/10.4121/uuid:88d22c60-21b3-4ea8-90db-20249a5be2a7)
+measured series. When the dataset is not on disk the command explains where
+to get it, how to lay it out, and stops with exit code 2 — nothing is
+downloaded silently. Once the dataset is present, `--write-doc` updates the
+deviation table in [`docs/VALIDATION.md`](VALIDATION.md) in place, between
+machine markers, so history carries the measurement. Every KasFlex result
+is stamped `greenhouse_validated: false` until this table exists.
+
 ## Run it automatically every day
 
 The daily job fetches whatever the cache is missing, plans the next day, and
