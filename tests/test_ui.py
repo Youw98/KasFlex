@@ -440,7 +440,7 @@ def test_api_run_over_http(live):
 
 
 def test_a_bad_override_returns_400(live):
-    status, payload = _post(live + "/api/run", {"overrides": {"hub.pv.peak_kw": 1}})
+    status, payload = _post(live + "/api/run", {"overrides": {"hub.unknown_field": 1}})
     assert status == 400
     assert "not adjustable" in payload["error"]
 
