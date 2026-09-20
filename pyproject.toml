@@ -38,6 +38,7 @@ grid = ["power-grid-model>=1.10", "power-grid-model-ds>=1.5"]
 data = ["pandas>=2.0", "pyarrow>=15", "entsoe-py>=0.6", "requests>=2.32"]
 # Language-model planners. Any subset may be installed.
 llm = ["anthropic>=0.40"]
+mcp = ["mcp>=2,<3"]
 dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6"]
 
 [project.urls]
