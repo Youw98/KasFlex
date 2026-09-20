@@ -267,10 +267,11 @@ function renderDecision(run, {preserveDimensions=false}={}) {
       : (state.lang === "nl" ? "Vlak" : "Flat");
   $("result-position").textContent = direction;
   $("result-settlement").textContent = `${euro(position.settlement_eur || 0)} ${state.lang === "nl" ? "spotafrekening" : "spot settlement"}`;
-  $("result-peak").textContent = `${(Number(run.metrics?.peak_import_kw || 0)/1000).toFixed(2)} MW`;
-  $("result-grid-note").textContent = state.context
-    ? `${(Number(state.context.grid.import_limit_kw || 0)/1000).toFixed(1)} MW ${state.lang === "nl" ? "contract" : "contract"}`
-    : "";
+  const crop = Number(run.metrics?.fruit_growth_kg_m2 || 0);
+  $("result-crop").textContent = `${crop.toFixed(2)} kg/m²`;
+  $("result-crop-note").textContent = state.lang === "nl"
+    ? "modeluitkomst · nog niet gevalideerd"
+    : "model output · not yet validated";
 
   const badge = $("checker-badge");
   if (run.checker_enabled && run.accepted) {
@@ -518,7 +519,14 @@ function renderChanges(run) {
     title.textContent = action.title || "Change";
     const why = document.createElement("small");
     why.textContent = action.why || "";
-    item.append(title, why);
+    const alternative = document.createElement("small");
+    alternative.className = "alternative";
+    const value = action.baseline_value || "normal";
+    const saving = Number(action.saving_eur || 0);
+    alternative.textContent = state.lang === "nl"
+      ? `Alternatief: normale regeling (${value}). Grove bijdrage aan dagverschil: ${euro(Math.abs(saving))}.`
+      : `Alternative: normal control (${value}). Rough share of whole-day difference: ${euro(Math.abs(saving))}.`;
+    item.append(title, why, alternative);
     root.append(item);
   }
 }
