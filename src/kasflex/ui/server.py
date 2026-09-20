@@ -41,7 +41,6 @@ from kasflex.checker.rules import SafetyChecker
 from kasflex.config import ConfigError, ScenarioConfig
 from kasflex.consent import SCOPES as CONSENT_SCOPES
 from kasflex.consent import ConsentLog
-from kasflex.deliberation import DIMENSIONS, RESPONSES, DeliberationLog
 from kasflex.conversation import (
     PlanContext,
     PlanExplainer,
@@ -49,6 +48,7 @@ from kasflex.conversation import (
     extract_preference,
     propose_compromise,
 )
+from kasflex.deliberation import DIMENSIONS, RESPONSES, DeliberationLog
 from kasflex.fair import DatasetMetadata, build_bundle, conflict_table, to_csv
 from kasflex.forecast.cost import project_cost
 from kasflex.intent import IntentSchemaError, IntervalIntent, Plan
