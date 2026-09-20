@@ -112,7 +112,7 @@ PUBLIC_DEMO_PRICE_META = SourceMeta(
 OPENMETEO_ARCHIVE_META = SourceMeta(
     source=OPENMETEO_ARCHIVE,
     licence="CC-BY 4.0 (Open-Meteo free tier)",
-    dataset_key="knmi_hourly",
+    dataset_key="openmeteo_archive",
 )
 
 
