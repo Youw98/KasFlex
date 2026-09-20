@@ -11,7 +11,7 @@ demo with no model account configured.
 
 from __future__ import annotations
 
-import dataclasses
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from kasflex.controllers.base import PlanningContext
@@ -79,17 +79,17 @@ def _apply_blackout(plan: Plan, forbidden: tuple[int, ...]) -> Plan:
             changes["heat_source"] = "boiler"
         if iv.co2_source == "chp":
             changes["co2_source"] = "liquid"
-        intervals.append(dataclasses.replace(iv, **changes))
-    return dataclasses.replace(plan, intervals=tuple(intervals))
+        intervals.append(replace(iv, **changes))
+    return replace(plan, intervals=tuple(intervals))
 
 
-@dataclasses.dataclass
+@dataclass
 class CollaborativePlanner:
     """Optimise one real day while keeping the grower's structured choices visible."""
 
     name: str = "collaborative"
-    last_policy: dict[str, Any] = dataclasses.field(default_factory=dict, init=False)
-    last_diagnostics: dict[str, float | str] = dataclasses.field(default_factory=dict, init=False)
+    last_policy: dict[str, Any] = field(default_factory=dict, init=False)
+    last_diagnostics: dict[str, float | str] = field(default_factory=dict, init=False)
 
     def plan(self, context: PlanningContext) -> Plan:
         policy = _policy(context)
@@ -120,7 +120,7 @@ class CollaborativePlanner:
             f"battery reserve={policy['battery_reserve_pct']:.0f}%; "
             f"CHP blocked in {len(policy['avoid_chp_hours'])} hour(s)."
         )
-        return dataclasses.replace(
+        return replace(
             best,
             planner=self.name,
             brief=context.brief,
