@@ -186,6 +186,8 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
 
     {"path": "hub.buffer.capacity_kwh", "label": "Heat buffer", "kind": "number",
      "min": 0, "max": 40000, "step": 500, "unit": "kWh"},
+    {"path": "hub.pv.peak_kw", "label": "PV peak power", "kind": "number",
+     "min": 0, "max": 20000, "step": 100, "unit": "kWp"},
     {"path": "hub.crop.dli_target_mol_m2", "label": "Light target", "kind": "number",
      "min": 0, "max": 30, "step": 0.5, "unit": "mol/m2",
      "help": "Supplemental daily light integral the crop needs."},
@@ -1479,6 +1481,7 @@ class UiServer:
                             "series": getattr(day, "sources", {}),
                             "llm_provider": config.llm_provider,
                             "llm_model": config.llm_model,
+                            "llm_sampling": {"temperature": None, "mode": "provider_default"},
                             "language": config.language},
                 planning_metadata={"policy": compiled_policy},
             )
@@ -1527,7 +1530,7 @@ class UiServer:
                 "planner": result.planner,
                 "provider": config.llm_provider,
                 "model": config.llm_model,
-                "sampling": {"temperature": 0.0},
+                "sampling": {"temperature": None, "mode": "provider_default"},
             },
             **self._against_normal(config, result, conditions, greenhouse),
             "plan": _plan_payload(result.plan, conditions),
