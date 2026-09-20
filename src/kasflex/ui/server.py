@@ -41,6 +41,7 @@ from kasflex.checker.rules import SafetyChecker
 from kasflex.config import ConfigError, ScenarioConfig
 from kasflex.consent import SCOPES as CONSENT_SCOPES
 from kasflex.consent import ConsentLog
+from kasflex.deliberation import DIMENSIONS, RESPONSES, DeliberationLog
 from kasflex.conversation import (
     PlanContext,
     PlanExplainer,
@@ -431,6 +432,7 @@ class UiServer:
     reviews: ReviewStore = field(init=False)
     memory: GrowerMemory = field(init=False)
     reliance: RelianceLog = field(init=False)
+    deliberation: DeliberationLog = field(init=False)
     consent: ConsentLog = field(init=False)
     profiles: ProfileStore = field(init=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
@@ -441,6 +443,7 @@ class UiServer:
         self.reviews = ReviewStore(resolve_output("results/reviews.sqlite3"))
         self.memory = GrowerMemory(resolve_output(self.base.memory_path))
         self.reliance = RelianceLog(resolve_output(self.base.memory_path))
+        self.deliberation = DeliberationLog(resolve_output("results/deliberation.sqlite3"))
         self.consent = ConsentLog(resolve_output("results/consent.sqlite3"))
         self.profiles = ProfileStore(resolve_output("results/profiles"))
 
@@ -844,6 +847,228 @@ class UiServer:
         except LlmError as exc:
             raise ApiError(str(exc), status=502) from exc
         return result
+
+    # -- dimension-level deliberation ----------------------------------------
+
+    @staticmethod
+    def _model_id(run: dict[str, Any]) -> str:
+        model = run.get("model") or {}
+        provider = str(model.get("provider") or "")
+        name = str(model.get("model") or "")
+        planner = str(model.get("planner") or run.get("planner") or "unknown")
+        if provider and name:
+            return f"{provider}:{name}"
+        return planner
+
+    @staticmethod
+    def _counter_response(
+        dimension: str,
+        current: dict[str, Any],
+        alternative: dict[str, Any],
+        language: str,
+    ) -> str:
+        nl = i18n.normalise(language) == "nl"
+        before = current.get("metrics") or {}
+        after = alternative.get("metrics") or {}
+        if dimension == "money":
+            old = float(before.get("net_cost_eur", 0) or 0)
+            new = float(after.get("net_cost_eur", 0) or 0)
+            delta = new - old
+            if nl:
+                return (
+                    f"U bent het niet eens over de kosten. Ik heb opnieuw gepland met kosten "
+                    f"als eerste doel. De geschatte dagkosten gaan van €{old:,.0f} naar "
+                    f"€{new:,.0f} ({delta:+,.0f}). Wilt u deze kostenvariant gebruiken?"
+                )
+            return (
+                f"You disagree about the money. I rebuilt the plan with expected cost as "
+                f"the first objective. Estimated daily cost moves from €{old:,.0f} to "
+                f"€{new:,.0f} ({delta:+,.0f}). Use this cost-first alternative?"
+            )
+        if dimension == "crop":
+            old_dli = float(before.get("supplemental_dli_mol_m2", before.get("dli_mol_m2", 0)) or 0)
+            new_dli = float(after.get("supplemental_dli_mol_m2", after.get("dli_mol_m2", 0)) or 0)
+            old_cost = float(before.get("net_cost_eur", 0) or 0)
+            new_cost = float(after.get("net_cost_eur", 0) or 0)
+            if nl:
+                return (
+                    f"U bent het niet eens over gewasbescherming. Ik heb de planning opnieuw "
+                    f"gemaakt met gewasmarge vóór kosten. Aanvullend licht verandert van "
+                    f"{old_dli:.1f} naar {new_dli:.1f} mol/m²; de kosten veranderen met "
+                    f"€{new_cost-old_cost:+,.0f}. Wilt u deze gewasvariant gebruiken?"
+                )
+            return (
+                f"You disagree about crop protection. I rebuilt the plan with crop margin "
+                f"ahead of cost. Supplemental light moves from {old_dli:.1f} to "
+                f"{new_dli:.1f} mol/m²; expected cost changes by €{new_cost-old_cost:+,.0f}. "
+                f"Use this crop-first alternative?"
+            )
+        if dimension == "grid":
+            old_peak = float(before.get("peak_import_kw", 0) or 0)
+            new_peak = float(after.get("peak_import_kw", 0) or 0)
+            if nl:
+                return (
+                    f"U bent het niet eens over het net. Ik heb opnieuw gepland met de "
+                    f"importpiek als eerste doel. De piek verandert van {old_peak/1000:.2f} "
+                    f"naar {new_peak/1000:.2f} MW. Wilt u deze netvariant gebruiken?"
+                )
+            return (
+                f"You disagree about grid impact. I rebuilt the plan with peak import as "
+                f"the first objective. The peak moves from {old_peak/1000:.2f} to "
+                f"{new_peak/1000:.2f} MW. Use this grid-relief alternative?"
+            )
+
+        if nl:
+            return (
+                "U zegt dat het plan niet goed bij de praktijk past. Ik heb een variant "
+                "gemaakt die de WKK 's nachts vermijdt en opgeslagen warmte eerst gebruikt. "
+                "Wilt u deze praktische variant gebruiken?"
+            )
+        return (
+            "You say the plan does not fit day-to-day practice. I made an alternative that "
+            "avoids CHP overnight and prefers stored heat first. Use this practical variant?"
+        )
+
+    def deliberate(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Respond to one grower opinion without silently replacing the whole plan."""
+
+        dimension = str(payload.get("dimension") or "").lower()
+        response = str(payload.get("response") or "").lower()
+        if dimension not in DIMENSIONS:
+            raise ApiError(f"dimension must be one of {DIMENSIONS}")
+        if response not in RESPONSES:
+            raise ApiError(f"response must be one of {RESPONSES}")
+
+        snapshot, current = self.reviews.current(payload)
+        overrides = dict(current.get("overrides") or {})
+        language = i18n.normalise(str(overrides.get("language") or self.base.language))
+        alternative = None
+
+        if response == "agree":
+            counter = (
+                "Genoteerd. Dit onderdeel blijft zoals het is."
+                if language == "nl"
+                else "Noted. I will keep this dimension as it is."
+            )
+        elif response == "unsure":
+            counter = (
+                "Nog niets aangepast. Bekijk de reden en de onzekere uren voordat u kiest."
+                if language == "nl"
+                else "I have not changed anything yet. Review the reasoning and uncertain "
+                     "hours before you decide."
+            )
+        else:
+            policy = dict(current.get("policy") or {})
+            if dimension == "money":
+                policy["priority"] = "cost"
+            elif dimension == "crop":
+                policy["priority"] = "crop"
+                policy["battery_reserve_pct"] = max(
+                    55.0, float(policy.get("battery_reserve_pct", 45) or 45)
+                )
+            elif dimension == "grid":
+                policy["priority"] = "grid"
+            else:
+                policy["priority"] = "balanced"
+                policy["avoid_chp_night"] = True
+                policy["prefer_stored_heat"] = True
+
+            alt_overrides = {
+                **overrides,
+                "date": current.get("date", snapshot["config"]["date"]),
+                "data_source": current.get("data_source", snapshot["config"]["data_source"]),
+                "planner": "collaborative",
+                "language": language,
+            }
+            alternative = self.run(alt_overrides, policy)
+            counter = self._counter_response(dimension, current, alternative, language)
+
+        participant = str(payload.get("participant_id") or "")
+        session_id = str(payload.get("session_id") or "")
+        recorded = False
+        if session_id:
+            may_record = not participant or self._may_record(
+                {**overrides, "participant_id": participant}, "research"
+            )
+            if may_record:
+                self.deliberation.record(
+                    stage="initial",
+                    session_id=session_id,
+                    participant_id=participant,
+                    scenario_id=str(snapshot["config"].get("name", "")),
+                    plan_id=f"{current['run_id']}:{current['revision']}",
+                    model_id=self._model_id(current),
+                    dimension=dimension,
+                    initial_response=response,
+                    ai_counter_response=counter,
+                    time_to_first_response_s=payload.get("time_to_first_response_s"),
+                    detail_expansions=int(payload.get("detail_expansions", 0) or 0),
+                    why_clicks=int(payload.get("why_clicks", 0) or 0),
+                    edits_made=int(payload.get("edits_made", 0) or 0),
+                    edit_parameters=payload.get("edit_parameters") or {},
+                    free_text_reason=str(payload.get("reason") or ""),
+                    ai_confidence_shown=str(
+                        (current.get("uncertainty") or {}).get("confidence", "")
+                    ),
+                )
+                recorded = True
+
+        return {
+            "dimension": dimension,
+            "response": response,
+            "counter_response": counter,
+            "alternative": alternative,
+            "recorded": recorded,
+        }
+
+    def finalise_deliberation(self, payload: dict[str, Any]) -> dict[str, Any]:
+        dimension = str(payload.get("dimension") or "").lower()
+        final_response = str(payload.get("final_response") or "").lower()
+        if dimension not in DIMENSIONS or final_response not in RESPONSES:
+            raise ApiError("invalid dimension or final response")
+
+        snapshot, current = self.reviews.current(payload)
+        participant = str(payload.get("participant_id") or "")
+        session_id = str(payload.get("session_id") or "")
+        overrides = dict(current.get("overrides") or {})
+        recorded = False
+        if session_id:
+            may_record = not participant or self._may_record(
+                {**overrides, "participant_id": participant}, "research"
+            )
+            if may_record:
+                self.deliberation.record(
+                    stage="final",
+                    session_id=session_id,
+                    participant_id=participant,
+                    scenario_id=str(snapshot["config"].get("name", "")),
+                    plan_id=f"{current['run_id']}:{current['revision']}",
+                    model_id=self._model_id(current),
+                    dimension=dimension,
+                    initial_response=str(payload.get("initial_response") or ""),
+                    ai_counter_response=str(payload.get("ai_counter_response") or ""),
+                    final_response=final_response,
+                    time_to_first_response_s=payload.get("time_to_first_response_s"),
+                    time_to_final_decision_s=payload.get("time_to_final_decision_s"),
+                    detail_expansions=int(payload.get("detail_expansions", 0) or 0),
+                    why_clicks=int(payload.get("why_clicks", 0) or 0),
+                    edits_made=int(payload.get("edits_made", 0) or 0),
+                    edit_parameters=payload.get("edit_parameters") or {},
+                    free_text_reason=str(payload.get("reason") or ""),
+                    ai_confidence_shown=str(
+                        (current.get("uncertainty") or {}).get("confidence", "")
+                    ),
+                    plan_accepted_finally=payload.get("plan_accepted_finally"),
+                    outcome_shown=payload.get("outcome_shown") is True,
+                    outcome_better_or_worse_than_expected=str(
+                        payload.get("outcome_better_or_worse_than_expected") or ""
+                    ),
+                )
+                recorded = True
+        return {"recorded": recorded, "dimension": dimension, "final_response": final_response}
+
+    def list_deliberations(self, session_id: str = "") -> dict[str, Any]:
+        return {"records": self.deliberation.export(session_id)}
 
     # -- consent -------------------------------------------------------------
 
@@ -1497,6 +1722,9 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/elicitations"):
                 query = dict(parse_qsl(urlsplit(self.path).query))
                 self._json(self.ui.list_elicitations(query.get("run_id", "")))
+            elif self.path.startswith("/api/deliberations"):
+                query = dict(parse_qsl(urlsplit(self.path).query))
+                self._json(self.ui.list_deliberations(query.get("session_id", "")))
             elif self.path == "/api/profiles":
                 self._json(self.ui.list_profiles())
             elif self.path.startswith("/api/profiles/export/"):
@@ -1576,6 +1804,12 @@ class _Handler(BaseHTTPRequestHandler):
                     overrides,
                     body.get("planners") or ["rule-based", "learned", "naive"],
                 ))
+            elif self.path == "/api/deliberate":
+                with self.ui._lock:
+                    self._json(self.ui.deliberate(body))
+            elif self.path == "/api/deliberate/final":
+                with self.ui._lock:
+                    self._json(self.ui.finalise_deliberation(body))
             elif self.path == "/api/explain":
                 self._json(self.ui.explain(body))
             elif self.path == "/api/suggested-questions":
