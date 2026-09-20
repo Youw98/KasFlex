@@ -44,19 +44,19 @@ hub:
 
   chp:
     electrical_capacity_kw: 1500
-    heat_to_power_ratio: 1.2
-    electrical_efficiency: 0.40
+    heat_to_power_ratio: 1.1
+    electrical_efficiency: 0.375
     min_run_hours: 2
     min_down_hours: 2
     ramp_kw_per_hour: 1500
-    co2_kg_per_kwh_e: 0.45
+    co2_kg_per_kwh_e: 0.50
 
   boiler:
     thermal_capacity_kw: 8000
     efficiency: 0.90
 
   buffer:
-    capacity_kwh: 8000
+    capacity_kwh: 43600
     max_charge_kw: 3000
     max_discharge_kw: 3000
 
@@ -67,7 +67,7 @@ hub:
     dli_target_mol_m2: 10.0
     dli_tolerance_mol_m2: 3.0
     temp_min_c: 15.0
-    temp_max_c: 34.0
+    temp_max_c: 32.0
     rh_max_pct: 85.0
 
 checker:

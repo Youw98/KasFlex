@@ -39,13 +39,35 @@ DEFAULT_CONFIG = str(default_config_path())
 
 
 def _load_day(config: ScenarioConfig, seed: int | None = None):
-    """Load the scenario's conditions. Synthetic today; cached series in stage 3."""
+    """Load the scenario's conditions from synthetic data or the download cache."""
     if config.data_source == "cache":
-        raise SystemExit(
-            "data_source: cache is not wired up yet. The cache and its provenance "
-            "manifest exist (see kasflex.data.cache), but the ENTSO-E and Open-Meteo "
-            "fetchers land in stage 3 of the MVP plan. Use data_source: synthetic."
-        )
+        from datetime import date as Date
+        from types import SimpleNamespace
+
+        from kasflex.data.pipeline import ensure_day
+        from kasflex.data.sources import FetchError
+
+        try:
+            target = Date.fromisoformat(config.date)
+        except ValueError as exc:
+            raise SystemExit(f"Invalid date: {config.date}") from exc
+        try:
+            data = ensure_day(
+                target,
+                latitude=config.latitude,
+                longitude=config.longitude,
+                gas_price_eur_kwh=config.gas_price_eur_kwh,
+                entsoe_zone=config.entsoe_zone,
+                allow_network=False,
+            )
+        except FetchError as exc:
+            raise SystemExit(
+                f"Real data is not available for {config.date}. "
+                f"Run `kasflex fetch --date {config.date}` first.\n  {exc}"
+            ) from exc
+        forecast, actual = data.conditions()
+        return SimpleNamespace(forecast=forecast, actual=actual)
+
     return synthetic_day(
         config.date,
         seed=config.seed if seed is None else seed,
@@ -339,6 +361,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from kasflex.api_connections import ApiConnections
+    from kasflex.resources import resolve_output
+
+    ApiConnections(resolve_output(".env"))
     # Double-clicking the packaged application passes no arguments. A bare
     # argparse would print usage to a console window that closes instantly, so
     # a frozen build with no arguments opens the interface instead -- which is
