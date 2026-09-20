@@ -36,14 +36,19 @@ whole-plan regeneration.
    electricity-price and weather context first.
 4. Choose what matters to the grower: **Balanced**, **Lowest cost**, or
    **Grid relief**, plus battery reserve and operating preferences.
-5. Click **Build tomorrow's plan**.
-6. Respond separately to **saves money**, **protects the crop**, **respects the
+5. Keep the **independent safety check** on for the real grower decision. Switch it
+   off only to demonstrate which hard violations the checker prevents.
+6. Click **Build tomorrow's plan**.
+7. Respond separately to **saves money**, **protects the crop**, **respects the
    grid**, and **fits how I work**.
-7. Disagree with one dimension to see KasFlex produce a targeted alternative and
-   the trade-off. Approval unlocks only after all four dimensions have been reviewed.
+8. Disagree with one dimension to see KasFlex produce a targeted alternative and
+   the trade-off. Approval unlocks only after all four dimensions have been reviewed
+   and the current revision passes the checker.
 
 The prepared real-input day is cached with provenance and checksums. Later demo
-runs reuse it instead of silently substituting synthetic data.
+runs reuse it instead of silently substituting synthetic data. A separate badge
+shows the greenhouse-model validation state: it stays **pending** until a finite
+measured AGC2 replay has actually been published.
 
 | Platform | Release file |
 |---|---|
