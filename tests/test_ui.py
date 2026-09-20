@@ -320,8 +320,10 @@ def test_team_demo_buttons_are_wired_and_do_not_link_to_legacy_ui():
     for button_id in button_ids:
         assert f'$("{button_id}").addEventListener' in script, button_id
 
-    assert 'href="/advanced"' not in html
-    assert 'href="/grower"' not in html
+    hrefs = set(re.findall(r'href="([^"]+)"', html))
+    assert hrefs <= {"/", "#workspace"}
+    assert "Detailed report" not in html
+    assert "Uitgebreid rapport" not in html
     assert "legacy-grower" not in html
     assert "failed:" in script
 
