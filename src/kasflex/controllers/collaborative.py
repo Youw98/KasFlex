@@ -9,9 +9,7 @@ The language-model layer remains optional: planning must still work during a tea
 demo with no model account configured.
 """
 
-from __future__ import annotations
-
-from dataclasses import dataclass, field, replace
+import dataclasses
 
 from kasflex.controllers.base import PlanningContext
 from kasflex.controllers.rule_based import RuleBasedPlanner
@@ -78,17 +76,17 @@ def _apply_blackout(plan: Plan, forbidden: tuple[int, ...]) -> Plan:
             changes["heat_source"] = "boiler"
         if iv.co2_source == "chp":
             changes["co2_source"] = "liquid"
-        intervals.append(replace(iv, **changes))
-    return replace(plan, intervals=tuple(intervals))
+        intervals.append(dataclasses.replace(iv, **changes))
+    return dataclasses.replace(plan, intervals=tuple(intervals))
 
 
-@dataclass
+@dataclasses.dataclass
 class CollaborativePlanner:
     """Optimise one real day while keeping the grower's structured choices visible."""
 
     name: str = "collaborative"
-    last_policy: dict[str, object] = field(default_factory=dict, init=False)
-    last_diagnostics: dict[str, float | str] = field(default_factory=dict, init=False)
+    last_policy: dict[str, object] = dataclasses.field(default_factory=dict, init=False)
+    last_diagnostics: dict[str, float | str] = dataclasses.field(default_factory=dict, init=False)
 
     def plan(self, context: PlanningContext) -> Plan:
         policy = _policy(context)
@@ -119,7 +117,7 @@ class CollaborativePlanner:
             f"battery reserve={policy['battery_reserve_pct']:.0f}%; "
             f"CHP blocked in {len(policy['avoid_chp_hours'])} hour(s)."
         )
-        return replace(
+        return dataclasses.replace(
             best,
             planner=self.name,
             brief=context.brief,
