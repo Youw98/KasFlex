@@ -145,6 +145,29 @@ async function loadModels() {
   }
 }
 
+async function loadValidationStatus() {
+  try {
+    const status = await api("/api/validation-status");
+    const pill = $("validation-pill");
+    if (status.validated) {
+      pill.className = "pill measured";
+      pill.textContent = state.lang === "nl"
+        ? `Meetvalidatie · ${status.days_compared} dag(en)`
+        : `Measured validation · ${status.days_compared} day(s)`;
+      pill.title = `${status.dataset} · ${status.model || "model"}`;
+    } else {
+      pill.className = "pill pending";
+      pill.textContent = tr("validation.pending", "Model validation pending");
+      pill.title = `${status.dataset} · DOI ${status.doi}`;
+    }
+  } catch (error) {
+    const pill = $("validation-pill");
+    pill.className = "pill pending";
+    pill.textContent = tr("validation.pending", "Model validation pending");
+    pill.title = String(error?.message || error);
+  }
+}
+
 async function handleConsent() {
   let status;
   try { status = await api("/api/consent"); }
@@ -760,7 +783,10 @@ $("back-to-choices").addEventListener("click", backToChoices);
 $("close-dialog").addEventListener("click", () => $("detail-dialog").close());
 $("consent-anonymous").addEventListener("click", consentAnonymous);
 $("consent-study").addEventListener("click", consentStudy);
-$("language-select").addEventListener("change", (event) => loadLanguage(event.target.value));
+$("language-select").addEventListener("change", async (event) => {
+  await loadLanguage(event.target.value);
+  await loadValidationStatus();
+});
 $("model-select").addEventListener("change", (event) => {
   try {
     const selected = JSON.parse(event.target.value);
@@ -773,6 +799,7 @@ async function boot() {
   try {
     await loadLanguage(state.lang);
     await loadModels();
+    await loadValidationStatus();
     await handleConsent();
     await loadContext();
   } catch (error) {
