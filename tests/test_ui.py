@@ -89,6 +89,31 @@ def test_run_returns_a_full_day(base_run):
     assert base_run["metrics"]["net_cost_eur"] > 0
 
 
+def test_day_context_explains_the_day_before_planning(ui):
+    context = ui.day_context({"data_source": "synthetic"})
+    assert len(context["price"]["series"]) == 24
+    assert len(context["weather"]["temperature_series"]) == 24
+    assert context["price"]["min_eur_kwh"] <= context["price"]["max_eur_kwh"]
+    assert context["grid"]["import_limit_kw"] > 0
+
+
+def test_collaborative_run_uses_grower_policy(ui):
+    result = ui.run(
+        {"planner": "collaborative"},
+        policy={
+            "priority": "grid",
+            "avoid_chp_night": True,
+            "battery_reserve_pct": 45,
+            "brief": "Keep the night quiet.",
+        },
+    )
+    assert result["planner"] == "collaborative"
+    assert result["policy"]["priority"] == "grid"
+    assert result["policy"]["avoid_chp_night"] is True
+    for hour in (22, 23, 0, 1, 2, 3, 4, 5):
+        assert result["plan"][hour]["chp_mode"] == "off"
+
+
 def test_plan_rows_carry_context_for_the_operator(base_run):
     """A price and a heat demand next to each hour, or the plan is unreadable."""
     row = base_run["plan"][17]
@@ -285,7 +310,9 @@ def _post(url: str, payload: dict) -> tuple[int, dict]:
 
 
 def test_the_page_and_its_assets_are_served(live):
-    for path, needle in (("/", b"KasFlex"), ("/grower.css", b"--kf-forest"),
+    for path, needle in (("/", b"Plan the day"), ("/demo.css", b"--green"),
+                         ("/demo.js", b"/api/day-context"),
+                         ("/grower", b"KasFlex"), ("/grower.css", b"--kf-forest"),
                          ("/grower.js", b"api("), ("/mark.svg", b"<svg")):
         status, body = _get(live + path)
         assert status == 200, path
@@ -309,6 +336,15 @@ def test_api_settings_over_http(live):
     status, body = _get(live + "/api/settings")
     assert status == 200
     assert len(json.loads(body)["fields"]) == len(ADJUSTABLE)
+
+
+def test_day_context_over_http(live):
+    status, payload = _post(
+        live + "/api/day-context",
+        {"overrides": {"data_source": "synthetic"}},
+    )
+    assert status == 200
+    assert len(payload["price"]["series"]) == 24
 
 
 def test_api_run_over_http(live):
