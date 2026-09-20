@@ -77,6 +77,23 @@ verified*, never *accepted*.
 
 ![The interface](docs/ui.png)
 
+### Setting up your site
+
+The first-run onboarding asks for a name, a floor area, and **where the greenhouse
+is** — because everything downstream (weather forecast, sunrise, sunset, day-ahead
+prices) depends on it. Two ways to answer, because greenhouses come with two
+different origins:
+
+- **By address.** Type a village, a postcode, or a full street address; KasFlex
+  looks it up and shows the resolved place back to you before continuing. Uses
+  [Open-Meteo](https://open-meteo.com/en/docs/geocoding-api)'s free geocoding
+  service — no account, no key.
+- **By coordinates.** For a remote site without a street address, give a
+  latitude/longitude pair from any map application. Nothing else changes.
+
+Whichever you pick, only the coordinates are stored; the address, if any, is a
+convenience for the person doing the setup.
+
 ## Talking to the planner
 
 The grower interface can explain itself, and can learn.

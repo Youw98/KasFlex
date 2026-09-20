@@ -337,3 +337,50 @@ def test_a_malformed_body_returns_400(live):
         raise AssertionError("should have failed")
     except urllib.error.HTTPError as exc:
         assert exc.code == 400
+
+
+# --- geocoding endpoint (address <-> coordinates) ------------------------
+
+
+def test_geocode_endpoint_calls_the_geocoder(monkeypatch, ui):
+    """The address input on onboarding hits POST /api/geocode. The endpoint
+    should delegate to kasflex.data.geocode.geocode without ever reaching the
+    real network -- and its response has to carry the resolved place name back
+    so the grower can confirm it before continuing.
+    """
+    from kasflex.data.geocode import GeocodedPlace
+
+    def fake(query, *, language="en", **_):
+        assert query == "Naaldwijk"
+        assert language in ("en", "nl")
+        return GeocodedPlace(latitude=51.994, longitude=4.207,
+                             name="Naaldwijk", country="Netherlands",
+                             admin="South Holland")
+
+    monkeypatch.setattr("kasflex.data.geocode.geocode", fake)
+    result = ui.geocode({"address": "Naaldwijk"})
+    assert result["latitude"] == pytest.approx(51.994)
+    assert result["longitude"] == pytest.approx(4.207)
+    assert result["name"] == "Naaldwijk"
+    assert result["country"] == "Netherlands"
+
+
+def test_geocode_endpoint_refuses_empty_input(ui):
+    with pytest.raises(ApiError, match="Enter a place name"):
+        ui.geocode({})
+    with pytest.raises(ApiError, match="Enter a place name"):
+        ui.geocode({"address": "   "})
+
+
+def test_geocode_endpoint_surfaces_no_match_as_404(monkeypatch, ui):
+    """When the address does not resolve, the endpoint returns 404 with a
+    message the onboarding page can show verbatim -- not 500 with a stack."""
+    from kasflex.data.geocode import GeocodingError
+
+    def fake(*_args, **_kwargs):
+        raise GeocodingError("No place matched 'qqq'.")
+
+    monkeypatch.setattr("kasflex.data.geocode.geocode", fake)
+    with pytest.raises(ApiError, match="No place matched") as exc_info:
+        ui.geocode({"address": "qqq"})
+    assert exc_info.value.status == 404

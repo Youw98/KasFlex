@@ -85,8 +85,43 @@ CATALOG: dict[str, dict[str, str]] = {
                                "nl": "In hectare. Een schatting is prima."},
     "onboard.site.location": {"en": "Where is it?", "nl": "Waar staat het?"},
     "onboard.site.location.hint": {
-        "en": "We use this for the weather forecast. Westland is filled in already.",
-        "nl": "Dit gebruiken we voor de weersverwachting. Westland is al ingevuld."},
+        "en": "We use this for the weather forecast. Either enter an address, "
+              "or, for a remote site, give coordinates from a map.",
+        "nl": "Dit gebruiken we voor de weersverwachting. Voer een adres in, "
+              "of geef bij een afgelegen locatie de coördinaten van een kaart."},
+    "onboard.site.location.mode.address": {
+        "en": "By address",
+        "nl": "Op adres"},
+    "onboard.site.location.mode.address.hint": {
+        "en": "Village, postcode or full address.",
+        "nl": "Plaats, postcode of volledig adres."},
+    "onboard.site.location.mode.coords": {
+        "en": "By coordinates",
+        "nl": "Op coördinaten"},
+    "onboard.site.location.mode.coords.hint": {
+        "en": "For remote sites without a street address.",
+        "nl": "Voor afgelegen locaties zonder straatadres."},
+    "onboard.site.address": {"en": "Address or place name",
+                             "nl": "Adres of plaatsnaam"},
+    "onboard.site.address.hint": {
+        "en": "For example: Naaldwijk, or 2671KE Naaldwijk, or a full street address.",
+        "nl": "Bijvoorbeeld: Naaldwijk, of 2671KE Naaldwijk, of een volledig adres."},
+    "onboard.site.address.lookup": {"en": "Look up", "nl": "Zoek op"},
+    "onboard.site.address.searching": {"en": "Looking up…", "nl": "Bezig met zoeken…"},
+    "onboard.site.address.resolved": {
+        "en": "Found {place} — {lat}°, {lon}°.",
+        "nl": "Gevonden: {place} — {lat}°, {lon}°."},
+    "onboard.site.address.needlookup": {
+        "en": "Look up the address before continuing, or switch to coordinates.",
+        "nl": "Zoek het adres eerst op voordat u doorgaat, of kies coördinaten."},
+    "onboard.site.latitude": {"en": "Latitude", "nl": "Breedtegraad"},
+    "onboard.site.latitude.hint": {
+        "en": "Between -90 and 90. In the Netherlands, around 52.",
+        "nl": "Tussen -90 en 90. In Nederland ongeveer 52."},
+    "onboard.site.longitude": {"en": "Longitude", "nl": "Lengtegraad"},
+    "onboard.site.longitude.hint": {
+        "en": "Between -180 and 180. In the Netherlands, around 4.",
+        "nl": "Tussen -180 en 180. In Nederland ongeveer 4."},
     "onboard.equipment.title": {"en": "What equipment do you have?",
                                 "nl": "Welke installaties heeft u?"},
     "onboard.equipment.body": {
