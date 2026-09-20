@@ -136,8 +136,9 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
      "min": 0, "max": 10, "step": 0.001, "unit": "€/kWh",
      "help": "Enter your gas energy price. This is a manual assumption, not a live TTF quote."},
     {"path": "planner", "label": "Planner", "kind": "choice",
-     "choices": ["rule-based", "learned", "naive", "llm", "mpc"],
-     "help": "Which planner proposes the day. 'learned' forecasts demand and optimises."},
+     "choices": ["collaborative", "rule-based", "learned", "naive", "llm", "mpc"],
+     "help": ("Collaborative uses the current day, optimisation and grower choices. "
+              "Learned is the research demand-forecast planner.")},
     {"path": "checker.enabled", "label": "Safety checker", "kind": "bool",
      "help": "Turn verification off to measure what it is worth. This is the experiment."},
     {"path": "checker.explain", "label": "Explain rejections", "kind": "bool",
@@ -464,6 +465,110 @@ class UiServer:
             }
         except Exception:  # noqa: BLE001 - a plan is still usable without the comparison
             return {"actions": [], "actions_summary": "", "normal_settings": None}
+
+    # -- grower collaboration ------------------------------------------------
+
+    def _compile_policy(self, supplied: dict[str, Any] | None) -> dict[str, Any]:
+        """Validate the explicit daily choices and merge compatible remembered rules."""
+        raw = supplied if isinstance(supplied, dict) else {}
+        priority = str(raw.get("priority", "balanced")).lower()
+        if priority not in {"balanced", "cost", "grid"}:
+            priority = "balanced"
+
+        try:
+            reserve = max(0.0, min(80.0, float(raw.get("battery_reserve_pct", 45))))
+        except (TypeError, ValueError):
+            reserve = 45.0
+
+        avoid_hours: set[int] = set()
+        if raw.get("avoid_chp_night") is True:
+            avoid_hours.update((22, 23, 0, 1, 2, 3, 4, 5))
+
+        remembered_ids: list[str] = []
+        negative = ("no ", "don't", "do not", "avoid", "never", "geen ", "niet ", "vermijd")
+        for pref in self.memory.preferences():
+            text = pref.rule.lower()
+            assets = {str(v).lower() for v in (pref.scope.get("assets") or [])}
+            mentions_chp = "chp" in assets or "chp" in text or "wkk" in text
+            forbids = any(token in text for token in negative) or pref.strength == "absolute"
+            if not (mentions_chp and forbids):
+                continue
+            hours = pref.scope.get("hours") or []
+            parsed = []
+            for value in hours:
+                try:
+                    hour = int(value)
+                except (TypeError, ValueError):
+                    continue
+                if 0 <= hour <= 23:
+                    parsed.append(hour)
+            if not parsed and ("night" in text or "nacht" in text or "overnight" in text):
+                parsed = [22, 23, 0, 1, 2, 3, 4, 5]
+            if parsed:
+                avoid_hours.update(parsed)
+                remembered_ids.append(pref.pref_id)
+
+        return {
+            "priority": priority,
+            "battery_reserve_pct": reserve,
+            "avoid_chp_night": raw.get("avoid_chp_night") is True,
+            "avoid_chp_hours": sorted(avoid_hours),
+            "prefer_stored_heat": raw.get("prefer_stored_heat") is True,
+            "brief": str(raw.get("brief", ""))[:1000],
+            "remembered_preference_ids": remembered_ids,
+        }
+
+    def day_context(self, overrides: dict[str, Any]) -> dict[str, Any]:
+        """Return the market/weather story a grower should see before planning."""
+        config = _apply_overrides(self.base, overrides)
+        if config.data_source == "demo":
+            prepared = self.prepare_demo(overrides)
+            config = dataclasses.replace(config, date=prepared["date"], data_source="demo")
+
+        day = _day_for(config)
+        prices = [float(c.power_price_eur_kwh) for c in day.forecast]
+        temps = [float(c.outdoor_temp_c) for c in day.forecast]
+        irradiance = [float(c.irradiance_w_m2) for c in day.forecast]
+        cheap = sorted(range(24), key=lambda h: prices[h])[:4]
+        dear = sorted(range(24), key=lambda h: prices[h], reverse=True)[:4]
+        sun_hours = sum(1 for value in irradiance if value >= 50.0)
+
+        return {
+            "date": config.date,
+            "data_source": config.data_source,
+            "actuals_available": getattr(day, "actuals_available", False),
+            "sources": getattr(day, "sources", {}),
+            "price": {
+                "min_eur_kwh": min(prices),
+                "max_eur_kwh": max(prices),
+                "avg_eur_kwh": sum(prices) / len(prices),
+                "cheapest_hours": sorted(cheap),
+                "dearest_hours": sorted(dear),
+                "series": prices,
+            },
+            "weather": {
+                "min_temp_c": min(temps),
+                "max_temp_c": max(temps),
+                "peak_irradiance_w_m2": max(irradiance),
+                "sun_hours": sun_hours,
+                "temperature_series": temps,
+                "irradiance_series": irradiance,
+            },
+            "grid": {
+                "import_limit_kw": config.hub.contract.import_limit_kw,
+                "export_limit_kw": config.hub.contract.export_limit_kw,
+                "congestion_windows": {
+                    str(hour): {"import_kw": limits[0], "export_kw": limits[1]}
+                    for hour, limits in config.hub.contract.congestion_windows.items()
+                },
+            },
+            "site": {
+                "name": config.name,
+                "latitude": config.latitude,
+                "longitude": config.longitude,
+                "area_m2": config.hub.floor_area_m2,
+            },
+        }
 
     # -- uncertainty --------------------------------------------------------
 
@@ -1052,12 +1157,19 @@ class UiServer:
                 "actuals_available": rows[2]["ready"], "series": rows,
                 "entsoe_configured": bool(os.environ.get("ENTSOE_API_KEY")), "message": message}
 
-    def run(self, overrides: dict[str, Any]) -> dict[str, Any]:
+    def run(
+        self,
+        overrides: dict[str, Any],
+        policy: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Run one scenario and return everything the page needs to show it."""
         from kasflex.experiment import build_greenhouse, build_planner
         from kasflex.run import run_scenario
 
         config = _apply_overrides(self.base, overrides)
+        compiled_policy = self._compile_policy(policy)
+        if compiled_policy["brief"]:
+            config = dataclasses.replace(config, brief=compiled_policy["brief"])
         day = _day_for(config)
         greenhouse = build_greenhouse(config.greenhouse, config)
 
@@ -1083,6 +1195,7 @@ class UiServer:
                 provenance={"data_source": config.data_source, "via": "ui",
                             "actuals_available": getattr(day, "actuals_available", False),
                             "series": getattr(day, "sources", {})},
+                planning_metadata={"policy": compiled_policy},
             )
         except NotImplementedError as exc:
             raise ApiError(str(exc), status=501) from exc
@@ -1116,6 +1229,7 @@ class UiServer:
                 "capacity_kwh": config.hub.battery.capacity_kwh,
                 "soc_init_kwh": config.hub.battery.soc_init_kwh,
             },
+            "policy": compiled_policy,
         }
         snapshot = {"config": dataclasses.asdict(config),
                     "forecast": [dataclasses.asdict(c) for c in day.forecast],
@@ -1270,7 +1384,8 @@ class _Handler(BaseHTTPRequestHandler):
     #: The grower page is the front door; the researcher interface is a step aside
     #: from it. A grower who has been told "just open KasFlex" must not land in a
     #: screen built for someone comparing planners.
-    _PAGES = {"": "grower.html", "/": "grower.html",
+    _PAGES = {"": "demo.html", "/": "demo.html",
+              "/grower": "grower.html",
               "/advanced": "index.html", "/research": "index.html",
               "/setup": "setup.html"}
 
@@ -1376,7 +1491,9 @@ class _Handler(BaseHTTPRequestHandler):
                                    "Check folder permissions.") from exc
                 self._json(result)
             elif self.path.startswith("/api/run"):
-                self._json(self.ui.run(overrides))
+                self._json(self.ui.run(overrides, body.get("policy")))
+            elif self.path == "/api/day-context":
+                self._json(self.ui.day_context(overrides))
             elif self.path == "/api/demo-prepare":
                 with self.ui._lock:
                     self._json(self.ui.prepare_demo(overrides))
