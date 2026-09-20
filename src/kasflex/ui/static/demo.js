@@ -130,7 +130,7 @@ async function loadModels() {
     for (const model of models) {
       const option = document.createElement("option");
       option.value = JSON.stringify({provider:provider.id, model});
-      const status = provider.available === false ? " · setup needed" : "";
+      const status = provider.configured === false ? " · setup needed" : "";
       option.textContent = `${provider.name} — ${model}${status}`;
       if (provider.id === state.selectedProvider && model === state.selectedModel) option.selected = true;
       select.append(option);
@@ -526,7 +526,15 @@ function renderChanges(run) {
     alternative.textContent = state.lang === "nl"
       ? `Alternatief: normale regeling (${value}). Grove bijdrage aan dagverschil: ${euro(Math.abs(saving))}.`
       : `Alternative: normal control (${value}). Rough share of whole-day difference: ${euro(Math.abs(saving))}.`;
-    item.append(title, why, alternative);
+    const confidence = document.createElement("small");
+    confidence.className = "confidence-note";
+    const uncertain = new Set(state.run?.uncertainty?.hours_most_uncertain || []);
+    const touchesUncertain = (action.hours || []).some((hour) => uncertain.has(Number(hour)));
+    const band = state.run?.uncertainty?.confidence || "unknown";
+    confidence.textContent = touchesUncertain
+      ? (state.lang === "nl" ? "Lagere zekerheid: deze uren horen bij de meest onzekere uren." : "Lower confidence: these hours are among the most uncertain.")
+      : (state.lang === "nl" ? `Zekerheid van het dagplan: ${band}.` : `Day-plan confidence: ${band}.`);
+    item.append(title, why, alternative, confidence);
     root.append(item);
   }
 }
