@@ -110,6 +110,7 @@ function overrides() {
     llm_provider:state.selectedProvider || undefined,
     llm_model:state.selectedModel || undefined,
     participant_id:state.participantId || undefined,
+    "checker.enabled":$("checker-enabled").checked,
   };
 }
 function runRef(run=state.run) {
@@ -274,7 +275,13 @@ function renderDecision(run, {preserveDimensions=false}={}) {
     : "model output · not yet validated";
 
   const badge = $("checker-badge");
-  if (run.checker_enabled && run.accepted) {
+  if (!run.checker_enabled) {
+    badge.className = "checker off";
+    const hard = Number(run.realised_hard || 0);
+    badge.textContent = state.lang === "nl"
+      ? `Checker UIT · ${hard} harde overschrijding${hard === 1 ? "" : "en"} zichtbaar`
+      : `Checker OFF · ${hard} hard breach${hard === 1 ? "" : "es"} visible`;
+  } else if (run.accepted) {
     badge.className = "checker good";
     badge.textContent = state.lang === "nl" ? "✓ Onafhankelijk gecontroleerd" : "✓ Independently checked";
   } else {
@@ -736,6 +743,12 @@ function consentAnonymous() {
 }
 
 $("battery-reserve").addEventListener("input", () => $("reserve-value").textContent = $("battery-reserve").value + "%");
+$("checker-enabled").addEventListener("change", () => {
+  const on = $("checker-enabled").checked;
+  toast(state.lang === "nl"
+    ? (on ? "Veiligheidschecker aan." : "Checker uit: dit plan kan niet definitief worden goedgekeurd.")
+    : (on ? "Safety checker on." : "Checker off: this plan cannot be finally approved."));
+});
 $("refresh-data").addEventListener("click", loadContext);
 $("build-plan").addEventListener("click", buildPlan);
 $("open-position").addEventListener("click", () => openDetail("position"));
