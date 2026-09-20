@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>KasFlex — Daily energy co-pilot</title>
+  <link rel="stylesheet" href="/demo.css">
+</head>
+<body>
+  <a class="skip" href="#workspace">Skip to workspace</a>
+
+  <header class="shell">
+    <a class="brand" href="/" aria-label="KasFlex home">
+      <img src="/mark.svg" alt="" width="38" height="38">
+      <span><strong>KasFlex</strong><small>Daily energy co-pilot</small></span>
+    </a>
+    <div class="shell-status">
+      <span id="data-pill" class="status-pill loading">Preparing real demo data…</span>
+      <a href="/advanced">Research view</a>
+    </div>
+  </header>
+
+  <div id="sim-notice" class="simulation" role="note">
+    <strong>Simulation.</strong>
+    <span>No physical equipment connected. Not validated for operational use.</span>
+  </div>
+
+  <main id="workspace">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Tomorrow's energy decision</p>
+        <h1>Plan the day <span>together.</span></h1>
+        <p class="hero-copy">
+          KasFlex combines real Dutch market and weather inputs with your greenhouse
+          limits and your choices. It proposes a plan, checks it, and lets you change it.
+        </p>
+      </div>
+      <div class="hero-date">
+        <span>Planning day</span>
+        <strong id="planning-date">—</strong>
+        <small id="source-summary">Loading data sources…</small>
+      </div>
+    </section>
+
+    <div id="error" class="error" hidden></div>
+
+    <section id="context-section" class="section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">1 · Understand the day</p>
+          <h2>What tomorrow looks like</h2>
+        </div>
+        <button id="refresh-data" class="text-button">Refresh</button>
+      </div>
+
+      <div class="context-grid">
+        <article class="metric">
+          <span>Cheapest electricity</span>
+          <strong id="price-low">—</strong>
+          <small id="price-low-hours">—</small>
+        </article>
+        <article class="metric">
+          <span>Most expensive</span>
+          <strong id="price-high">—</strong>
+          <small id="price-high-hours">—</small>
+        </article>
+        <article class="metric">
+          <span>Outside temperature</span>
+          <strong id="temp-range">—</strong>
+          <small id="sun-hours">—</small>
+        </article>
+        <article class="metric">
+          <span>Grid connection</span>
+          <strong id="grid-limit">—</strong>
+          <small id="grid-window">—</small>
+        </article>
+      </div>
+
+      <article class="chart-card">
+        <div class="chart-head">
+          <div>
+            <strong>Electricity price through the day</strong>
+            <small>Real historical Dutch day-ahead input used by this demo</small>
+          </div>
+          <div class="legend"><span class="dot cheap"></span> lower <span class="dot dear"></span> higher</div>
+        </div>
+        <div id="price-chart" class="price-chart" aria-label="Hourly electricity price chart"></div>
+        <div class="chart-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+      </article>
+    </section>
+
+    <section class="section collaboration">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">2 · Add grower judgement</p>
+          <h2>What matters most tomorrow?</h2>
+          <p>These choices are not cosmetic. They change how KasFlex builds the plan.</p>
+        </div>
+      </div>
+
+      <div class="priority-grid" role="radiogroup" aria-label="Planning priority">
+        <label class="priority-card">
+          <input type="radio" name="priority" value="balanced" checked>
+          <span class="priority-icon">◎</span>
+          <strong>Balanced</strong>
+          <small>Balance cost, grid peaks and operating margin.</small>
+        </label>
+        <label class="priority-card">
+          <input type="radio" name="priority" value="cost">
+          <span class="priority-icon">€</span>
+          <strong>Lowest cost</strong>
+          <small>Push harder toward the cheapest feasible schedule.</small>
+        </label>
+        <label class="priority-card">
+          <input type="radio" name="priority" value="grid">
+          <span class="priority-icon">↯</span>
+          <strong>Grid relief</strong>
+          <small>Prioritise a lower import peak before small cost gains.</small>
+        </label>
+      </div>
+
+      <div class="policy-panel">
+        <label class="switch">
+          <input id="avoid-chp-night" type="checkbox">
+          <span></span>
+          <div><strong>Avoid CHP overnight</strong><small>Keep WKK off from 22:00–06:00 unless you change this.</small></div>
+        </label>
+        <label class="switch">
+          <input id="prefer-buffer" type="checkbox" checked>
+          <span></span>
+          <div><strong>Prefer stored heat</strong><small>Use available heat buffer when it fits the safe plan.</small></div>
+        </label>
+        <label class="reserve">
+          <div><strong>Battery reserve</strong><small>Leave room for uncertainty instead of using the full usable range.</small></div>
+          <div class="reserve-control">
+            <input id="battery-reserve" type="range" min="0" max="70" step="5" value="45">
+            <output id="reserve-value">45%</output>
+          </div>
+        </label>
+        <label class="brief-field">
+          <span><strong>Anything special tomorrow?</strong><small>Optional grower note for this day.</small></span>
+          <textarea id="brief" rows="2" placeholder="Example: keep the CHP quiet before 06:00; maintenance starts at 07:30."></textarea>
+        </label>
+      </div>
+
+      <div class="plan-cta">
+        <div>
+          <strong>KasFlex will optimise against these choices</strong>
+          <small>Then an independent checker verifies the proposed day before you decide.</small>
+        </div>
+        <button id="build-plan" class="primary">Build tomorrow's plan</button>
+      </div>
+    </section>
+
+    <section id="plan-section" class="section result-section" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">3 · Review the proposal</p>
+          <h2>KasFlex proposal</h2>
+          <p id="plan-subtitle">Compared with the normal rule-based schedule.</p>
+        </div>
+        <div id="checker-badge" class="checker-badge">Checking…</div>
+      </div>
+
+      <div class="result-grid">
+        <article class="result-metric hero-metric">
+          <span>Expected energy cost</span>
+          <strong id="result-cost">—</strong>
+          <small id="result-saving">—</small>
+        </article>
+        <article class="result-metric">
+          <span>Peak grid import</span>
+          <strong id="result-peak">—</strong>
+          <small id="result-grid-note">within connection limit</small>
+        </article>
+        <article class="result-metric">
+          <span>Crop temperature band</span>
+          <strong id="result-band">—</strong>
+          <small>projected by the greenhouse model</small>
+        </article>
+        <article class="result-metric">
+          <span>Plan changes</span>
+          <strong id="result-actions">—</strong>
+          <small>versus normal control</small>
+        </article>
+      </div>
+
+      <article class="proposal-card">
+        <div class="proposal-head">
+          <div>
+            <h3>What KasFlex wants to change</h3>
+            <p>Each suggestion can be kept, changed back to normal, or reviewed in detail.</p>
+          </div>
+          <button id="use-normal-plan" class="secondary">Use normal plan</button>
+        </div>
+        <div id="changes-list" class="changes-list"></div>
+      </article>
+
+      <article class="timeline-card">
+        <div class="proposal-head">
+          <div>
+            <h3>24-hour operating picture</h3>
+            <p>Price and the main energy decisions in one timeline.</p>
+          </div>
+        </div>
+        <div id="timeline" class="timeline"></div>
+      </article>
+
+      <details class="detail-card">
+        <summary>Show the full 24-hour plan</summary>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Hour</th><th>Price</th><th>Heat</th><th>Lights</th><th>Battery</th><th>CHP</th></tr></thead>
+            <tbody id="plan-table"></tbody>
+          </table>
+        </div>
+      </details>
+
+      <div class="decision-card">
+        <div>
+          <p class="eyebrow">4 · Make it your plan</p>
+          <h2>Ready to use this as the day plan?</h2>
+          <p id="decision-copy">Nothing is approved until you choose it.</p>
+        </div>
+        <div class="decision-actions">
+          <button id="recalculate" class="secondary">Change choices & recalculate</button>
+          <button id="approve-plan" class="primary">Approve final plan</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="deeper">
+      <details>
+        <summary>What is real in this demo?</summary>
+        <p>Electricity prices and weather inputs are real historical data. The greenhouse response,
+           crop outcome and asset dispatch are simulated. KasFlex does not control equipment.</p>
+      </details>
+      <details>
+        <summary>What makes the planner collaborative?</summary>
+        <p>Your selected priority, battery reserve, CHP preference, daily brief, and compatible
+           remembered preferences are passed into the planner. Changes you make are re-checked before approval.</p>
+      </details>
+      <details>
+        <summary>Need the research tools?</summary>
+        <p><a href="/advanced">Open the detailed research interface</a> or
+           <a href="/grower">open the previous grower interface</a>.</p>
+      </details>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="/demo.js"></script>
+</body>
+</html>
