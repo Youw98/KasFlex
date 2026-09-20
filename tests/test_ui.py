@@ -315,7 +315,7 @@ def test_team_demo_buttons_are_wired_and_do_not_link_to_legacy_ui():
     html = (static_dir() / "demo.html").read_text(encoding="utf-8")
     script = (static_dir() / "demo.js").read_text(encoding="utf-8")
 
-    button_ids = re.findall(r'<button[^>]*\\bid="([^"]+)"', html)
+    button_ids = re.findall(r'<button[^>]*\bid="([^"]+)"', html)
     assert button_ids
     for button_id in button_ids:
         assert f'$("{button_id}").addEventListener' in script, button_id
