@@ -81,6 +81,21 @@ class ValidationReport:
     deviations: tuple[ValidationDeviation, ...]
     generated_at: str
 
+    def summaries(self) -> dict[str, dict[str, float | int]]:
+        """Aggregate absolute and relative error by physical quantity."""
+        result: dict[str, dict[str, float | int]] = {}
+        for quantity in sorted({item.quantity for item in self.deviations}):
+            rows = [item for item in self.deviations if item.quantity == quantity]
+            relative = [abs(item.relative_error) for item in rows if item.measured != 0.0]
+            result[quantity] = {
+                "count": len(rows),
+                "mae": sum(abs(item.absolute_error) for item in rows) / len(rows),
+                "mean_absolute_relative_error": (
+                    sum(relative) / len(relative) if relative else float("nan")
+                ),
+            }
+        return result
+
     def to_markdown(self) -> str:
         """Render as the ``docs/VALIDATION.md`` body."""
         lines = [
@@ -88,9 +103,28 @@ class ValidationReport:
             "",
             f"Days compared: {self.days_compared}",
             "",
+            "## Aggregate error",
+            "",
+            "| Quantity | Days | MAE | Mean absolute relative error |",
+            "|---|---:|---:|---:|",
+        ]
+        for quantity, summary in self.summaries().items():
+            unit = next(item.unit for item in self.deviations if item.quantity == quantity)
+            relative = float(summary["mean_absolute_relative_error"])
+            relative_text = f"{relative * 100:.1f}%" if math.isfinite(relative) else "n/a"
+            lines.append(
+                f"| {quantity} | {summary['count']} | {float(summary['mae']):.2f} {unit} "
+                f"| {relative_text} |"
+            )
+        lines.extend(
+            [
+                "",
+                "## Per-day deviation",
+                "",
             "| Day | Quantity | Measured | Simulated | Error | Rel. error |",
             "|---|---|---:|---:|---:|---:|",
-        ]
+            ]
+        )
         for d in self.deviations:
             rel = f"{d.relative_error * 100:+.1f}%" if d.measured else "n/a"
             lines.append(
@@ -126,7 +160,7 @@ def instructions_when_missing(cache_dir: str | Path) -> str:
         f"repository.\n\n"
         f"Get it, once, from 4TU.ResearchData:\n"
         f"  {AGC_URL}\n\n"
-        f"Then arrange the files as:\n"
+        f"Extract the archive and run `kasflex prepare-agc2`, which creates:\n"
         f"  {root}/\n"
         f"    {AGC_MANIFEST}                 (name, licence, retrieval date)\n"
         f"    {AGC_MEASURED_DIR}/YYYY-MM-DD.csv    (measured daily totals)\n"
@@ -239,6 +273,14 @@ def replay_simulator(cache_dir: str | Path, model: str = "greenlight"):
 
             greenhouse = GreenLightWorker(
                 scenario=dict(payload.get("greenlight_scenario") or {}),
+                env_kwargs=dict(payload.get("greenlight_env_kwargs") or {}),
+                replay_controls=dict(payload.get("replay_controls") or {}),
+                parameter_overrides={
+                    str(key): float(value)
+                    for key, value in dict(
+                        payload.get("greenlight_parameter_overrides") or {}
+                    ).items()
+                },
                 seed=int(payload.get("seed", 0)),
             )
         else:
@@ -301,7 +343,9 @@ def validate_against_agc(
                 raise ValidationNotRunnable(
                     f"{iso_date} {quantity}: validation values must be finite"
                 )
-            unit = quantity.split("_")[-1]
+            unit = {"heating_kwh": "kWh", "electricity_kwh": "kWh", "co2_kg": "kg"}[
+                quantity
+            ]
             deviations.append(
                 ValidationDeviation(
                     date=iso_date,
@@ -337,6 +381,7 @@ def write_validation_json(
                 "days_compared": report.days_compared,
                 "generated_at": report.generated_at,
                 "model": model,
+                "summaries": report.summaries(),
                 "deviations": [asdict(item) for item in report.deviations],
             },
             indent=2,
@@ -379,7 +424,10 @@ def validation_status(path: str | Path = DEFAULT_RESULT_PATH) -> dict[str, Any]:
         "doi": AGC_DOI,
         "generated_at": str(payload.get("generated_at") or ""),
         "model": str(payload.get("model") or "unknown"),
-        "message": f"Measured simulator deviation published for {days} day(s).",
+        "message": (
+            f"Measured simulator deviation published for {days} day(s); "
+            "this is not a calibration pass."
+        ),
     }
 
 

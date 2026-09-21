@@ -210,6 +210,7 @@ table would measure nothing.
 | `kasflex.data.pipeline` | The daily job: cache-first, offline-safe, idempotent. |
 | `kasflex.oversight` | Approval, edits, append-only audit log. |
 | `kasflex.validation` | Greenhouse-model deviation table against AGC measurements (stage 1). |
+| `kasflex.validation_agc2` | Reproducible conversion of official AGC2 Reference data into measured replay inputs. |
 | `kasflex.llm_providers` | Pluggable model transports: Anthropic, OpenAI, Gemini, Ollama, any OpenAI-compatible endpoint. |
 | `kasflex.memory` | Grower preferences, human/AI conflicts and conversation, append-only. |
 | `kasflex.conversation` | Explaining a plan, extracting a preference from an objection, proposing a compromise. |
@@ -222,7 +223,7 @@ table would measure nothing.
 | `kasflex.consent` | Granular informed consent, and the erasure that withdrawal triggers. |
 | `kasflex.actions` | What a plan changes against normal settings, named for a grower. |
 | `kasflex.ui.server` | Local JSON API over the same functions the CLI uses. |
-| `kasflex.ui.static` | The single page: settings, plan, approval, comparison. |
+| `kasflex.ui.static` | Grower decision workspace, dedicated position view and research interface. |
 | `kasflex.resources` | Where files live when frozen into an executable. |
 | `kasflex.run` | One scenario, end to end, to one result record. |
 | `kasflex.experiment` | The matrix, unattended. |

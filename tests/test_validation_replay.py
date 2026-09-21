@@ -86,6 +86,10 @@ def test_canonical_replay_runs_a_real_simulator_and_produces_finite_errors(tmp_p
     assert len(report.deviations) == 3
     assert all(math.isfinite(row.simulated) for row in report.deviations)
     assert all(math.isfinite(row.absolute_error) for row in report.deviations)
+    assert report.summaries()["heating_kwh"]["mae"] >= 0
+    markdown = report.to_markdown()
+    assert "## Aggregate error" in markdown
+    assert "Mean absolute relative error" in markdown
 
 
 def test_only_completed_numeric_validation_becomes_green_status(tmp_path):
@@ -100,6 +104,7 @@ def test_only_completed_numeric_validation_becomes_green_status(tmp_path):
     assert status["validated"] is True
     assert status["days_compared"] == 1
     assert status["model"] == "surrogate"
+    assert "not a calibration pass" in status["message"]
 
     result.write_text(
         json.dumps(

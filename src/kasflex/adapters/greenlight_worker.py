@@ -53,6 +53,8 @@ class GreenLightWorker:
     ))
     worker_script: str = str(DEFAULT_WORKER)
     scenario: dict[str, object] = field(default_factory=dict)
+    replay_controls: dict[str, object] = field(default_factory=dict)
+    parameter_overrides: dict[str, float] = field(default_factory=dict)
     seed: int = 0
     timeout_s: float = 900.0
     env_kwargs: dict[str, object] = field(default_factory=dict)
@@ -97,6 +99,8 @@ class GreenLightWorker:
             "seed": self.seed,
             "scenario": self.scenario,
             "env_kwargs": self.env_kwargs,
+            "replay_controls": self.replay_controls,
+            "parameter_overrides": self.parameter_overrides,
         }
         try:
             proc = subprocess.run(

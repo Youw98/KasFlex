@@ -31,6 +31,7 @@ import gymnasium as gym
 import numpy as np
 from gl_gym.components.rule_based import RuleBasedController
 from gl_gym.core.types import StepContext
+from gl_gym.environments.utils import co2dens2ppm, co2ppm2dens, satVp
 
 # GreenLight parameter vector indices, from gl_gym/configs/greenlight_parameters.py.
 P_FLOOR_AREA = 46
@@ -86,7 +87,12 @@ def simulate_day(request: dict) -> dict:
     env_kwargs.setdefault("normalize_actions", False)
     env = gym.make("gl_gym/GreenLightTomato-v0", **env_kwargs)
 
-    reset_options = {"scenario": scenario} if scenario else None
+    reset_options = {}
+    if scenario:
+        reset_options["scenario"] = scenario
+    if request.get("parameter_overrides"):
+        reset_options["parameter_overrides"] = request["parameter_overrides"]
+    reset_options = reset_options or None
     env.reset(seed=seed, options=reset_options)
 
     controller = RuleBasedController(**{**RULE_BASED_DEFAULTS, **(request.get("rule_based") or {})})
@@ -100,6 +106,45 @@ def simulate_day(request: dict) -> dict:
     lighting_electricity_kwh = 0.0
     fruit_start = float(raw.x[25])
     truncated_at = None
+    replay = dict(request.get("replay_controls") or {})
+    expected_steps = hours * STEPS_PER_HOUR
+
+    def control_series(name: str) -> list[float] | None:
+        values = replay.get(name)
+        if values is None:
+            return None
+        if not isinstance(values, list) or len(values) != expected_steps:
+            raise ValueError(
+                f"replay control {name!r} must contain {expected_steps} quarter-hour values"
+            )
+        parsed = [float(value) for value in values]
+        if not np.all(np.isfinite(parsed)):
+            raise ValueError(f"replay control {name!r} contains a non-finite value")
+        return parsed
+
+    heat_setpoints = control_series("heating_setpoint_c")
+    co2_setpoints = control_series("co2_setpoint_ppm")
+    measured_lighting = control_series("lighting_fraction")
+    measured_thermal_screen = control_series("thermal_screen_fraction")
+    measured_blackout_screen = control_series("blackout_screen_fraction")
+    measured_ventilation = control_series("ventilation_fraction")
+
+    initial = replay.get("initial_indoor") or {}
+    if initial:
+        initial_temp = float(initial["temperature_c"])
+        initial_rh = float(initial["relative_humidity_pct"])
+        initial_co2 = float(initial["co2_ppm"])
+        if not np.all(np.isfinite([initial_temp, initial_rh, initial_co2])):
+            raise ValueError("initial indoor measurements must be finite")
+        raw.x[0] = co2ppm2dens(initial_temp, initial_co2) * 1e6
+        raw.x[1] = raw.x[0]
+        for index in (2, 3, 4, 5, 6, 7, 8, 9):
+            raw.x[index] = initial_temp
+        raw.x[15] = np.clip(initial_rh, 0, 100) / 100 * satVp(initial_temp)
+        raw.x[16] = raw.x[15]
+        raw.x_prev = raw.x.copy()
+
+    step_index = 0
 
     for interval in plan["intervals"]:
         lighting = float(interval.get("lighting_level", 0.0))
@@ -119,6 +164,28 @@ def simulate_day(request: dict) -> dict:
             if not co2_on:
                 action[1] = 0.0                        # uCO2
 
+            # Measured validation supplies Reference-compartment setpoints and
+            # actuator positions at the model's 15-minute resolution. Heating
+            # and CO2 consumption remain model outputs; feeding their measured
+            # consumption back as control would make the comparison circular.
+            if heat_setpoints is not None:
+                action[0] = controller.proportional_control(
+                    raw.x[2], heat_setpoints[step_index], controller.tHeatBand, 0, 1
+                )
+            if co2_setpoints is not None:
+                co2_in_ppm = co2dens2ppm(raw.x[2], 1e-6 * raw.x[0])
+                action[1] = controller.proportional_control(
+                    co2_in_ppm, co2_setpoints[step_index], controller.co2Band, 0, 1
+                )
+            if measured_lighting is not None:
+                action[4] = np.clip(measured_lighting[step_index], 0, 1)
+            if measured_thermal_screen is not None:
+                action[2] = np.clip(measured_thermal_screen[step_index], 0, 1)
+            if measured_ventilation is not None:
+                action[3] = np.clip(measured_ventilation[step_index], 0, 1)
+            if measured_blackout_screen is not None:
+                action[5] = np.clip(measured_blackout_screen[step_index], 0, 1)
+
             obs, _reward, terminated, truncated, info = env.step(action)
             u = np.asarray(raw.u, dtype=float)
 
@@ -130,7 +197,9 @@ def simulate_day(request: dict) -> dict:
             hour_heat_kw += heat_w_m2 * floor_area_m2 / 1000.0
             co2_mg_s_m2 = u[1] * p[P_MAX_CO2_DOSING] / model_area
             hour_co2 += co2_mg_s_m2 * floor_area_m2 * 3600e-6 / STEPS_PER_HOUR
-            lamp_w_m2 = u[4] * p[P_LAMP_POWER] / model_area
+            # Parameter 172 is already a power density [W/m2]. Dividing it by
+            # floor area under-reported lighting electricity by a factor of 144.
+            lamp_w_m2 = u[4] * p[P_LAMP_POWER]
             lighting_electricity_kwh += (
                 lamp_w_m2 * floor_area_m2 / 1000.0 * float(raw.dt) / 3600.0
             )
@@ -140,8 +209,14 @@ def simulate_day(request: dict) -> dict:
             hour_temp += climate[1]
             hour_rh += climate[2]
 
-            natural_dli += float(raw.weather_data[raw.timestep, 0]) * 2.1 * 0.45 * raw.dt / 1e6
+            # ``env.step`` advances the cursor first; on the final step the new
+            # cursor equals len(weather_data). Account the weather just consumed.
+            weather_index = min(max(raw.timestep - 1, 0), len(raw.weather_data) - 1)
+            natural_dli += (
+                float(raw.weather_data[weather_index, 0]) * 2.1 * 0.45 * raw.dt / 1e6
+            )
             steps += 1
+            step_index += 1
             if terminated or truncated:
                 truncated_at = interval["hour"]
                 break

@@ -82,6 +82,11 @@ jobs:
           assert len(heat) == 24
           w_m2 = [h * 1000 / 50000 for h in heat]
           assert max(w_m2) < 200, f"implausible heat demand: {max(w_m2):.0f} W/m2"
+          lighting = resp["outcome"]["diagnostics"]["lighting_electricity_kwh"]
+          # Default GreenLight lamp density is 116 W/m2. At 50% for 24 h on
+          # 50,000 m2 that is 69,600 kWh. This guards against accidentally
+          # dividing a W/m2 parameter by model floor area again.
+          assert 69_000 < lighting < 70_200, lighting
           print(f"OK: peak heat demand {max(w_m2):.0f} W/m2")
           PY
 

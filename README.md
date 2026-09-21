@@ -23,6 +23,7 @@ whole-plan regeneration.
 · [Data & provenance](docs/DATA.md)
 · [Parameters](docs/PARAMETERS.md)
 · [Validation](docs/VALIDATION.md)
+· [Grower usability test](docs/USABILITY_TEST.md)
 · [MCP integration](docs/MCP.md)
 
 ---
@@ -54,6 +55,12 @@ The prepared real-input day is cached with provenance and checksums. Later demo
 runs reuse it instead of silently substituting synthetic data. A separate badge
 shows the greenhouse-model validation state: it stays **pending** until a finite
 measured AGC2 replay has actually been published.
+
+The first measured replay is now published over twelve deterministic AGC2 Reference
+days. It is useful because it fails honestly: electricity accounting has 11.4%
+mean absolute relative error, but heat has 389.0% and CO₂ 78.0%. The present
+parameterisation is therefore **not calibrated for operational use**. See the
+[full per-day validation table](docs/VALIDATION.md).
 
 | Platform | Release file |
 |---|---|
@@ -254,6 +261,8 @@ The default interface focuses on the decision:
 
 The grower can compare verification on/off before making a plan and can object to
 money, crop, grid or practical fit separately without discarding accepted parts.
+Position and grid exposure have their own full screen, with contracted volume,
+planned use, deviation, settlement and the short/long direction for every hour.
 
 ### Research UI — `/advanced`
 

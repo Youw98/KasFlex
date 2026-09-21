@@ -63,6 +63,7 @@ async function loadLanguage(language) {
 
   if (state.context) renderContext(state.context);
   if (state.run) renderDecision(state.run, {preserveDimensions:true});
+  if (!$('position-view').hidden) renderPositionPage();
 }
 
 function euro(value, digits=0) {
@@ -175,8 +176,8 @@ async function loadValidationStatus() {
     if (status.validated) {
       pill.className = "pill measured";
       pill.textContent = state.lang === "nl"
-        ? `Meetvalidatie · ${status.days_compared} dag(en)`
-        : `Measured validation · ${status.days_compared} day(s)`;
+        ? `Meetreplay · kalibratie nodig (${status.days_compared} d)`
+        : `Measured replay · calibration needed (${status.days_compared} d)`;
       pill.title = `${status.dataset} · ${status.model || "model"}`;
     } else {
       pill.className = "pill pending";
@@ -643,8 +644,8 @@ function openDetail(kind) {
   dialog.showModal();
 }
 
-function renderPositionDetail(root) {
-  $("dialog-title").textContent = state.lang === "nl" ? "Positie, afwijking en net" : "Position, deviation and grid";
+function renderPositionDetail(root, setDialogTitle=true) {
+  if (setDialogTitle) $("dialog-title").textContent = state.lang === "nl" ? "Positie, afwijking en net" : "Position, deviation and grid";
   const summary = state.run?.position?.summary || {};
   root.innerHTML = `
     <div class="detail-grid">
@@ -673,6 +674,31 @@ function renderPositionDetail(root) {
     line.append(hour, power, detail);
     bars.append(line);
   }
+}
+
+function renderPositionPage() {
+  $("position-page-eyebrow").textContent = state.lang === "nl" ? "Energiepositie" : "Energy position";
+  $("position-page-title").textContent = state.lang === "nl" ? "Positie, afwijking en net" : "Position, deviation and grid";
+  $("position-page-copy").textContent = state.lang === "nl"
+    ? "Bekijk wat vooraf is ingekocht, wat het plan nodig heeft en op welke uren de positie tekort of over is."
+    : "See what was contracted, what the plan needs and where the grid position is short or long.";
+  $("back-from-position").textContent = state.lang === "nl" ? "← Terug naar besluit" : "← Back to decision";
+  renderPositionDetail($("position-page-body"), false);
+}
+
+function openPositionPage() {
+  if (!state.run) return;
+  state.detailExpansions += 1;
+  $("decision-view").hidden = true;
+  $("position-view").hidden = false;
+  renderPositionPage();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function closePositionPage() {
+  $("position-view").hidden = true;
+  $("decision-view").hidden = false;
+  window.scrollTo({top:0, behavior:"smooth"});
 }
 
 function renderRiskDetail(root) {
@@ -861,7 +887,8 @@ $("checker-enabled").addEventListener("change", () => {
 $("refresh-data").addEventListener("click", loadContext);
 $("compare-checker").addEventListener("click", compareChecker);
 $("build-plan").addEventListener("click", buildPlan);
-$("open-position").addEventListener("click", () => openDetail("position"));
+$("open-position").addEventListener("click", openPositionPage);
+$("back-from-position").addEventListener("click", closePositionPage);
 $("open-risk").addEventListener("click", () => openDetail("risk"));
 $("open-plan").addEventListener("click", () => openDetail("plan"));
 $("open-data").addEventListener("click", () => openDetail("data"));

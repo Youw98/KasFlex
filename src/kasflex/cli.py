@@ -1,11 +1,12 @@
 """Command line interface.
 
-Six commands, each of which does one thing:
+Commands are kept narrow and composable:
 
     kasflex run         one scenario, printed as a plan the operator can read
     kasflex experiment  the full matrix, unattended, writing structured records
     kasflex verify      check a plan file against a scenario's limits
     kasflex validate    compare the greenhouse model against measured AGC data
+    kasflex prepare-agc2 convert the official archive into replay inputs
     kasflex datasets    the data provenance registry
     kasflex doctor      what is installed and what is missing
 
@@ -375,6 +376,24 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_prepare_agc2(args: argparse.Namespace) -> int:
+    """Convert an extracted official AGC2 archive into validation inputs."""
+    from kasflex.validation_agc2 import prepare_agc2
+
+    try:
+        selected = prepare_agc2(
+            Path(args.source),
+            Path(args.cache_dir),
+            sample_days=None if args.all_days else args.sample_days,
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"AGC2 preparation failed: {exc}", file=sys.stderr)
+        return 2
+    print(f"Prepared {len(selected)} AGC2 day(s): " + ", ".join(map(str, selected)))
+    print(f"Canonical cache: {(Path(args.cache_dir) / 'agc2').resolve()}")
+    return 0
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     print("KasFlex environment check\n")
     import importlib.util
@@ -526,6 +545,16 @@ def main(argv: list[str] | None = None) -> int:
         help="machine-readable measured-validation status used by the demo",
     )
     p_val.set_defaults(func=cmd_validate)
+
+    p_prepare = sub.add_parser(
+        "prepare-agc2",
+        help="convert an extracted official AGC2 archive for measured validation",
+    )
+    p_prepare.add_argument("--source", default="data/raw/agc2/extracted")
+    p_prepare.add_argument("--cache-dir", default="data/cache")
+    p_prepare.add_argument("--sample-days", type=int, default=12)
+    p_prepare.add_argument("--all-days", action="store_true")
+    p_prepare.set_defaults(func=cmd_prepare_agc2)
 
     p_doc = sub.add_parser("doctor", help="check the environment")
     p_doc.set_defaults(func=cmd_doctor)

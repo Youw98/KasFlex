@@ -449,6 +449,9 @@ def test_team_demo_buttons_are_wired_and_do_not_link_to_legacy_ui():
     assert "/api/deliberate" in script
     assert 'id="checker-enabled"' in html
     assert '"checker.enabled":$("checker-enabled").checked' in script
+    assert 'id="position-view"' in html
+    assert 'id="back-from-position"' in html
+    assert '$("open-position").addEventListener("click", openPositionPage)' in script
     assert "/api/validation-status" in script
     assert "failed:" in script
 
