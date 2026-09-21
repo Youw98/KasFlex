@@ -2,9 +2,12 @@
 
 const $ = (id) => document.getElementById(id);
 const DIMENSIONS = ["money", "crop", "grid", "work"];
+const SHOWCASE_DATE = "2023-01-15";
+const SHOWCASE_SEED = 0;
 
 const state = {
   lang: localStorage.getItem("kasflex.demo.lang") || "en",
+  inputMode: localStorage.getItem("kasflex.demo.inputMode") || "showcase",
   strings: {},
   context: null,
   run: null,
@@ -51,6 +54,7 @@ async function loadLanguage(language) {
   state.strings = await response.json();
   document.documentElement.lang = state.lang;
   $("language-select").value = state.lang;
+  $("input-mode").value = state.inputMode;
 
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     const value = state.strings[node.dataset.i18n];
@@ -108,10 +112,12 @@ function selectedPolicy() {
   };
 }
 function overrides() {
+  const showcase = state.inputMode !== "real";
   return {
-    data_source:"demo",
+    data_source:showcase ? "synthetic" : "demo",
     planner:"collaborative",
-    date:state.context?.date || undefined,
+    date:showcase ? SHOWCASE_DATE : (state.context?.date || undefined),
+    seed:showcase ? SHOWCASE_SEED : undefined,
     language:state.lang,
     llm_provider:state.selectedProvider || undefined,
     llm_model:state.selectedModel || undefined,
@@ -203,23 +209,36 @@ async function handleConsent() {
 
 async function loadContext() {
   clearError();
+  const showcase = state.inputMode !== "real";
   $("data-pill").className = "pill loading";
-  $("data-pill").textContent = state.lang === "nl" ? "Echte data voorbereiden…" : "Preparing real data…";
+  $("data-pill").textContent = showcase
+    ? (state.lang === "nl" ? "Showcase laden…" : "Loading showcase…")
+    : (state.lang === "nl" ? "Echte data voorbereiden…" : "Preparing real data…");
   $("refresh-data").disabled = true;
   $("build-plan").disabled = true;
   $("compare-checker").disabled = true;
   try {
-    const prepared = await api("/api/demo-prepare", {overrides:{data_source:"demo"}});
-    state.context = await api("/api/day-context", {
-      overrides:{...overrides(), date:prepared.date, data_source:"demo"}
-    });
+    if (showcase) {
+      state.context = await api("/api/day-context", {
+        overrides:{...overrides(), data_source:"synthetic", date:SHOWCASE_DATE, seed:SHOWCASE_SEED}
+      });
+      $("data-pill").className = "pill";
+      $("data-pill").textContent = state.lang === "nl"
+        ? "Showcase-data · offline"
+        : "Showcase data · offline";
+    } else {
+      const prepared = await api("/api/demo-prepare", {overrides:{data_source:"demo"}});
+      state.context = await api("/api/day-context", {
+        overrides:{...overrides(), date:prepared.date, data_source:"demo"}
+      });
+      $("data-pill").className = "pill";
+      $("data-pill").textContent = state.lang === "nl"
+        ? (prepared.reused_cache ? "Echte data · lokaal opgeslagen" : "Echte data · klaar")
+        : (prepared.reused_cache ? "Real data · cached" : "Real data · ready");
+    }
     renderContext(state.context);
     $("build-plan").disabled = false;
     $("compare-checker").disabled = false;
-    $("data-pill").className = "pill";
-    $("data-pill").textContent = state.lang === "nl"
-      ? (prepared.reused_cache ? "Echte data · lokaal opgeslagen" : "Echte data · klaar")
-      : (prepared.reused_cache ? "Real data · cached" : "Real data · ready");
   } catch (error) {
     $("data-pill").className = "pill loading";
     $("data-pill").textContent = state.lang === "nl" ? "Data niet beschikbaar" : "Data unavailable";
@@ -235,13 +254,19 @@ function renderContext(ctx) {
     weekday:"short", day:"numeric", month:"short", year:"numeric"
   });
   const provenance = ctx.provenance || {};
-  const market = provenance.prices?.dataset_key === "entsoe_da"
-    ? (state.lang === "nl" ? "ENTSO-E-afgeleide NL-prijzen" : "ENTSO-E-derived NL prices")
-    : (state.lang === "nl" ? "stroomprijzen" : "electricity prices");
-  const weather = provenance.forecast_weather?.dataset_key === "openmeteo_hist_forecast"
-    ? "Open-Meteo"
-    : (state.lang === "nl" ? "weersverwachting" : "weather forecast");
-  $("source-summary").textContent = `${market} · ${weather}`;
+  if (ctx.data_source === "synthetic") {
+    $("source-summary").textContent = state.lang === "nl"
+      ? "Vast showcase-prijsprofiel · gesimuleerd weer"
+      : "Fixed showcase price profile · simulated weather";
+  } else {
+    const market = provenance.prices?.dataset_key === "entsoe_da"
+      ? (state.lang === "nl" ? "ENTSO-E-afgeleide NL-prijzen" : "ENTSO-E-derived NL prices")
+      : (state.lang === "nl" ? "stroomprijzen" : "electricity prices");
+    const weather = provenance.forecast_weather?.dataset_key === "openmeteo_hist_forecast"
+      ? "Open-Meteo"
+      : (state.lang === "nl" ? "weersverwachting" : "weather forecast");
+    $("source-summary").textContent = `${market} · ${weather}`;
+  }
   $("price-low").textContent = cents(ctx.price.min_eur_kwh);
   $("price-high").textContent = cents(ctx.price.max_eur_kwh);
   $("price-low-hours").textContent = hourList(ctx.price.cheapest_hours);
@@ -897,6 +922,16 @@ $("back-to-choices").addEventListener("click", backToChoices);
 $("close-dialog").addEventListener("click", () => $("detail-dialog").close());
 $("consent-anonymous").addEventListener("click", consentAnonymous);
 $("consent-study").addEventListener("click", consentStudy);
+$("input-mode").addEventListener("change", async (event) => {
+  state.inputMode = event.target.value === "real" ? "real" : "showcase";
+  localStorage.setItem("kasflex.demo.inputMode", state.inputMode);
+  $("checker-comparison").hidden = true;
+  state.run = null;
+  state.dimensions = {};
+  $("decision-view").hidden = true;
+  $("prepare-view").hidden = false;
+  await loadContext();
+});
 $("language-select").addEventListener("change", async (event) => {
   await loadLanguage(event.target.value);
   $("checker-comparison").hidden = true;
