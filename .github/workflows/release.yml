@@ -1,0 +1,176 @@
+name: Build applications
+
+# PyInstaller does not cross-compile: a Windows .exe must be built on Windows, a
+# macOS binary on macOS. That is the whole reason this workflow exists — the
+# development machine cannot produce them.
+
+on:
+  push:
+    tags: ["v*"]
+    branches: ["release/**"]
+  # Pushing a tag from a machine behind a restrictive proxy is not always
+  # possible, so a release can also be started by hand: give a version and the
+  # release job creates the tag on the checked-out commit itself.
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Publish a release under this tag (e.g. v0.1.1). Leave empty to only build artifacts."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: KasFlex-windows
+            binary: dist/KasFlex.exe
+          - os: macos-latest
+            artifact: KasFlex-macos
+            binary: dist/KasFlex
+          - os: ubuntu-latest
+            artifact: KasFlex-linux
+            binary: dist/KasFlex
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -e . pyinstaller
+      - run: pyinstaller packaging/kasflex.spec --noconfirm
+
+      # Building is not evidence that it works. A spec that misses a hidden import
+      # produces a binary that starts and then fails the moment a planner is
+      # chosen, so exercise the paths that would break: the bundled config, a run
+      # with each planner, and the interface serving its own static files.
+      - name: Smoke-test the built application
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="${{ matrix.binary }}"
+          "$BIN" --help > /dev/null
+          "$BIN" doctor > /dev/null
+          for planner in rule-based learned naive; do
+            echo "--- $planner"
+            "$BIN" run --planner "$planner" --quiet
+          done
+          "$BIN" experiment --days 1 > /dev/null
+          echo "all planners ran from the bundle"
+
+      - name: Smoke-test the interface
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${{ matrix.binary }}" ui --no-browser --port 8765 &
+          SERVER=$!
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8765/api/settings > /dev/null 2>&1 && break
+            sleep 1
+          done
+          # Exercise both current front ends and the settings API.
+          # "/" is the grower UI; "/advanced" is the researcher UI.
+          for path in / /demo.css /demo.js /demo.en.json /demo.nl.json /grower /grower.css /grower.js /advanced /design.css /app.js /api/settings /api/models; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8765$path")
+            echo "  $path -> $code"
+            [ "$code" = "200" ] || { echo "FAILED: $path returned $code"; exit 1; }
+          done
+          # Not piped into head: head closes the pipe after its 80 bytes, curl
+          # dies of EPIPE on the rest, and pipefail turns that into exit 23 --
+          # a race that fails a release at random long after the run succeeded.
+          response=$(curl -fsS -X POST http://127.0.0.1:8765/api/run \
+            -H 'Content-Type: application/json' \
+            -d '{"overrides":{"planner":"learned"}}')
+          echo "${response:0:80}"
+          kill $SERVER 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.binary }}
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/') || inputs.release_tag != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve release tag
+        id: meta
+        shell: bash
+        run: |
+          TAG="${{ inputs.release_tag }}"
+          if [ -z "$TAG" ]; then
+            if [[ "$GITHUB_REF" == refs/heads/release/* ]]; then
+              TAG="${GITHUB_REF#refs/heads/release/}"
+            else
+              TAG="$GITHUB_REF_NAME"
+            fi
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+
+      # The macOS and Linux binaries are both called "KasFlex", and release asset
+      # names have to be unique -- uploaded as they are, one silently replaces the
+      # other and the release is short a platform. Suffix each with its own.
+      - name: Name the binaries per platform
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          cp artifacts/KasFlex-windows/KasFlex.exe release/KasFlex-windows.exe
+          cp artifacts/KasFlex-macos/KasFlex       release/KasFlex-macos
+          cp artifacts/KasFlex-linux/KasFlex       release/KasFlex-linux
+          ls -l release
+          test "$(ls release | wc -l)" = 3
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          # Empty on a tag push, where the action takes the tag from the ref.
+          tag_name: ${{ steps.meta.outputs.tag }}
+          files: release/*
+          generate_release_notes: true
+          prerelease: true
+          body: |
+            **Alpha release.** Download the file for your machine. No Python
+            installation is required.
+
+            KasFlex opens directly into the grower co-pilot demo: review the real
+            historical market/weather day, choose the grower's priorities, build a
+            checked 24-hour plan, adjust it, and approve the final revision. Demo
+            market/weather inputs are real; greenhouse outcomes remain simulated
+            and unvalidated.
+
+            | | |
+            |---|---|
+            | Windows | `KasFlex-windows.exe` |
+            | macOS | `KasFlex-macos` |
+            | Linux | `KasFlex-linux` |
+
+            On Windows, double-click it and the interface opens in your browser.
+
+            On macOS and Linux a downloaded file is not executable, so make it one
+            first: `chmod +x KasFlex-macos` (or `KasFlex-linux`), then run it.
+
+            Run it from a terminal for the full command set (`--help`).
+
+            Results and the audit log are written to a `KasFlex` folder in your home
+            directory. Drop a `configs/` folder next to the application to use your
+            own scenario.
+
+            **The applications are unsigned.** Windows SmartScreen will warn on
+            first launch (More info -> Run anyway); on macOS, right-click and choose
+            Open, or `xattr -d com.apple.quarantine KasFlex`. Signing needs a paid
+            certificate, which this project does not have.
+
+            **Simulation only.** The greenhouse model is not validated against
+            measured data. Every figure is apparatus, not a result.

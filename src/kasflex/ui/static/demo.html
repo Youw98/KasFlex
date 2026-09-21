@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>KasFlex — Grower energy co-pilot</title>
+  <link rel="stylesheet" href="/demo.css">
+</head>
+<body>
+  <a class="skip" href="#workspace" data-i18n="skip">Skip to workspace</a>
+
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="KasFlex home">
+      <img src="/mark.svg" alt="" width="36" height="36">
+      <span><strong>KasFlex</strong><small data-i18n="brand.subtitle">Grower energy co-pilot</small></span>
+    </a>
+    <div class="top-controls">
+      <span id="data-pill" class="pill loading" data-i18n="data.preparing">Preparing real data…</span>
+      <span id="validation-pill" class="pill pending" data-i18n="validation.pending">Model validation pending</span>
+      <label class="compact-select">
+        <span data-i18n="language">Language</span>
+        <select id="language-select" aria-label="Language">
+          <option value="en">English</option>
+          <option value="nl">Nederlands</option>
+        </select>
+      </label>
+      <label class="compact-select">
+        <span data-i18n="model">AI model</span>
+        <select id="model-select" aria-label="AI model"></select>
+      </label>
+    </div>
+  </header>
+
+  <div id="sim-notice" class="simulation" role="note">
+    <strong data-i18n="simulation.title">Simulation.</strong>
+    <span data-i18n="simulation.note">No equipment connected. Greenhouse outcomes are Not validated for operational use.</span>
+  </div>
+
+  <main id="workspace">
+    <div id="error" class="error" hidden></div>
+
+    <section id="prepare-view" class="view prepare-view">
+      <div class="intro">
+        <div>
+          <p class="eyebrow" data-i18n="prepare.eyebrow">Tomorrow's decision</p>
+          <h1 data-i18n="prepare.title">Make tomorrow's energy plan together.</h1>
+          <p data-i18n="prepare.copy">Real Dutch market and weather inputs first. Grower judgement second. KasFlex proposes and independently checks the plan.</p>
+        </div>
+        <div class="day-card">
+          <span data-i18n="prepare.day">Planning day</span>
+          <strong id="planning-date">—</strong>
+          <small id="source-summary">—</small>
+        </div>
+      </div>
+
+      <div class="context-strip">
+        <article><span data-i18n="metric.cheap">Cheapest electricity</span><strong id="price-low">—</strong><small id="price-low-hours">—</small></article>
+        <article><span data-i18n="metric.expensive">Most expensive</span><strong id="price-high">—</strong><small id="price-high-hours">—</small></article>
+        <article><span data-i18n="metric.weather">Outside temperature</span><strong id="temp-range">—</strong><small id="sun-hours">—</small></article>
+        <article><span data-i18n="metric.grid">Grid contract</span><strong id="grid-limit">—</strong><small id="grid-window">—</small></article>
+      </div>
+
+      <div class="prepare-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <div><p class="eyebrow" data-i18n="prepare.priority.eyebrow">Grower judgement</p><h2 data-i18n="prepare.priority.title">What matters most tomorrow?</h2></div>
+          </div>
+          <div class="priority-grid" role="radiogroup">
+            <label><input type="radio" name="priority" value="balanced" checked><span><strong data-i18n="priority.balanced">Balanced</strong><small data-i18n="priority.balanced.note">Cost, grid and margin together.</small></span></label>
+            <label><input type="radio" name="priority" value="cost"><span><strong data-i18n="priority.cost">Lowest cost</strong><small data-i18n="priority.cost.note">Expected euros first.</small></span></label>
+            <label><input type="radio" name="priority" value="crop"><span><strong data-i18n="priority.crop">Crop first</strong><small data-i18n="priority.crop.note">Climate and tomato margin first.</small></span></label>
+            <label><input type="radio" name="priority" value="grid"><span><strong data-i18n="priority.grid">Grid relief</strong><small data-i18n="priority.grid.note">Lower import peak first.</small></span></label>
+          </div>
+          <div class="policy-row">
+            <label><input id="avoid-chp-night" type="checkbox"><span data-i18n="policy.chp">Avoid CHP overnight</span></label>
+            <label><input id="prefer-buffer" type="checkbox" checked><span data-i18n="policy.buffer">Prefer stored heat</span></label>
+            <label class="reserve"><span data-i18n="policy.reserve">Battery reserve</span><input id="battery-reserve" type="range" min="0" max="70" step="5" value="45"><output id="reserve-value">45%</output></label>
+          </div>
+          <label class="checker-toggle">
+            <span>
+              <strong data-i18n="checker.toggle">Independent safety check</strong>
+              <small data-i18n="checker.toggle.note">Keep this on for the grower plan. Turn it off only to demonstrate what the checker prevents.</small>
+            </span>
+            <input id="checker-enabled" type="checkbox" checked>
+            <span class="switch-ui" aria-hidden="true"></span>
+          </label>
+          <div class="checker-compare-row">
+            <button id="compare-checker" type="button" class="ghost" data-i18n="checker.compare" disabled>Show what the check prevents</button>
+            <span data-i18n="checker.compare.note">Safety demonstration on the same day with a constraint-blind baseline; not your grower plan.</span>
+          </div>
+          <div id="checker-comparison" class="checker-comparison" hidden></div>
+          <label class="brief"><span data-i18n="policy.brief">Anything special tomorrow?</span><textarea id="brief" rows="2" data-i18n-placeholder="policy.brief.placeholder" placeholder="Maintenance, noise, crop work, staffing…"></textarea></label>
+        </article>
+
+        <article class="panel price-panel">
+          <div class="panel-head"><div><p class="eyebrow" data-i18n="prepare.price.eyebrow">Real input</p><h2 data-i18n="prepare.price.title">Dutch day-ahead price</h2></div><button id="refresh-data" class="ghost" data-i18n="refresh">Refresh</button></div>
+          <div id="price-chart" class="price-chart"></div>
+          <div class="axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+        </article>
+      </div>
+
+      <div class="prepare-action">
+        <div><strong data-i18n="prepare.action.title">Ready to make the plan?</strong><small data-i18n="prepare.action.note">The independent checker still decides whether the proposal is safe.</small></div>
+        <button id="build-plan" type="button" class="primary" data-i18n="prepare.action.button" disabled>Build tomorrow's plan</button>
+      </div>
+    </section>
+
+    <section id="decision-view" class="view decision-view" hidden>
+      <div class="decision-top">
+        <div>
+          <p class="eyebrow" data-i18n="decision.eyebrow">Deliberate before deciding</p>
+          <h1 data-i18n="decision.title">Do you agree with the plan?</h1>
+        </div>
+        <div id="checker-badge" class="checker">—</div>
+      </div>
+
+      <div class="headline-metrics">
+        <article class="money"><span data-i18n="decision.expected">Expected cost</span><strong id="result-cost">—</strong><small id="result-saving">—</small></article>
+        <article class="crop"><span data-i18n="decision.crop">Simulated tomato growth</span><strong id="result-crop">—</strong><small id="result-crop-note">—</small></article>
+        <article><span data-i18n="decision.badcase">Bad-weather case</span><strong id="result-badcase">—</strong><small id="result-confidence">—</small></article>
+        <article><span data-i18n="decision.position">Energy position</span><strong id="result-position">—</strong><small id="result-settlement">—</small></article>
+      </div>
+
+      <div class="decision-body">
+        <section class="dimension-panel">
+          <div class="dimension-head">
+            <strong data-i18n="dimension.prompt">This plan…</strong>
+            <span data-i18n="dimension.help">Respond to each part separately. KasFlex answers the part you disagree with.</span>
+          </div>
+          <div id="dimensions" class="dimensions"></div>
+        </section>
+
+        <aside class="plan-panel">
+          <div>
+            <p class="eyebrow" data-i18n="plan.eyebrow">What changes</p>
+            <h2 data-i18n="plan.title">Plan highlights</h2>
+          </div>
+          <div id="changes-list" class="changes-list"></div>
+          <div class="detail-buttons">
+            <button id="open-position" class="detail-button"><span>↔</span><span data-i18n="details.position">Position & grid</span></button>
+            <button id="open-risk" class="detail-button"><span>±</span><span data-i18n="details.risk">Risk & confidence</span></button>
+            <button id="open-plan" class="detail-button"><span>24</span><span data-i18n="details.plan">24-hour plan</span></button>
+            <button id="open-data" class="detail-button"><span>i</span><span data-i18n="details.data">Data sources</span></button>
+          </div>
+          <div class="final-box">
+            <small id="review-progress">0/4</small>
+            <strong data-i18n="final.title">Reach a view on all four dimensions</strong>
+            <p id="decision-copy" data-i18n="final.note">Approval unlocks when each dimension has a response and the checker accepts the current revision.</p>
+            <button id="approve-plan" class="primary" disabled data-i18n="final.approve">Approve final plan</button>
+            <button id="back-to-choices" class="ghost" data-i18n="final.rebuild">Change priorities & rebuild</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="position-view" class="view position-view" hidden>
+      <div class="position-page-head">
+        <div>
+          <p class="eyebrow" id="position-page-eyebrow">Energy position</p>
+          <h1 id="position-page-title">Position, deviation and grid</h1>
+          <p id="position-page-copy">See what was contracted, what the plan needs and where the grid position is short or long.</p>
+        </div>
+        <button id="back-from-position" class="ghost" type="button">← Back to decision</button>
+      </div>
+      <div id="position-page-body" class="panel position-page-body"></div>
+    </section>
+  </main>
+
+  <dialog id="detail-dialog">
+    <div class="dialog-head"><div><p class="eyebrow" id="dialog-eyebrow"></p><h2 id="dialog-title"></h2></div><button id="close-dialog" class="ghost" aria-label="Close">×</button></div>
+    <div id="dialog-body"></div>
+  </dialog>
+
+  <dialog id="consent-dialog" class="consent-dialog">
+    <div class="dialog-head"><div><p class="eyebrow" data-i18n="consent.eyebrow">Research session</p><h2 data-i18n="consent.title">Choose how this session is recorded</h2></div></div>
+    <p data-i18n="consent.copy">The demo works fully without research consent. Identifiable interaction data is recorded only when you explicitly choose to participate.</p>
+    <label><span data-i18n="consent.participant">Participant ID</span><input id="participant-id" type="text" placeholder="P001"></label>
+    <div class="consent-actions">
+      <button id="consent-anonymous" class="ghost" data-i18n="consent.anonymous">Continue anonymously</button>
+      <button id="consent-study" class="primary" data-i18n="consent.study">Consent & continue</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="/demo.js"></script>
+</body>
+</html>
