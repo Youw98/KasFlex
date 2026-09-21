@@ -10,7 +10,7 @@ are worth, in operating cost and in limit violations.
 Simulation only. No physical greenhouse equipment is connected at any point.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 from kasflex.checker import CheckerConfig, SafetyChecker, Severity, Verdict, Violation
 from kasflex.config import ScenarioConfig

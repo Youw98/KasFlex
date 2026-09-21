@@ -94,6 +94,47 @@ def post_expecting(server, path: str, payload: dict, status: int) -> dict:
     return json.loads(exc.value.read().decode())
 
 
+def test_http_responses_include_browser_security_headers(server):
+    with urllib.request.urlopen(server.root + "/", timeout=10) as response:
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert response.headers["X-Frame-Options"] == "DENY"
+        assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
+        assert response.headers["Referrer-Policy"] == "no-referrer"
+
+
+def test_cross_site_browser_posts_are_rejected_for_every_endpoint(server):
+    request = urllib.request.Request(
+        server.root + "/api/run",
+        json.dumps({"overrides": {}}).encode(),
+        {
+            "Content-Type": "application/json",
+            "Origin": "https://unrelated.example",
+            "Sec-Fetch-Site": "cross-site",
+        },
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(request, timeout=10)
+    assert exc.value.code == 403
+
+
+def test_api_posts_require_json(server):
+    request = urllib.request.Request(
+        server.root + "/api/run", b"overrides=", {"Content-Type": "text/plain"}
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(request, timeout=10)
+    assert exc.value.code == 415
+
+
+def test_unrecognised_host_is_rejected(server):
+    request = urllib.request.Request(
+        server.root + "/api/settings", headers={"Host": "malicious.example"}
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(request, timeout=10)
+    assert exc.value.code == 403
+
+
 PLAN = [
     {"hour": 0, "power_price_eur_kwh": 0.09, "heat_source": "boiler",
      "lighting_level": 1.0, "battery": "idle", "battery_power_kw": 0,

@@ -359,8 +359,9 @@ commercial scenario.
 See [docs/VALIDATION.md](docs/VALIDATION.md) for the current validation status and
 dataset instructions.
 
-Until that validation is complete, model-derived greenhouse performance numbers
-should be treated as **apparatus, not findings**.
+The measured replay is complete, but the present calibration did not pass an
+operational threshold. Model-derived greenhouse performance numbers must therefore
+still be treated as **apparatus, not findings**.
 
 ---
 
@@ -455,7 +456,8 @@ KasFlex intentionally fails loudly rather than taking convenient shortcuts:
   24-hour representation;
 - edited plans must be re-verified;
 - checker-disabled plans are labelled **not verified**;
-- greenhouse outputs remain labelled unvalidated until measured validation exists.
+- measured replay and operational calibration are reported separately; a completed
+  comparison never silently becomes an operational approval.
 
 ---
 

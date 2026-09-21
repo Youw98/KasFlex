@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kasflex"
-version = "0.1.1"
+version = "0.1.2"
 description = "Verified agentic energy management for greenhouse horticulture under electrical constraints"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -354,8 +354,8 @@ function renderDecision(run, {preserveDimensions=false}={}) {
   const crop = Number(run.metrics?.fruit_growth_kg_m2 || 0);
   $("result-crop").textContent = `${crop.toFixed(2)} kg/m²`;
   $("result-crop-note").textContent = state.lang === "nl"
-    ? "modeluitkomst · nog niet gevalideerd"
-    : "model output · not yet validated";
+    ? "modeluitkomst · gemeten replay, nog niet gekalibreerd"
+    : "model output · measured replay, not yet calibrated";
 
   const badge = $("checker-badge");
   if (!run.checker_enabled) {
@@ -729,7 +729,7 @@ function renderRiskDetail(root) {
       <p>${state.lang==="nl"
         ? `Werkelijke replay-kosten: ${euro(state.run.metrics?.net_cost_eur)} tegenover ${euro(state.run.cost_forecast?.totals?.net_cost_eur || state.run.metrics?.net_cost_eur)} voorspeld.`
         : `Replay realised cost: ${euro(state.run.metrics?.net_cost_eur)} versus ${euro(state.run.cost_forecast?.totals?.net_cost_eur || state.run.metrics?.net_cost_eur)} predicted.`}</p>` : ""}
-      <p class="warning">${state.lang==="nl"?"Het kasmodel zelf is nog niet gevalideerd tegen AGC-metingen.":"The greenhouse model itself is still not validated against AGC measurements."}</p>
+      <p class="warning">${state.lang==="nl"?"Een gemeten AGC-replay is uitgevoerd, maar de kalibratiefouten zijn nog te groot voor operationeel gebruik.":"A measured AGC replay has been completed, but calibration errors remain too high for operational use."}</p>
     </div>`;
 }
 
