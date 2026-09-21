@@ -5,10 +5,10 @@
   "language": "Language",
   "model": "AI model",
   "simulation.title": "SIMULATION",
-  "simulation.note": "No equipment connected. Greenhouse outcomes are not validated for operational use.",
+  "simulation.note": "No equipment connected. Greenhouse outcomes are simulated and not validated for operational use.",
   "prepare.eyebrow": "Tomorrow's decision",
   "prepare.title": "Make tomorrow's energy plan together.",
-  "prepare.copy": "Real Dutch market and weather inputs first. Grower judgement second. KasFlex proposes and independently checks the plan.",
+  "prepare.copy": "Market and weather inputs first. Grower judgement second. KasFlex proposes and independently checks the plan.",
   "prepare.day": "Planning day",
   "metric.cheap": "Cheapest electricity",
   "metric.expensive": "Most expensive",
@@ -29,8 +29,8 @@
   "policy.reserve": "Battery reserve",
   "policy.brief": "Anything special tomorrow?",
   "policy.brief.placeholder": "Maintenance, noise, crop work, staffing…",
-  "prepare.price.eyebrow": "Real input",
-  "prepare.price.title": "Dutch day-ahead price",
+  "prepare.price.eyebrow": "Planning input",
+  "prepare.price.title": "Day-ahead price profile",
   "refresh": "Refresh",
   "prepare.action.title": "Ready to make the plan?",
   "prepare.action.note": "The independent checker still decides whether the proposal is safe.",
@@ -74,5 +74,8 @@
   "checker.compare": "Show what the check prevents",
   "checker.compare.note": "Safety demonstration on the same day with a constraint-blind baseline; not your grower plan.",
   "validation.pending": "Model validation pending",
-  "validation.ready": "Measured validation available"
+  "validation.ready": "Measured validation available",
+  "input.mode": "Demo data",
+  "input.showcase": "Showcase (offline)",
+  "input.real": "Real historical"
 }
