@@ -15,8 +15,15 @@
       <span><strong>KasFlex</strong><small data-i18n="brand.subtitle">Grower energy co-pilot</small></span>
     </a>
     <div class="top-controls">
-      <span id="data-pill" class="pill loading" data-i18n="data.preparing">Preparing real data…</span>
+      <span id="data-pill" class="pill loading">Loading showcase…</span>
       <span id="validation-pill" class="pill pending" data-i18n="validation.pending">Model validation pending</span>
+      <label class="compact-select">
+        <span data-i18n="input.mode">Demo data</span>
+        <select id="input-mode" aria-label="Demo data mode">
+          <option value="showcase" data-i18n="input.showcase">Showcase (offline)</option>
+          <option value="real" data-i18n="input.real">Real historical</option>
+        </select>
+      </label>
       <label class="compact-select">
         <span data-i18n="language">Language</span>
         <select id="language-select" aria-label="Language">
@@ -44,7 +51,7 @@
         <div>
           <p class="eyebrow" data-i18n="prepare.eyebrow">Tomorrow's decision</p>
           <h1 data-i18n="prepare.title">Make tomorrow's energy plan together.</h1>
-          <p data-i18n="prepare.copy">Real Dutch market and weather inputs first. Grower judgement second. KasFlex proposes and independently checks the plan.</p>
+          <p data-i18n="prepare.copy">Market and weather inputs first. Grower judgement second. KasFlex proposes and independently checks the plan.</p>
         </div>
         <div class="day-card">
           <span data-i18n="prepare.day">Planning day</span>
@@ -93,7 +100,7 @@
         </article>
 
         <article class="panel price-panel">
-          <div class="panel-head"><div><p class="eyebrow" data-i18n="prepare.price.eyebrow">Real input</p><h2 data-i18n="prepare.price.title">Dutch day-ahead price</h2></div><button id="refresh-data" class="ghost" data-i18n="refresh">Refresh</button></div>
+          <div class="panel-head"><div><p class="eyebrow" data-i18n="prepare.price.eyebrow">Planning input</p><h2 data-i18n="prepare.price.title">Day-ahead price profile</h2></div><button id="refresh-data" class="ghost" data-i18n="refresh">Refresh</button></div>
           <div id="price-chart" class="price-chart"></div>
           <div class="axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
         </article>
