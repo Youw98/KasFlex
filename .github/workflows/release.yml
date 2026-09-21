@@ -139,38 +139,30 @@ jobs:
           tag_name: ${{ steps.meta.outputs.tag }}
           files: release/*
           generate_release_notes: true
-          prerelease: true
+          prerelease: false
           body: |
-            **Alpha release.** Download the file for your machine. No Python
-            installation is required.
+            Download the file for your machine. No Python installation is
+            required.
 
-            KasFlex opens directly into the grower co-pilot demo: review the real
-            historical market/weather day, choose the grower's priorities, build a
-            checked 24-hour plan, adjust it, and approve the final revision. Demo
-            market/weather inputs are real; greenhouse outcomes remain simulated
-            and unvalidated.
+            KasFlex opens directly into the grower co-pilot: review real historical
+            market and weather inputs, choose grower priorities, build a checked
+            24-hour plan, adjust it, and approve the final revision.
 
-            | | |
+            | Platform | File |
             |---|---|
             | Windows | `KasFlex-windows.exe` |
             | macOS | `KasFlex-macos` |
             | Linux | `KasFlex-linux` |
 
-            On Windows, double-click it and the interface opens in your browser.
+            On Windows, double-click the application to open the interface. On macOS
+            and Linux, first run `chmod +x KasFlex-macos` or
+            `chmod +x KasFlex-linux`.
 
-            On macOS and Linux a downloaded file is not executable, so make it one
-            first: `chmod +x KasFlex-macos` (or `KasFlex-linux`), then run it.
+            Results and the audit log are written to a `KasFlex` folder in the
+            user's home directory. The applications are unsigned, so Windows
+            SmartScreen or macOS Gatekeeper may warn on first launch.
 
-            Run it from a terminal for the full command set (`--help`).
-
-            Results and the audit log are written to a `KasFlex` folder in your home
-            directory. Drop a `configs/` folder next to the application to use your
-            own scenario.
-
-            **The applications are unsigned.** Windows SmartScreen will warn on
-            first launch (More info -> Run anyway); on macOS, right-click and choose
-            Open, or `xattr -d com.apple.quarantine KasFlex`. Signing needs a paid
-            certificate, which this project does not have.
-
-            **Simulation only.** The greenhouse model is not validated against
-            measured data. Every figure is apparatus, not a result.
+            **Simulation only.** KasFlex now includes replay validation against
+            official AGC2 greenhouse data, but the greenhouse model is not calibrated
+            for operational control. See `docs/VALIDATION.md` for measured errors,
+            provenance and limitations.
