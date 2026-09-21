@@ -33,8 +33,11 @@ whole-plan regeneration.
 1. Download the file for your operating system from
    [Releases](https://github.com/Youw98/KasFlex/releases).
 2. Start KasFlex. The browser opens the new daily-planning workspace.
-3. KasFlex prepares a real historical Dutch market/weather day and shows the
-   electricity-price and weather context first.
+3. KasFlex opens in **Showcase (offline)** mode by default: a fixed, deterministic
+   winter day that needs no network connection and is clearly labelled as showcase
+   data. For a data-provenance demonstration, switch **Demo data** to
+   **Real historical**; KasFlex then prepares a cached/downloaded Dutch
+   market/weather day.
 4. Choose what matters to the grower: **Balanced**, **Lowest cost**,
    **Crop first**, or **Grid relief**, plus battery reserve and operating
    preferences.
@@ -51,10 +54,12 @@ whole-plan regeneration.
    the trade-off. Approval unlocks only after all four dimensions have been reviewed
    and the current revision passes the checker.
 
-The prepared real-input day is cached with provenance and checksums. Later demo
-runs reuse it instead of silently substituting synthetic data. A separate badge
-shows the greenhouse-model validation state: it stays **pending** until a finite
-measured AGC2 replay has actually been published.
+The default showcase is intentionally synthetic and deterministic so a team
+presentation cannot fail because of Wi-Fi or an external API. It is labelled as
+showcase data in the interface. The **Real historical** option keeps the stricter
+research behaviour: prepared input data is cached with provenance and checksums,
+and missing real data is never silently replaced. A separate badge reports the
+greenhouse-model validation state.
 
 The first measured replay is now published over twelve deterministic AGC2 Reference
 days. It is useful because it fails honestly: electricity accounting has 11.4%
