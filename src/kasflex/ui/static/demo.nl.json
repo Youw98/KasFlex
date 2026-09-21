@@ -5,10 +5,10 @@
   "language": "Taal",
   "model": "AI-model",
   "simulation.title": "SIMULATIE",
-  "simulation.note": "Geen apparatuur aangesloten. Kasresultaten zijn niet gevalideerd voor operationeel gebruik.",
+  "simulation.note": "Geen apparatuur aangesloten. Kasuitkomsten zijn gesimuleerd en niet gevalideerd voor operationeel gebruik.",
   "prepare.eyebrow": "Beslissing voor morgen",
   "prepare.title": "Maak samen het energieplan voor morgen.",
-  "prepare.copy": "Eerst echte Nederlandse markt- en weerdata. Daarna het oordeel van de teler. KasFlex stelt een plan voor en controleert het onafhankelijk.",
+  "prepare.copy": "Markt- en weerinput eerst. Oordeel van de teler daarna. KasFlex stelt een plan voor en controleert het onafhankelijk.",
   "prepare.day": "Planningsdag",
   "metric.cheap": "Goedkoopste stroom",
   "metric.expensive": "Duurste stroom",
@@ -29,8 +29,8 @@
   "policy.reserve": "Batterijreserve",
   "policy.brief": "Iets bijzonders morgen?",
   "policy.brief.placeholder": "Onderhoud, geluid, gewaswerk, bezetting…",
-  "prepare.price.eyebrow": "Echte input",
-  "prepare.price.title": "Nederlandse day-aheadprijs",
+  "prepare.price.eyebrow": "Planningsinput",
+  "prepare.price.title": "Day-ahead prijsprofiel",
   "refresh": "Vernieuwen",
   "prepare.action.title": "Klaar om het plan te maken?",
   "prepare.action.note": "De onafhankelijke checker bepaalt nog steeds of het voorstel veilig is.",
@@ -74,5 +74,8 @@
   "checker.compare": "Toon wat de check voorkomt",
   "checker.compare.note": "Veiligheidsdemo op dezelfde dag met een baseline zonder kennis van grenzen; niet uw telerplan.",
   "validation.pending": "Modelvalidatie nog niet uitgevoerd",
-  "validation.ready": "Validatie met meetdata beschikbaar"
+  "validation.ready": "Validatie met meetdata beschikbaar",
+  "input.mode": "Demodata",
+  "input.showcase": "Showcase (offline)",
+  "input.real": "Echt historisch"
 }
