@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/github/license/Youw98/KasFlex)](LICENSE)
 ![Status](https://img.shields.io/badge/status-alpha-orange)
 
-**AI-assisted greenhouse energy planning with an independent safety check and a human in the loop.**
+**AI-assisted greenhouse energy planning with an independent safety check and a human-in-the-loop.**
 
 KasFlex creates a checked 24-hour greenhouse energy plan and then **negotiates it
 with the grower dimension by dimension**: money, crop protection, grid impact and
