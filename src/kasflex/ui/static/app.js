@@ -13,6 +13,9 @@
  */
 
 const $ = (id) => document.getElementById(id);
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+})[char]);
 const api = async (path, body) => {
   const res = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
@@ -40,6 +43,20 @@ const state = {
   hasRun: false,
   shownAt: null,   // when the plan appeared, for the decision-time metric (R26)
 };
+
+function renderMetricRows(root, metrics) {
+  root.replaceChildren();
+  for (const [key, value] of Object.entries(metrics || {})) {
+    const row = document.createElement("tr");
+    const label = document.createElement("td");
+    const amount = document.createElement("td");
+    label.textContent = key.replace(/_/g, " ");
+    amount.className = "num";
+    amount.textContent = num(value, 2);
+    row.append(label, amount);
+    root.appendChild(row);
+  }
+}
 
 /* ------------------------------------------------------------- settings */
 
@@ -252,12 +269,9 @@ function renderOutcome(r) {
 
   $("model-note").textContent = r.validated
     ? `Greenhouse model: ${r.greenhouse_model}.`
-    : `Greenhouse model “${r.greenhouse_model}” has not been validated against measured data. These figures are not results.`;
+    : `Greenhouse model “${r.greenhouse_model}” has a measured replay, but is not calibrated for operational use. These figures are research estimates.`;
 
-  const rows = Object.entries(m)
-    .map(([k, v]) => `<tr><td>${k.replace(/_/g, " ")}</td><td class="num">${num(v, 2)}</td></tr>`)
-    .join("");
-  $("metrics").innerHTML = rows;
+  renderMetricRows($("metrics"), m);
 
   renderPlan(r.plan);
   renderChart(r.plan);
@@ -429,11 +443,18 @@ function renderAssetCards(plan) {
   for (const c of cards) {
     const card = document.createElement('article');
     card.className = 'asset-card';
-    card.innerHTML =
-      `<div class="asset-card-head"><div class="asset-card-icon ${c.cls}">${c.icon}</div><span class="asset-card-name">${c.name}</span></div>` +
-      `<span class="asset-card-value">${c.value}</span>` +
-      `<div class="asset-card-bar"><div class="asset-card-fill ${c.cls}" style="width:${Math.round(c.pct)}%"></div></div>` +
-      `<p class="asset-card-desc">${c.desc}</p>`;
+    const head = document.createElement('div'); head.className = 'asset-card-head';
+    const icon = document.createElement('div'); icon.className = `asset-card-icon ${c.cls}`;
+    icon.innerHTML = c.icon; // Static, developer-owned SVG only.
+    const name = document.createElement('span'); name.className = 'asset-card-name'; name.textContent = c.name;
+    head.append(icon, name);
+    const value = document.createElement('span'); value.className = 'asset-card-value'; value.textContent = c.value;
+    const bar = document.createElement('div'); bar.className = 'asset-card-bar';
+    const fill = document.createElement('div'); fill.className = `asset-card-fill ${c.cls}`;
+    fill.style.width = `${Math.max(0, Math.min(100, Math.round(Number(c.pct) || 0)))}%`;
+    bar.appendChild(fill);
+    const description = document.createElement('p'); description.className = 'asset-card-desc'; description.textContent = c.desc;
+    card.append(head, value, bar, description);
     root.appendChild(card);
   }
 }
@@ -482,10 +503,14 @@ function renderNarrative(plan) {
     const description = phaseDescription(iv, duration);
     const avgPrice = phase.intervals.reduce((s, p) => s + p.power_price_eur_kwh, 0) / phase.intervals.length;
 
-    el.innerHTML =
-      `<div class="phase-time">${timeRange}<small>${duration} hour${duration > 1 ? 's' : ''}</small></div>` +
-      `<div class="phase-body"><h3>${title}</h3><p>${description}</p>` +
-      `<span class="phase-cost">Avg. electricity: €${avgPrice.toFixed(3)}/kWh</span></div>`;
+    const time = document.createElement('div'); time.className = 'phase-time'; time.textContent = timeRange;
+    const durationLabel = document.createElement('small'); durationLabel.textContent = `${duration} hour${duration > 1 ? 's' : ''}`;
+    time.appendChild(durationLabel);
+    const body = document.createElement('div'); body.className = 'phase-body';
+    const heading = document.createElement('h3'); heading.textContent = title;
+    const copy = document.createElement('p'); copy.textContent = description;
+    const cost = document.createElement('span'); cost.className = 'phase-cost'; cost.textContent = `Avg. electricity: €${avgPrice.toFixed(3)}/kWh`;
+    body.append(heading, copy, cost); el.append(time, body);
     grid.appendChild(el);
   }
 
@@ -585,10 +610,10 @@ function renderVerdict(accepted, feedback, violations, checkerEnabled) {
       const label = CONSTRAINT_LABELS[v.constraint] || v.constraint.replace(/[_.]/g, ' ');
       const hourStr = v.hour !== null && v.hour !== undefined ? `Hour ${String(v.hour).padStart(2, '0')}` : 'Whole day';
 
-      card.innerHTML =
-        `<strong>${label}</strong>` +
-        `<span>${hourStr}: needs ${num(v.actual, 1)} ${v.unit}, limit is ${num(v.bound, 1)} ${v.unit}. ` +
-        `${v.severity === 'hard' ? 'Over by ' + num(Math.abs(v.actual - v.bound), 1) + ' ' + v.unit + '.' : 'Projected from the greenhouse model.'}</span>`;
+      const heading = document.createElement('strong'); heading.textContent = label;
+      const detail = document.createElement('span');
+      detail.textContent = `${hourStr}: needs ${num(v.actual, 1)} ${v.unit}, limit is ${num(v.bound, 1)} ${v.unit}. ${v.severity === 'hard' ? 'Over by ' + num(Math.abs(v.actual - v.bound), 1) + ' ' + v.unit + '.' : 'Projected from the greenhouse model.'}`;
+      card.append(heading, detail);
       list.appendChild(card);
     }
 
@@ -643,7 +668,7 @@ async function reverify() {
     $("stat-violations").textContent = "—";
     $("stat-projected").textContent = "Edited plan: inspect the safety review below";
     $("card-violations").className = "stat";
-    $("metrics").innerHTML = Object.entries(r.metrics).map(([k,v]) => `<tr><td>${k.replace(/_/g," ")}</td><td class="num">${num(v,2)}</td></tr>`).join("");
+    renderMetricRows($("metrics"), r.metrics);
     $("stat-cost").textContent = eur(r.metrics.net_cost_eur);
     $("stat-cost-m2").textContent = `€ ${num(r.metrics.net_cost_eur_per_m2, 3)} per m²`;
     $("verdict-note").textContent = "Re-verified after your edits.";
@@ -708,20 +733,23 @@ async function compare() {
 
     for (const row of r.rows) {
       const tr = document.createElement("tr");
+      const cell = (value, className = "", colSpan = 1) => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        if (className) td.className = className;
+        if (colSpan > 1) td.colSpan = colSpan;
+        tr.appendChild(td);
+      };
       if (row.error) {
-        tr.innerHTML = `<td>${row.planner}</td><td colspan="6" class="muted">${row.error}</td>`;
+        cell(row.planner);
+        cell(row.error, "muted", 6);
       } else {
         const flags = [];
         if (row.fell_back) flags.push("fell back to baseline");
         if (row.cost_eur === best) flags.push("cheapest");
-        tr.innerHTML =
-          `<td>${row.planner}</td>` +
-          `<td class="num">${eur(row.cost_eur)}</td>` +
-          `<td class="num">${row.hard_violations}</td>` +
-          `<td class="num">${num(row.growth_kg_m2, 3)}</td>` +
-          `<td class="num">${num(row.band_hours)} h</td>` +
-          `<td class="num">${num(row.peak_import_kw)} kW</td>` +
-          `<td class="muted small">${flags.join(" · ")}</td>`;
+        cell(row.planner); cell(eur(row.cost_eur), "num"); cell(row.hard_violations, "num");
+        cell(num(row.growth_kg_m2, 3), "num"); cell(`${num(row.band_hours)} h`, "num");
+        cell(`${num(row.peak_import_kw)} kW`, "num"); cell(flags.join(" · "), "muted small");
       }
       body.appendChild(tr);
     }
@@ -1126,14 +1154,14 @@ $('export-pdf').addEventListener('click', () => {
   const cfg = state.runSettings;
   const m = document.querySelector('#metrics')?.innerHTML || '';
   const planRows = state.plan.map(p =>
-    `<tr><td>${String(p.hour).padStart(2,'0')}</td><td>€${p.power_price_eur_kwh.toFixed(3)}</td><td>${p.heat_source}</td><td>${(p.lighting_level*100).toFixed(0)}%</td><td>${p.battery}</td><td>${p.chp_mode.replace(/_/g,' ')}</td><td>${p.reasoning||''}</td></tr>`
+    `<tr><td>${escapeHtml(String(p.hour).padStart(2,'0'))}</td><td>€${escapeHtml(p.power_price_eur_kwh.toFixed(3))}</td><td>${escapeHtml(p.heat_source)}</td><td>${escapeHtml((p.lighting_level*100).toFixed(0))}%</td><td>${escapeHtml(p.battery)}</td><td>${escapeHtml(p.chp_mode.replace(/_/g,' '))}</td><td>${escapeHtml(p.reasoning||'')}</td></tr>`
   ).join('');
   const violations = document.querySelector('.violation-list')?.innerHTML || '<p>No violations.</p>';
   const badge = $('verdict-badge');
   const verdictStatus = badge ? badge.textContent : '';
   const cost = $('stat-cost')?.textContent || '';
   const growth = $('stat-growth')?.textContent || '';
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>KasFlex Report — ${cfg.date || ''}</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>KasFlex Report — ${escapeHtml(cfg.date || '')}</title>
 <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;color:#1d1d1f;padding:32px;max-width:900px;margin:auto}
 h1{font-size:22px;margin-bottom:4px}h2{font-size:14px;margin:20px 0 8px;color:#007aff;border-bottom:1px solid #e5e5ea;padding-bottom:4px}
 .meta{color:#6e6e73;font-size:10px;margin-bottom:16px}.stats{display:flex;gap:24px;margin:12px 0}.stat{flex:1;background:#f5f5f7;padding:14px;border-radius:8px}.stat .label{font-size:9px;color:#6e6e73;text-transform:uppercase;letter-spacing:.5px}.stat .val{font-size:22px;font-weight:600;margin-top:4px}
@@ -1142,14 +1170,15 @@ table{width:100%;border-collapse:collapse;font-size:10px;margin:8px 0}th{backgro
 .footer{margin-top:24px;padding-top:12px;border-top:1px solid #e5e5ea;font-size:9px;color:#86868b}
 @media print{body{padding:16px}}</style></head><body>
 <h1>KasFlex Energy Plan</h1>
-<p class="meta">${cfg.date || ''} · ${cfg.planner || 'rule-based'} · ${cfg.data_source === 'cache' ? 'Real data' : 'Demo'} · Generated ${new Date().toLocaleString()}</p>
-<div class="stats"><div class="stat"><div class="label">Net cost</div><div class="val">${cost}</div></div><div class="stat"><div class="label">Crop growth</div><div class="val">${growth}</div></div><div class="stat"><div class="label">Verdict</div><div class="val">${verdictStatus}</div></div></div>
+  <p class="meta">${escapeHtml(cfg.date || '')} · ${escapeHtml(cfg.planner || 'rule-based')} · ${cfg.data_source === 'cache' ? 'Real data' : 'Demo'} · Generated ${escapeHtml(new Date().toLocaleString())}</p>
+  <div class="stats"><div class="stat"><div class="label">Net cost</div><div class="val">${escapeHtml(cost)}</div></div><div class="stat"><div class="label">Crop growth</div><div class="val">${escapeHtml(growth)}</div></div><div class="stat"><div class="label">Verdict</div><div class="val">${escapeHtml(verdictStatus)}</div></div></div>
 <h2>Safety check</h2>${violations}
 <h2>Hourly plan</h2><table><thead><tr><th>Hour</th><th>Price</th><th>Heat</th><th>Lights</th><th>Battery</th><th>CHP</th><th>Reasoning</th></tr></thead><tbody>${planRows}</tbody></table>
 <h2>Metrics</h2><table>${m}</table>
 <div class="footer">KasFlex · 4TU.NIRICT · Research simulation — not validated for operational use.</div>
-</body></html>`;
+  </body></html>`;
   const w = window.open('', '_blank');
+  if (!w) { showError(new Error('The report window was blocked. Allow pop-ups for this local app and try again.')); return; }
   w.document.write(html);
   w.document.close();
   w.onload = () => { w.print(); };

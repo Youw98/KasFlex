@@ -309,6 +309,23 @@ def test_grower_ui_exposes_crop_priority_and_checker_comparison():
     assert "card.innerHTML" not in script
 
 
+def test_interfaces_describe_measured_replay_without_claiming_calibration():
+    root = static_dir()
+    grower = (root / "demo.js").read_text(encoding="utf-8")
+    advanced = (root / "app.js").read_text(encoding="utf-8")
+    assert "A measured AGC replay has been completed" in grower
+    assert "not calibrated for operational use" in advanced
+    assert "still not validated against AGC measurements" not in grower
+    assert "has not been validated against measured data" not in advanced
+
+
+def test_advanced_ui_does_not_put_api_errors_or_reasoning_directly_into_html():
+    script = (static_dir() / "app.js").read_text(encoding="utf-8")
+    assert "`${row.error}`" not in script
+    assert "${p.reasoning||''}" not in script
+    assert "escapeHtml(p.reasoning||'')" in script
+
+
 def test_crop_disagreement_returns_a_crop_specific_alternative(ui):
     run = ui.run(
         {"planner": "collaborative", "data_source": "synthetic"},

@@ -1798,6 +1798,8 @@ class UiServer:
 class _Handler(BaseHTTPRequestHandler):
     server_version = "kasflex"
     ui: UiServer
+    allowed_hosts: frozenset[str] = frozenset({"127.0.0.1", "localhost", "[::1]"})
+    max_body_bytes = 2_000_000
 
     def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A002
         """Quieter than the default, which prints a line per asset request."""
@@ -1811,11 +1813,51 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Security-Policy", "default-src 'self'; "
+                         "script-src 'self'; style-src 'self' 'unsafe-inline'; "
+                         "img-src 'self' data:; connect-src 'self'; "
+                         "object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         self.end_headers()
         self.wfile.write(body)
 
     def _json(self, payload: Any, status: int = 200) -> None:
         self._send(status, json.dumps(payload, default=str).encode(), "application/json")
+
+    def _request_host(self) -> str:
+        value = (self.headers.get("Host") or "").strip().lower()
+        if value.startswith("["):
+            end = value.find("]")
+            return value[:end + 1] if end >= 0 else value
+        return value.rsplit(":", 1)[0]
+
+    def _guard_request(self, *, write: bool = False) -> None:
+        """Reject DNS-rebinding and cross-site browser requests to the local app."""
+        if self._request_host() not in self.allowed_hosts:
+            raise ApiError("This local workspace does not recognise the request host.", 403)
+        if not write:
+            return
+
+        if self.headers.get("Sec-Fetch-Site", "").lower() == "cross-site":
+            raise ApiError("Requests from another website are not allowed.", 403)
+        origin = self.headers.get("Origin")
+        if origin:
+            parsed = urlsplit(origin)
+            if parsed.scheme not in {"http", "https"} or parsed.netloc.lower() != (
+                self.headers.get("Host") or ""
+            ).lower():
+                raise ApiError("Requests from another website are not allowed.", 403)
+        if self.headers.get_content_type() != "application/json":
+            raise ApiError("Use a JSON request for this API.", 415)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError as exc:
+            raise ApiError("Content-Length must be a number.", 400) from exc
+        if length < 0 or length > self.max_body_bytes:
+            raise ApiError("Request body is too large.", 413)
 
     def _body(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length") or 0)
@@ -1851,6 +1893,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         try:
+            self._guard_request()
             if self.path == "/api/connections":
                 self._json(self.ui.connections.status())
             elif self.path == "/api/reviews":
@@ -1919,15 +1962,8 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         try:
+            self._guard_request(write=True)
             if self.path == "/api/connections":
-                # Require a same-origin JSON request before accepting local credentials.
-                origin = self.headers.get("Origin")
-                if origin and urlsplit(origin).netloc != self.headers.get("Host"):
-                    raise ApiError("API keys can only be saved from this local workspace.", 403)
-                if self.headers.get("Sec-Fetch-Site") == "cross-site":
-                    raise ApiError("API keys can only be saved from this local workspace.", 403)
-                if self.headers.get_content_type() != "application/json":
-                    raise ApiError("Use a JSON request to save an API key.", 415)
                 if int(self.headers.get("Content-Length") or 0) > 8192:
                     raise ApiError("API key request is too large.", 413)
             body = self._body()
@@ -2046,5 +2082,9 @@ def serve(
 ) -> ThreadingHTTPServer:
     """Create the server. The caller decides whether to serve forever."""
     ui = UiServer(config_path=config_path, anonymous=anonymous)
-    handler = type("Handler", (_Handler,), {"ui": ui})
+    allowed_hosts = {"127.0.0.1", "localhost", "[::1]", host.lower()}
+    handler = type("Handler", (_Handler,), {
+        "ui": ui,
+        "allowed_hosts": frozenset(allowed_hosts),
+    })
     return ThreadingHTTPServer((host, port), handler)

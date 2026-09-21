@@ -350,7 +350,12 @@ function saveExperimentPreset() {
   if (!name) { $("experiment-name").focus(); return; }
   const presets = readExperimentPresets();
   presets[name] = {experiment:experimentSettings(), overrides:overridesFromState()};
-  localStorage.setItem(EXPERIMENT_PRESETS_KEY, JSON.stringify(presets));
+  try {
+    localStorage.setItem(EXPERIMENT_PRESETS_KEY, JSON.stringify(presets));
+  } catch {
+    $("status").textContent = "This browser blocked local storage, so the setup could not be saved.";
+    return;
+  }
   renderExperimentPresets();
   $("experiment-presets").value = name;
   $("status").textContent = `Saved experiment setup "${name}".`;
