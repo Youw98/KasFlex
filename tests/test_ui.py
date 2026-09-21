@@ -301,6 +301,11 @@ def test_grower_ui_exposes_crop_priority_and_checker_comparison():
     html = (root / "demo.html").read_text(encoding="utf-8")
     script = (root / "demo.js").read_text(encoding="utf-8")
     assert 'name="priority" value="crop"' in html
+    assert 'id="input-mode"' in html
+    assert 'value="showcase"' in html
+    assert 'value="real"' in html
+    assert 'SHOWCASE_DATE = "2023-01-15"' in script
+    assert 'data_source:showcase ? "synthetic" : "demo"' in script
     assert 'id="compare-checker"' in html
     assert 'id="checker-comparison"' in html
     assert 'api("/api/checker-comparison"' in script
