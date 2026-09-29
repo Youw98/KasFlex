@@ -642,7 +642,7 @@ def test_prepare_demo_reuses_a_cached_day_when_the_network_fails(monkeypatch, ui
 
     calls = {"count": 0}
 
-    def fake_online(*, cache, latitude, longitude, allow_network):
+    def fake_online(*, cache, latitude, longitude, allow_network, refresh=False):
         assert allow_network in (True, False)
         if allow_network:
             calls["count"] += 1
@@ -662,9 +662,83 @@ def test_prepare_demo_reuses_a_cached_day_when_the_network_fails(monkeypatch, ui
 def test_prepare_demo_refuses_when_neither_network_nor_cache_have_a_day(monkeypatch, ui):
     from kasflex.data.sources import FetchError
 
-    def fake(*, cache, latitude, longitude, allow_network):
+    def fake(*, cache, latitude, longitude, allow_network, refresh=False):
         raise FetchError("no data anywhere")
 
     monkeypatch.setattr("kasflex.data.demo.prepare_real_demo", fake)
     with pytest.raises(ApiError, match="did not silently substitute"):
         ui.prepare_demo({})
+
+
+# --- remembered preferences become planner policy ---------------------------
+
+
+def _server_with_memory(tmp_path):
+    from kasflex.memory import GrowerMemory
+
+    server = UiServer(config_path=CONFIG)
+    server.memory = GrowerMemory(tmp_path / "memory.sqlite3")
+    return server
+
+
+def test_a_positive_absolute_rule_is_not_compiled_into_a_blackout(tmp_path):
+    """Strength says how firmly a rule is held, not whether it forbids something.
+    "Always run the CHP 17-20h" held absolutely used to become a CHP blackout for
+    exactly the hours the grower wanted it running."""
+    server = _server_with_memory(tmp_path)
+    server.memory.add_preference(
+        "Always run the CHP in the evening peak", "heat and power are both needed then",
+        strength="absolute", scope={"assets": ["chp"], "hours": [17, 18, 19, 20]})
+    policy = server._compile_policy({})
+    assert not set(policy["avoid_chp_hours"]) & {17, 18, 19, 20}
+    assert policy["remembered_preference_ids"] == []
+
+
+def test_a_prohibition_still_becomes_a_blackout(tmp_path):
+    server = _server_with_memory(tmp_path)
+    pref = server.memory.add_preference(
+        "Never run the CHP overnight", "it jammed last February",
+        strength="absolute", scope={"assets": ["chp"], "hours": [0, 1, 2]})
+    policy = server._compile_policy({})
+    assert {0, 1, 2} <= set(policy["avoid_chp_hours"])
+    assert policy["remembered_preference_ids"] == [pref.pref_id]
+
+
+def test_refresh_fetches_a_new_demo_day_even_when_one_is_cached(tmp_path, monkeypatch):
+    """Reopening reuses the cached demo day; pressing Refresh must fetch the newest.
+    With the old guard the first cached day was served forever."""
+    import datetime as dt
+
+    from kasflex.data import demo
+    from kasflex.data.cache import DataCache
+
+    cache = DataCache(tmp_path / "cache")
+    site = "51.990_4.250"
+    old = "2020-01-01"
+    cache.put(f"entsoe_da_{old}", [{"hour": h, "price_eur_kwh": 0.1} for h in range(24)],
+              source="t", licence="t", dataset_key="entsoe_da", prefer_parquet=False)
+    manifest = cache._load_manifest()
+    manifest[f"entsoe_da_{old}"]["extra"] = {"kasflex_demo": True}
+    cache._save_manifest(manifest)
+    weather = [{"hour": h, "outdoor_temp_c": 5.0, "irradiance_w_m2": 0.0} for h in range(24)]
+    cache.put(f"weather_forecast_{old}_{site}", weather, source="t", licence="t",
+              dataset_key="openmeteo_hist_forecast", prefer_parquet=False)
+
+    fetched = {"n": 0}
+    new_day = dt.date(2026, 9, 18)
+
+    def prices():
+        fetched["n"] += 1
+        return new_day, [{"hour": h, "price_eur_kwh": 0.2} for h in range(24)]
+
+    monkeypatch.setattr(demo, "fetch_public_demo_prices", prices)
+    monkeypatch.setattr(demo, "fetch_openmeteo_historical_forecast", lambda *a, **k: weather)
+    monkeypatch.setattr(demo, "fetch_openmeteo", lambda *a, **k: weather)
+
+    reopened = demo.prepare_real_demo(cache=cache, latitude=51.99, longitude=4.25)
+    assert reopened.date == old and reopened.reused_cache and fetched["n"] == 0
+
+    refreshed = demo.prepare_real_demo(cache=cache, latitude=51.99, longitude=4.25,
+                                       refresh=True)
+    assert refreshed.date == new_day.isoformat()
+    assert not refreshed.reused_cache and fetched["n"] == 1

@@ -45,11 +45,18 @@ def prepare_real_demo(
     latitude: float,
     longitude: float,
     allow_network: bool = True,
+    refresh: bool = False,
 ) -> DemoPrepared:
-    """Prepare or reuse a historical demo day with real external inputs."""
+    """Prepare or reuse a historical demo day with real external inputs.
+
+    A cached demo day is reused by default, so reopening the page is fast and
+    shows the same day. ``refresh=True`` is the grower pressing Refresh: it
+    fetches the newest day even when one is cached. The caller decides what to
+    do if that fetch fails -- the interface falls back to the cached day.
+    """
     cache = cache or DataCache()
     cached = _latest_cached_demo(cache, latitude, longitude)
-    if cached:
+    if cached and not (refresh and allow_network):
         site = f"{latitude:.3f}_{longitude:.3f}"
         actual_key = f"weather_actual_{cached}_{site}"
         return DemoPrepared(

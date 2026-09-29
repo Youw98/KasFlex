@@ -464,11 +464,18 @@ function applyEdit(hours, field, value, impact) {
   }, 500);
 }
 
+/* Fields that only mean something together. Restoring the battery direction
+ * without its power would leave a row that belongs to neither plan -- and it
+ * could still be approved. */
+const ACTION_FIELDS = { battery: ["battery", "battery_power_kw"] };
+
 function restoreAction(action, impact) {
   const original = new Map((state.run.plan || []).map((r) => [Number(r.hour), r]));
+  const fields = ACTION_FIELDS[action.field_name] || [action.field_name];
   for (const row of state.editedPlan) {
     const source = original.get(Number(row.hour));
-    if (source && action.hours.includes(Number(row.hour))) row[action.field_name] = source[action.field_name];
+    if (!source || !action.hours.includes(Number(row.hour))) continue;
+    for (const field of fields) row[field] = source[field];
   }
   renderEditPanel(action);
   impact.className = "impact";

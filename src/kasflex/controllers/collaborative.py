@@ -120,6 +120,10 @@ class CollaborativePlanner:
             prefer_stored_heat=prefer_stored,
         )
         best = optimiser.optimise(seed, context.hub, context.forecast)
+        # The search edits the rule-based seed field by field; without this every
+        # hour would still carry the seed's reasoning, describing a plan the grower
+        # is not actually approving (R22).
+        best = scheduler._explain(best, context.forecast, optimiser.margin_used)
 
         self.last_diagnostics = {
             "priority": str(policy["priority"]),

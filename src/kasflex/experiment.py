@@ -181,7 +181,10 @@ class ExperimentMatrix:
                         brief=self.config.brief,
                         seed=seed,
                         provenance={
-                            "data_source": self.config.data_source,
+                            # The matrix always runs on seeded synthetic days, so
+                            # that is what the record must say, whatever the
+                            # scenario file's data_source asks for.
+                            "data_source": "synthetic",
                             "condition": condition.label,
                             "day_index": day_index,
                         },

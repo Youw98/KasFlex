@@ -105,8 +105,16 @@ jobs:
       - name: Resolve release tag
         id: meta
         shell: bash
+        # Passed through env, never interpolated into the script: ${{ }} is expanded
+        # before bash parses the line, so a crafted tag would run as shell code.
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          TAG="${{ inputs.release_tag }}"
+          TAG="$RELEASE_TAG"
+          if [ -n "$TAG" ] && ! [[ "$TAG" =~ ^v?[0-9A-Za-z][0-9A-Za-z._-]*$ ]]; then
+            echo "::error::release_tag must look like v1.2.3 (letters, digits, . _ -)"
+            exit 1
+          fi
           if [ -z "$TAG" ]; then
             if [[ "$GITHUB_REF" == refs/heads/release/* ]]; then
               TAG="${GITHUB_REF#refs/heads/release/}"

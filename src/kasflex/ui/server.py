@@ -507,7 +507,9 @@ class UiServer:
             text = pref.rule.lower()
             assets = {str(v).lower() for v in (pref.scope.get("assets") or [])}
             mentions_chp = "chp" in assets or "chp" in text or "wkk" in text
-            forbids = any(token in text for token in negative) or pref.strength == "absolute"
+            # Strength says how firmly a rule is held, not which way it points: an
+            # absolute "always run the CHP 17-20h" must not become a blackout.
+            forbids = any(token in text for token in negative)
             if not (mentions_chp and forbids):
                 continue
             hours = pref.scope.get("hours") or []
@@ -1369,8 +1371,12 @@ class UiServer:
             "entsoe_configured": bool(os.environ.get("ENTSOE_API_KEY")),
         }
 
-    def prepare_demo(self, overrides: dict[str, Any]) -> dict[str, Any]:
-        """Prepare a one-click historical demo from real market/weather inputs."""
+    def prepare_demo(self, overrides: dict[str, Any], refresh: bool = False) -> dict[str, Any]:
+        """Prepare a one-click historical demo from real market/weather inputs.
+
+        Reuses the cached demo day unless ``refresh`` asks for the newest one. A
+        failed refresh falls back to the cached day rather than to synthetic data.
+        """
         from kasflex.data.cache import DataCache
         from kasflex.data.demo import prepare_real_demo
         from kasflex.data.sources import FetchError
@@ -1382,6 +1388,7 @@ class UiServer:
                 latitude=config.latitude,
                 longitude=config.longitude,
                 allow_network=True,
+                refresh=refresh,
             )
         except (FetchError, ValueError, OSError) as exc:
             try:
@@ -1983,10 +1990,14 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/run"):
                 self._json(self.ui.run(overrides, body.get("policy")))
             elif self.path == "/api/day-context":
-                self._json(self.ui.day_context(overrides))
+                # Demo mode prepares data here too, which may rewrite the cache
+                # manifest; unlocked, two requests race its read-modify-write.
+                with self.ui._lock:
+                    self._json(self.ui.day_context(overrides))
             elif self.path == "/api/demo-prepare":
                 with self.ui._lock:
-                    self._json(self.ui.prepare_demo(overrides))
+                    self._json(self.ui.prepare_demo(
+                        overrides, refresh=body.get("refresh") is True))
             elif self.path == "/api/data-status":
                 self._json(self.ui.data_status(overrides))
             elif self.path == "/api/data-download":
