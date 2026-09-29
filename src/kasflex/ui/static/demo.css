@@ -1,3 +1,6 @@
+/* Views switch with el.hidden. Without !important any class that sets display
+   (.decision-view is flex) overrides the browser's own [hidden] rule. */
+[hidden]{display:none!important}
 :root{
   --bg:#f3f6f3;--paper:#fff;--ink:#122019;--muted:#617068;--line:#dce5de;
   --forest:#173f2e;--green:#28744f;--green-soft:#eaf4ed;--amber:#9b621e;
