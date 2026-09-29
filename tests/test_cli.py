@@ -309,3 +309,37 @@ def test_experiment_records_say_synthetic_because_they_are(tmp_path):
     records = [json.loads(line) for line in out.read_text().splitlines() if line.strip()]
     stamped = {r["provenance"]["data_source"] for r in records if "provenance" in r}
     assert stamped == {"synthetic"}
+
+
+def test_doctor_names_what_real_data_needs_without_the_network(capsys, monkeypatch):
+    import kasflex.api_connections as conn
+
+    def no_network(*_a, **_k):
+        raise AssertionError("plain `doctor` must not touch the network")
+
+    monkeypatch.setattr(conn, "probe_data_hosts", no_network)
+    monkeypatch.setenv("ENTSOE_API_KEY", "secret-token-value")
+    assert main(["doctor"]) == 0
+    out = capsys.readouterr().out
+    assert "ENTSOE_API_KEY" in out and "set" in out
+    assert "secret-token-value" not in out, "the key itself must never be printed"
+    assert "kasflex doctor --network" in out
+
+
+def test_doctor_network_reports_blocked_hosts(capsys, monkeypatch):
+    import urllib.error
+    import urllib.request
+
+    def blocked(request, timeout):
+        if "open-meteo" in request.full_url:
+            raise urllib.error.URLError("Tunnel connection failed: 403 Forbidden")
+        raise urllib.error.HTTPError(request.full_url, 401, "Unauthorized", {}, None)
+
+    monkeypatch.setattr(urllib.request, "urlopen", blocked)
+    monkeypatch.delenv("ENTSOE_API_KEY", raising=False)
+    assert main(["doctor", "--network"]) == 0
+    out = capsys.readouterr().out
+    assert "[x] web-api.tp.entsoe.eu" in out, "an HTTP 401 still proves the path is open"
+    assert "[ ] archive-api.open-meteo.com" in out
+    assert "403 Forbidden" in out
+    assert "transparency.entsoe.eu" in out

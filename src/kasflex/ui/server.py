@@ -146,6 +146,10 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
      "min": 0, "max": 0.5, "step": 0.001, "unit": "€/kWh", "scope": "researcher"},
     {"path": "imbalance_long_spread_eur_kwh", "label": "Long-position spread", "kind": "number",
      "min": 0, "max": 0.5, "step": 0.001, "unit": "€/kWh", "scope": "researcher"},
+    {"path": "grid_peak_value_eur_per_kw", "label": "Value of 1 kW less peak", "kind": "number",
+     "min": 0, "max": 100, "step": 0.01, "unit": "€/kW",
+     "help": ("Used by 'grid relief': a lower peak is only bought when it saves more "
+              "than this per kW. Default: Liander 2026 kWmax tariff, per kW per month.")},
     {"path": "planner", "label": "Planner", "kind": "choice",
      "choices": ["collaborative", "rule-based", "learned", "naive", "llm", "mpc"],
      "help": ("Collaborative uses the current day, optimisation and grower choices. "

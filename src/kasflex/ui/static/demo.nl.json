@@ -23,7 +23,7 @@
   "priority.crop": "Gewas eerst",
   "priority.crop.note": "Klimaat en tomatenmarge eerst.",
   "priority.grid": "Net ontlasten",
-  "priority.grid.note": "Lagere importpiek eerst.",
+  "priority.grid.note": "Lagere importpiek, als elke kW minder zijn geld waard is.",
   "policy.chp": "WKK 's nachts vermijden",
   "policy.buffer": "Eerst opgeslagen warmte",
   "policy.reserve": "Batterijreserve",

@@ -85,6 +85,7 @@ class CollaborativePlanner:
     """Optimise one day while keeping grower choices visible and enforceable."""
 
     name: str = "collaborative"
+    peak_value_eur_per_kw: float = scheduler.GRID_PEAK_VALUE_EUR_PER_KW
     last_policy: dict[str, object] = dataclasses.field(default_factory=dict, init=False)
     last_diagnostics: dict[str, float | str] = dataclasses.field(
         default_factory=dict,
@@ -102,8 +103,9 @@ class CollaborativePlanner:
         forbidden = tuple(policy["avoid_chp_hours"])
         prefer_stored = bool(policy["prefer_stored_heat"])
 
-        # Grid relief is a deliberate choice: start from the cost-improved plan,
-        # then only accept moves that reduce (or preserve) peak import.
+        # Grid relief starts from the cost-improved plan and may only lower its
+        # peak, and only where each kW saved is worth what it costs to save it.
+        cost_plan_peak: float | None = None
         if policy["priority"] == "grid":
             warmup = scheduler.OptimizingScheduler(
                 safety_margin=margin,
@@ -112,12 +114,17 @@ class CollaborativePlanner:
                 prefer_stored_heat=prefer_stored,
             )
             seed = warmup.optimise(seed, context.hub, context.forecast)
+            cost_plan_peak = scheduler.score_plan(
+                seed, context.hub, context.forecast, margin=warmup.margin_used
+            ).peak_import_kw
 
         optimiser = scheduler.OptimizingScheduler(
             safety_margin=margin,
             objective_mode=str(policy["priority"]),
             forbidden_chp_hours=forbidden,
             prefer_stored_heat=prefer_stored,
+            peak_value_eur_per_kw=self.peak_value_eur_per_kw,
+            peak_cap_kw=cost_plan_peak,
         )
         best = optimiser.optimise(seed, context.hub, context.forecast)
         # The search edits the rule-based seed field by field; without this every
@@ -133,6 +140,9 @@ class CollaborativePlanner:
             "battery_reserve_pct": float(policy["battery_reserve_pct"]),
             "avoided_chp_hours": float(len(tuple(policy["avoid_chp_hours"]))),
         }
+        if cost_plan_peak is not None:
+            self.last_diagnostics["peak_value_eur_per_kw"] = self.peak_value_eur_per_kw
+            self.last_diagnostics["cost_plan_peak_kw"] = round(cost_plan_peak, 1)
 
         note = (
             f"KasFlex collaborative plan; priority={policy['priority']}; "

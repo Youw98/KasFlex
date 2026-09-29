@@ -76,7 +76,7 @@ def build_planner(name: str, config: ScenarioConfig) -> Planner:
     if name == "collaborative":
         from kasflex.controllers.collaborative import CollaborativePlanner  # noqa: PLC0415
 
-        return CollaborativePlanner()
+        return CollaborativePlanner(peak_value_eur_per_kw=config.grid_peak_value_eur_per_kw)
     if name == "naive":
         return NaivePlanner()
     if name == "mpc":

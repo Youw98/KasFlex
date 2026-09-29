@@ -107,6 +107,10 @@ class ScenarioConfig:
     """Illustrative settlement spread added when planned use is above the position."""
     imbalance_long_spread_eur_kwh: float = 0.008
     """Illustrative settlement spread subtracted when the site is long."""
+    grid_peak_value_eur_per_kw: float = 3.57
+    """What one kW less peak import is worth under the "grid relief" priority:
+    Liander's 2026 medium-voltage kWmax tariff, per kW per month. Set it to your own
+    network operator's kWmax tariff, or higher if grid relief carries other value."""
     history_days: int = 60
     """Days of past operation the learned planner trains its demand forecaster on.
     Below about 21 the lag features leave too little to fit; more is better."""

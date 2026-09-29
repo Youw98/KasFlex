@@ -40,7 +40,9 @@ whole-plan regeneration.
    market/weather day.
 4. Choose what matters to the grower: **Balanced**, **Lowest cost**,
    **Crop first**, or **Grid relief**, plus battery reserve and operating
-   preferences.
+   preferences. Grid relief never raises the peak above the lowest-cost plan, and
+   only pays for a lower peak when each kW saved costs less than
+   `grid_peak_value_eur_per_kw` (default EUR 3.57, Liander's 2026 kWmax tariff).
 5. Keep the **independent safety check** on for the real grower decision. Switch it
    off only to demonstrate which hard violations the checker prevents.
 6. Use **Show what the check prevents** for a clearly labelled safety demonstration
@@ -402,6 +404,9 @@ kasflex ui
 
 # Check the installation and optional components
 kasflex doctor
+
+# Also check what real mode needs: the ENTSO-E key and reachable price/weather hosts
+kasflex doctor --network
 
 # Run the default reproducible scenario
 kasflex run

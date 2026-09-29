@@ -49,6 +49,39 @@ DATA_CONNECTIONS = (
 )
 
 
+#: Every host a real (non-demo) planning day is fetched from. A sandbox or a
+#: corporate proxy that blocks any one of them turns real mode into an error.
+DATA_HOSTS = (
+    "https://web-api.tp.entsoe.eu/api",
+    "https://api.open-meteo.com/v1/forecast",
+    "https://historical-forecast-api.open-meteo.com/v1/forecast",
+    "https://archive-api.open-meteo.com/v1/archive",
+)
+
+
+def probe_data_hosts(timeout_s: float = 5.0) -> dict[str, str]:
+    """Return ``"reachable"`` or the reason it is not, for every data host.
+
+    Any HTTP answer counts as reachable: a 400 for a missing query or a 401 for a
+    missing token still proves the network path is open. Only a failure to connect
+    at all -- DNS, a refused proxy tunnel, a timeout -- counts as blocked.
+    """
+    import urllib.error  # noqa: PLC0415
+    import urllib.request  # noqa: PLC0415
+
+    out: dict[str, str] = {}
+    for url in DATA_HOSTS:
+        try:
+            urllib.request.urlopen(urllib.request.Request(url, method="HEAD"),
+                                   timeout=timeout_s).close()
+            out[url] = "reachable"
+        except urllib.error.HTTPError:
+            out[url] = "reachable"
+        except OSError as exc:
+            out[url] = str(getattr(exc, "reason", exc)) or type(exc).__name__
+    return out
+
+
 def _allowed() -> dict[str, str]:
     """Provider id -> environment variable, for everything that may be written."""
     allowed = {"entsoe": ENTSOE_KEY}
