@@ -207,7 +207,7 @@ async function handleConsent() {
   $("consent-dialog").showModal();
 }
 
-async function loadContext() {
+async function loadContext({ refresh = false } = {}) {
   clearError();
   const showcase = state.inputMode !== "real";
   $("data-pill").className = "pill loading";
@@ -227,7 +227,7 @@ async function loadContext() {
         ? "Showcase-data · offline"
         : "Showcase data · offline";
     } else {
-      const prepared = await api("/api/demo-prepare", {overrides:{data_source:"demo"}});
+      const prepared = await api("/api/demo-prepare", {overrides:{data_source:"demo"}, refresh});
       state.context = await api("/api/day-context", {
         overrides:{...overrides(), date:prepared.date, data_source:"demo"}
       });
@@ -909,7 +909,7 @@ $("checker-enabled").addEventListener("change", () => {
     ? (on ? "Veiligheidschecker aan." : "Checker uit: dit plan kan niet definitief worden goedgekeurd.")
     : (on ? "Safety checker on." : "Checker off: this plan cannot be finally approved."));
 });
-$("refresh-data").addEventListener("click", loadContext);
+$("refresh-data").addEventListener("click", () => loadContext({ refresh: true }));
 $("compare-checker").addEventListener("click", compareChecker);
 $("build-plan").addEventListener("click", buildPlan);
 $("open-position").addEventListener("click", openPositionPage);

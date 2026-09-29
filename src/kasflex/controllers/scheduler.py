@@ -39,6 +39,14 @@ from kasflex.intent import HOURS_PER_DAY, Plan
 
 INFEASIBLE = float("inf")
 
+#: What one kWh of stored heat is worth to a grower who ticked "prefer stored heat".
+#: A preference weight, not a market price: half a cent per kWh, against boiler heat
+#: at roughly 3.9 ct/kWh at the configured gas price. Enough to tip comparable plans
+#: towards the buffer, too little to buy buffer use at any cost.
+STORED_HEAT_CREDIT_EUR_PER_KWH = 0.005
+
+_TIE = 1e-9
+
 
 @dataclass(frozen=True)
 class ScheduleScore:
@@ -75,25 +83,30 @@ class ScheduleScore:
         *,
         prefer_stored_heat: bool = False,
     ) -> tuple[float, ...]:
-        """Return the optimisation objective for a grower-selected priority."""
+        """Return the optimisation objective for a grower-selected priority.
+
+        Compared lexicographically by :func:`_better`, every component in order.
+        The safety-margin count always comes first: no priority may buy a lower
+        peak or a lower cost by eating into the reserve the grower asked for.
+        """
         if not self.feasible:
             return (10**9, INFEASIBLE, INFEASIBLE)
-        stored = -self.buffer_discharge_kwh if prefer_stored_heat else 0.0
+        # Stored heat has to carry weight inside the cost term. As a trailing
+        # tie-breaker behind a continuous cost it would never decide anything,
+        # which is exactly how the grower's toggle used to do nothing at all.
+        cost = self.cost_eur
+        if prefer_stored_heat:
+            cost -= STORED_HEAT_CREDIT_EUR_PER_KWH * self.buffer_discharge_kwh
         if mode == "grid":
-            return (self.peak_import_kw, self.margin_violations, self.cost_eur, stored)
+            return (self.margin_violations, self.peak_import_kw, cost)
         if mode == "cost":
-            return (self.margin_violations, self.cost_eur, self.peak_import_kw, stored)
+            return (self.margin_violations, cost, self.peak_import_kw)
         if mode == "crop":
-            return (
-                self.margin_violations,
-                self.crop_distance_mol_m2,
-                self.cost_eur,
-                self.peak_import_kw,
-                stored,
-            )
+            return (self.margin_violations, self.crop_distance_mol_m2, cost,
+                    self.peak_import_kw)
         # Balanced: cost still matters, but a very peaky plan pays a visible penalty.
-        balanced = self.cost_eur + 0.06 * self.peak_import_kw
-        return (self.margin_violations, balanced, self.cost_eur, self.peak_import_kw, stored)
+        balanced = cost + 0.06 * self.peak_import_kw
+        return (self.margin_violations, balanced, cost, self.peak_import_kw)
 
 
 def score_plan(
@@ -405,10 +418,19 @@ def _explain(plan: Plan, conditions: Sequence[HourlyConditions], margin: float) 
 
 
 def _better(candidate: tuple[float, ...], incumbent: tuple[float, ...]) -> bool:
-    """Strict lexicographic improvement, with a tolerance on the cost component."""
-    if candidate[0] != incumbent[0]:
-        return candidate[0] < incumbent[0]
-    return candidate[1] < incumbent[1] - 1e-9
+    """Strict lexicographic improvement over every objective component.
+
+    Each component gets a tiny tolerance so floating-point noise cannot count as
+    progress and make the local search cycle. An infeasible objective is shorter
+    than a feasible one, but the two always differ at index 0, so the shorter
+    tuple never runs out before the comparison is decided.
+    """
+    for new, old in zip(candidate, incumbent):  # noqa: B905 - lengths may differ
+        if new < old - _TIE:
+            return True
+        if new > old + _TIE:
+            return False
+    return False
 
 
 def _with(plan: Plan, hour: int, **changes) -> Plan:

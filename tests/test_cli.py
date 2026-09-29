@@ -219,3 +219,93 @@ def test_validate_runs_a_real_replay_and_writes_numeric_results(tmp_path):
     saved = json.loads(result_json.read_text())
     assert saved["model"] == "surrogate"
     assert saved["days_compared"] == 1
+
+
+# --- demo mode must never be synthetic in disguise --------------------------
+
+
+def _demo_config(tmp_path):
+    text = Path(CONFIG).read_text()
+    text = "\n".join(
+        "data_source: demo" if line.startswith("data_source:") else line
+        for line in text.splitlines()
+    )
+    path = tmp_path / "demo.yaml"
+    path.write_text(text + "\n")
+    return path
+
+
+def test_demo_run_stops_instead_of_using_synthetic_data(tmp_path, monkeypatch):
+    """data_source: demo used to fall straight through to synthetic inputs while the
+    record still said "demo" -- a synthetic result dressed up as real data."""
+    from kasflex.data import demo
+    from kasflex.data.sources import FetchError
+
+    def unavailable(**_):
+        raise FetchError("offline")
+
+    monkeypatch.setattr(demo, "prepare_real_demo", unavailable)
+    with pytest.raises(SystemExit, match="does not substitute synthetic"):
+        main(["run", "--config", str(_demo_config(tmp_path)), "--quiet"])
+
+
+def test_demo_run_uses_the_prepared_real_day(tmp_path, monkeypatch):
+    """When the demo day is prepared, the run reads that day from the cache: the
+    record's date is the demo day and its prices are the cached ones, not synthetic."""
+    import datetime as dt
+
+    from kasflex.data import demo, pipeline
+    from kasflex.data.cache import DataCache
+
+    cache = DataCache(tmp_path / "cache")
+    day = "2026-09-18"
+    site = "51.990_4.250"
+    prices = [{"hour": h, "price_eur_kwh": 0.5 if h == 17 else 0.1} for h in range(24)]
+    cache.put(f"entsoe_da_{day}", prices, source="test", licence="test",
+              dataset_key="entsoe_da", prefer_parquet=False)
+    weather = [{"hour": h, "outdoor_temp_c": 5.0, "irradiance_w_m2": 0.0}
+               for h in range(24)]
+    cache.put(f"weather_forecast_{day}_{site}", weather, source="test", licence="test",
+              dataset_key="openmeteo_hist_forecast", prefer_parquet=False)
+
+    def prepared(**_):
+        return demo.DemoPrepared(date=day, price_key=f"entsoe_da_{day}",
+                                 forecast_key=f"weather_forecast_{day}_{site}",
+                                 actual_key=None, reused_cache=True)
+
+    real_ensure = pipeline.ensure_day
+
+    def ensure_from_test_cache(target, **kwargs):
+        assert target == dt.date.fromisoformat(day)
+        return real_ensure(target, **{**kwargs, "cache": cache})
+
+    monkeypatch.setattr(demo, "prepare_real_demo", prepared)
+    monkeypatch.setattr(pipeline, "ensure_day", ensure_from_test_cache)
+    out = tmp_path / "run.json"
+    assert main(["run", "--config", str(_demo_config(tmp_path)), "--quiet",
+                 "--json-out", str(out)]) == 0
+    record = json.loads(out.read_text())
+    assert record["date"] == day
+    assert record["provenance"]["data_source"] == "demo"
+
+
+def test_an_unknown_data_source_is_refused(tmp_path):
+    text = Path(CONFIG).read_text().replace("data_source: synthetic", "data_source: live")
+    path = tmp_path / "live.yaml"
+    path.write_text(text)
+    with pytest.raises(SystemExit, match="Unknown data_source"):
+        main(["run", "--config", str(path), "--quiet"])
+
+
+def test_experiment_records_say_synthetic_because_they_are(tmp_path):
+    """The matrix always runs on seeded synthetic days. A scenario file that says
+    data_source: cache must not make those records claim real market data."""
+    text = Path(CONFIG).read_text().replace("data_source: synthetic", "data_source: cache")
+    path = tmp_path / "cache.yaml"
+    path.write_text(text)
+    out = tmp_path / "runs.jsonl"
+    assert main(["experiment", "--config", str(path), "--days", "1",
+                 "--output", str(out)]) == 0
+    records = [json.loads(line) for line in out.read_text().splitlines() if line.strip()]
+    stamped = {r["provenance"]["data_source"] for r in records if "provenance" in r}
+    assert stamped == {"synthetic"}

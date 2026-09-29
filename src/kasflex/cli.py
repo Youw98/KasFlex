@@ -41,9 +41,39 @@ from kasflex.run import run_scenario
 DEFAULT_CONFIG = str(default_config_path())
 
 
+def _resolve_demo(config: ScenarioConfig) -> ScenarioConfig:
+    """For ``data_source: demo``, prepare the real-input demo day and run on it.
+
+    Mirrors the interface: the demo day is whichever real historical day was
+    prepared, so the scenario's own date is replaced by it. If nothing can be
+    prepared the run stops -- it never quietly falls back to synthetic inputs.
+    """
+    if config.data_source != "demo":
+        return config
+    from kasflex.data.demo import prepare_real_demo
+    from kasflex.data.sources import FetchError
+
+    try:
+        prepared = prepare_real_demo(latitude=config.latitude, longitude=config.longitude)
+    except (FetchError, ValueError, OSError) as exc:
+        raise SystemExit(
+            "Could not prepare the real-input demo, and KasFlex does not substitute "
+            "synthetic data for it. Check network access, or run with "
+            f"--data-source synthetic.\n  {exc}"
+        ) from exc
+    print(f"Demo day: {prepared.date} (real prices and weather"
+          f"{', cached' if prepared.reused_cache else ''})")
+    return ScenarioConfig(**{**config.__dict__, "date": prepared.date})
+
+
 def _load_day(config: ScenarioConfig, seed: int | None = None):
     """Load the scenario's conditions from synthetic data or the download cache."""
-    if config.data_source == "cache":
+    if config.data_source not in {"synthetic", "cache", "demo"}:
+        raise SystemExit(
+            f"Unknown data_source {config.data_source!r}. "
+            "Use synthetic, cache or demo."
+        )
+    if config.data_source in {"cache", "demo"}:
         from datetime import date as Date
         from types import SimpleNamespace
 
@@ -114,6 +144,7 @@ def cmd_run(args: argparse.Namespace) -> int:
                                                              "enabled": False})}
         )
 
+    config = _resolve_demo(config)
     day = _load_day(config)
     result = run_scenario(
         scenario=config.name,
@@ -189,6 +220,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
         print(f"Not a valid plan: {exc}", file=sys.stderr)
         return 2
 
+    config = _resolve_demo(config)
     day = _load_day(config)
     greenhouse = build_greenhouse(config.greenhouse, config)
     outcome = greenhouse.simulate_day(plan, day.forecast, config.hub.floor_area_m2)
@@ -470,7 +502,7 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--planner",
                        choices=["collaborative", "rule-based", "naive", "learned", "llm", "mpc"])
     p_run.add_argument("--greenhouse", choices=["surrogate", "greenlight"])
-    p_run.add_argument("--data-source", choices=["synthetic", "cache"],
+    p_run.add_argument("--data-source", choices=["synthetic", "cache", "demo"],
                        help="override the scenario input mode for this run")
     p_run.add_argument("--date", help="override the scenario date (YYYY-MM-DD)")
     p_run.add_argument("--no-checker", action="store_true",

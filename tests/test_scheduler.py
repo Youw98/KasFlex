@@ -235,3 +235,101 @@ def test_planner_reports_what_the_search_did(setup):
     assert diagnostics["saving_eur"] >= 0
     assert "forecast" in plan.notes.lower()
     assert plan.planner == "learned"
+
+
+# --- the objective comparison ----------------------------------------------
+
+
+def _score(**changes):
+    from kasflex.controllers.scheduler import ScheduleScore
+
+    fields = dict(cost_eur=1000.0, feasible=True, dli_mol_m2=10.0, violations=(),
+                  margin_violations=0, peak_import_kw=4000.0,
+                  buffer_discharge_kwh=0.0, crop_distance_mol_m2=0.0)
+    fields.update(changes)
+    return ScheduleScore(**fields)
+
+
+def test_better_reads_every_objective_component():
+    """_better used to stop at index 1. Every mode now carries cost or peak further
+    down, and a comparison that never reaches them ignores them entirely."""
+    from kasflex.controllers.scheduler import _better
+
+    assert _better((0, 5.0, 100.0), (0, 5.0, 200.0))
+    assert not _better((0, 5.0, 200.0), (0, 5.0, 100.0))
+    assert not _better((0, 5.0, 100.0), (0, 5.0, 100.0)), "a tie is not progress"
+
+
+def test_grid_relief_breaks_peak_ties_on_cost():
+    """Grid relief puts peak first, but cost must decide between equal peaks."""
+    from kasflex.controllers.scheduler import _better
+
+    cheap = _score(cost_eur=100.0, peak_import_kw=4000.0).objective("grid")
+    dear = _score(cost_eur=9999.0, peak_import_kw=4000.0).objective("grid")
+    assert _better(cheap, dear)
+    assert not _better(dear, cheap)
+
+
+def test_grid_relief_never_buys_peak_with_the_safety_reserve():
+    """Every priority must rank the grower's battery reserve first. Grid mode used
+    to rank peak first, so a plan eating the reserve won on a 0.1 kW peak cut."""
+    from kasflex.controllers.scheduler import _better
+
+    safe = _score(margin_violations=0, peak_import_kw=4000.0).objective("grid")
+    unsafe = _score(margin_violations=3, peak_import_kw=3999.9).objective("grid")
+    assert _better(safe, unsafe)
+    assert not _better(unsafe, safe)
+
+
+@pytest.mark.parametrize("mode", ["balanced", "cost", "grid", "crop"])
+def test_prefer_stored_heat_changes_the_ranking(mode):
+    """The grower's "prefer stored heat" toggle used to be a trailing tie-breaker
+    that _better never read, so it changed nothing in any mode."""
+    from kasflex.controllers.scheduler import _better
+
+    plain = _score(buffer_discharge_kwh=0.0)
+    stored = _score(buffer_discharge_kwh=5000.0)
+    assert _better(stored.objective(mode, prefer_stored_heat=True),
+                   plain.objective(mode, prefer_stored_heat=True))
+    assert not _better(stored.objective(mode), plain.objective(mode)), (
+        "with the toggle off, buffer use alone must not change the ranking"
+    )
+
+
+def test_prefer_stored_heat_changes_a_real_plan(setup):
+    """End to end: the toggle must never reduce buffer use, and on at least one of
+    these seeded days it must find a plan that uses more stored heat."""
+    hub, history = setup
+    changed = False
+    for index in (30, 35, 40, 45):
+        base = _context(hub, history, index)
+        used = {}
+        for prefer in (False, True):
+            plan = CollaborativePlanner().plan(PlanningContext(
+                date=base.date, forecast=base.forecast, hub=hub,
+                metadata={"policy": {"priority": "balanced", "battery_reserve_pct": 45,
+                                     "prefer_stored_heat": prefer}},
+            ))
+            used[prefer] = score_plan(plan, hub, base.forecast).buffer_discharge_kwh
+        assert used[True] >= used[False] - 1e-6
+        changed = changed or used[True] > used[False] + 1e-6
+    assert changed, "prefer_stored_heat changed no plan on any day"
+
+
+def test_collaborative_reasoning_describes_the_optimised_plan(setup):
+    """Each hour's "why" is what the grower reads before approving (R22). The
+    collaborative planner used to keep the rule-based seed's text on hours the
+    search had changed, so the explanation described a different plan."""
+    hub, history = setup
+    base = _context(hub, history, 35)
+    plan = CollaborativePlanner().plan(PlanningContext(
+        date=base.date, forecast=base.forecast, hub=hub,
+        metadata={"policy": {"priority": "cost", "battery_reserve_pct": 35}},
+    ))
+    for interval in plan.intervals:
+        text = interval.reasoning
+        assert f"heat from {interval.heat_source}" in text, (interval.hour, text)
+        if interval.battery != "idle":
+            assert f"battery {interval.battery}" in text, (interval.hour, text)
+        if interval.chp_mode != "off":
+            assert "CHP" in text, (interval.hour, text)
