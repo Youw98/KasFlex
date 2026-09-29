@@ -23,7 +23,7 @@
   "priority.crop": "Crop first",
   "priority.crop.note": "Climate and tomato margin first.",
   "priority.grid": "Grid relief",
-  "priority.grid.note": "Lower import peak first.",
+  "priority.grid.note": "Lower import peak, when each kW saved is worth its cost.",
   "policy.chp": "Avoid CHP overnight",
   "policy.buffer": "Prefer stored heat",
   "policy.reserve": "Battery reserve",

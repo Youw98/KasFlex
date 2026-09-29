@@ -141,6 +141,7 @@ README](../README.md#where-the-numbers-come-from).
 | `checker.fail_on_projected` | false | choice | Projected (climate-band) violations do not reject a plan by default; that would attribute the greenhouse model's error to the planner. See [DECISIONS.md](DECISIONS.md) ADR-0007. |
 | `history_days` (learned planner) | 60 | industry norm | Enough past days to fit the ridge demand model without the lag features exhausting the sample. |
 | `STORED_HEAT_CREDIT_EUR_PER_KWH` (scheduler) | 0.005 EUR/kWh | choice | What one kWh of heat-buffer discharge is worth to a grower who ticks "prefer stored heat". A preference weight, not a price: about an eighth of boiler heat cost at the configured gas price, so it tips comparable plans towards the buffer without buying buffer use at any cost. |
+| `grid_peak_value_eur_per_kw` (`GRID_PEAK_VALUE_EUR_PER_KW`) | 3.57 EUR/kW | documented | Liander 2026 transport tariff, medium voltage (MS, >136 kW): the kWmax charge of EUR 3.57 per kW per month on the month's highest import ([Liander tarieven 2026](https://www.liander.nl/grootzakelijk/tarieven)). The "grid relief" priority only buys a lower peak when it costs less than this per kW saved. Counting the whole monthly charge against one day assumes that day sets the month's peak, so it is an upper bound. Other network operators, or a congestion contract, need their own value. |
 | `seed` | 0 | choice | Reproducibility (R6). Any integer is fine; 0 is the default so the same run reproduces. |
 
 ## Numbers that come from someone else's code, not this file

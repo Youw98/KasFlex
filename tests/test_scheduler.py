@@ -333,3 +333,84 @@ def test_collaborative_reasoning_describes_the_optimised_plan(setup):
             assert f"battery {interval.battery}" in text, (interval.hour, text)
         if interval.chp_mode != "off":
             assert "CHP" in text, (interval.hour, text)
+
+
+# --- what one kW of peak is worth -------------------------------------------
+
+
+def test_grid_relief_only_buys_peak_that_is_worth_its_price():
+    """Grid relief used to rank peak strictly above cost, so it would pay EUR 100
+    to shave 1 kW. It now pays at most the configured value per kW saved."""
+    from kasflex.controllers.scheduler import GRID_PEAK_VALUE_EUR_PER_KW, _better
+
+    assert GRID_PEAK_VALUE_EUR_PER_KW == pytest.approx(3.57)
+    cost_plan = _score(cost_eur=1000.0, peak_import_kw=4000.0).objective("grid")
+    dear_kw = _score(cost_eur=1100.0, peak_import_kw=3999.0).objective("grid")
+    cheap_kw = _score(cost_eur=1100.0, peak_import_kw=3900.0).objective("grid")
+    assert _better(cost_plan, dear_kw), "EUR 100 for 1 kW is not worth EUR 3.57/kW"
+    assert _better(cheap_kw, cost_plan), "EUR 100 for 100 kW is worth EUR 3.57/kW"
+    dear = {"peak_value_eur_per_kw": 200.0}
+    assert _better(
+        _score(cost_eur=1100.0, peak_import_kw=3999.0).objective("grid", **dear),
+        _score(cost_eur=1000.0, peak_import_kw=4000.0).objective("grid", **dear),
+    ), "the exchange rate must come from the caller"
+
+
+def _grid_plan(hub, base, value):
+    planner = CollaborativePlanner(peak_value_eur_per_kw=value)
+    plan = planner.plan(PlanningContext(
+        date=base.date, forecast=base.forecast, hub=hub,
+        metadata={"policy": {"priority": "grid", "battery_reserve_pct": 35}},
+    ))
+    return planner, score_plan(plan, hub, base.forecast)
+
+
+def test_grid_relief_spends_no_more_than_the_peak_is_worth(setup):
+    """End to end on a day where relief is available: at the default value the
+    planner cuts the peak and the extra cost stays under value x kW saved; at a
+    near-zero value it keeps the cost-optimal plan."""
+    hub, history = setup
+    base = _context(hub, history, 23)
+    cost_plan = score_plan(CollaborativePlanner().plan(PlanningContext(
+        date=base.date, forecast=base.forecast, hub=hub,
+        metadata={"policy": {"priority": "cost", "battery_reserve_pct": 35}},
+    )), hub, base.forecast)
+
+    planner, relieved = _grid_plan(hub, base, 3.57)
+    saved_kw = cost_plan.peak_import_kw - relieved.peak_import_kw
+    assert saved_kw > 1.0, "this day has cheap peak relief; the planner must take it"
+    assert relieved.cost_eur - cost_plan.cost_eur <= 3.57 * saved_kw + 1e-6
+    assert planner.last_diagnostics["peak_value_eur_per_kw"] == pytest.approx(3.57)
+    assert planner.last_diagnostics["cost_plan_peak_kw"] == pytest.approx(
+        cost_plan.peak_import_kw, abs=0.1)
+
+    _, unpriced = _grid_plan(hub, base, 0.01)
+    assert unpriced.peak_import_kw == pytest.approx(cost_plan.peak_import_kw)
+    assert unpriced.cost_eur == pytest.approx(cost_plan.cost_eur)
+
+
+def test_peak_cap_rejects_every_candidate_above_it(setup):
+    """Crop-first will happily raise the peak for light; under a cap it may not."""
+    hub, history = setup
+    conditions = list(history[35].forecast)
+    seed = RuleBasedPlanner().plan(_context(hub, history, 35))
+    start = OptimizingScheduler(objective_mode="cost").optimise(seed, hub, conditions)
+    cap = score_plan(start, hub, conditions).peak_import_kw
+
+    free = OptimizingScheduler(objective_mode="crop", safety_margin=0.0)
+    capped = OptimizingScheduler(objective_mode="crop", safety_margin=0.0, peak_cap_kw=cap)
+    free_peak = score_plan(free.optimise(start, hub, conditions), hub, conditions).peak_import_kw
+    capped_peak = score_plan(
+        capped.optimise(start, hub, conditions), hub, conditions).peak_import_kw
+    assert free_peak > cap + 1.0, "without a cap this search raises the peak"
+    assert capped_peak <= cap + 1e-6
+
+
+def test_scenario_value_reaches_the_planner():
+    from kasflex.experiment import build_planner
+
+    config = ScenarioConfig.from_yaml(CONFIG)
+    assert config.grid_peak_value_eur_per_kw == pytest.approx(3.57)
+    tuned = ScenarioConfig.from_dict(
+        {"name": "t", "date": "2026-01-15", "grid_peak_value_eur_per_kw": 12.5})
+    assert build_planner("collaborative", tuned).peak_value_eur_per_kw == 12.5

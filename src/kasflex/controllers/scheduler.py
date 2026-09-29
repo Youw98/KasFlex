@@ -45,6 +45,15 @@ INFEASIBLE = float("inf")
 #: towards the buffer, too little to buy buffer use at any cost.
 STORED_HEAT_CREDIT_EUR_PER_KWH = 0.005
 
+#: What one kW off the day's peak import is worth when the grower picks "grid
+#: relief". Liander's 2026 kWmax transport tariff for medium voltage (MS, >136 kW):
+#: EUR 3.57 per kW per month, charged on the month's single highest import. Counting
+#: the full monthly charge against one day assumes this day sets the month's peak, so
+#: it is an upper bound on what a lower peak today can save. Before this value
+#: existed, grid relief ranked peak strictly above cost and would spend any amount
+#: for a fraction of a kW.
+GRID_PEAK_VALUE_EUR_PER_KW = 3.57
+
 _TIE = 1e-9
 
 
@@ -82,12 +91,18 @@ class ScheduleScore:
         mode: str = "balanced",
         *,
         prefer_stored_heat: bool = False,
+        peak_value_eur_per_kw: float = GRID_PEAK_VALUE_EUR_PER_KW,
     ) -> tuple[float, ...]:
         """Return the optimisation objective for a grower-selected priority.
 
         Compared lexicographically by :func:`_better`, every component in order.
         The safety-margin count always comes first: no priority may buy a lower
         peak or a lower cost by eating into the reserve the grower asked for.
+
+        Args:
+            peak_value_eur_per_kw: Grid mode only. The euros one kW less peak import
+                is worth; a peak reduction is taken only when it saves more than it
+                costs at this rate.
         """
         if not self.feasible:
             return (10**9, INFEASIBLE, INFEASIBLE)
@@ -98,7 +113,8 @@ class ScheduleScore:
         if prefer_stored_heat:
             cost -= STORED_HEAT_CREDIT_EUR_PER_KWH * self.buffer_discharge_kwh
         if mode == "grid":
-            return (self.margin_violations, self.peak_import_kw, cost)
+            priced = cost + peak_value_eur_per_kw * self.peak_import_kw
+            return (self.margin_violations, priced, self.peak_import_kw, cost)
         if mode == "cost":
             return (self.margin_violations, cost, self.peak_import_kw)
         if mode == "crop":
@@ -292,6 +308,11 @@ class OptimizingScheduler:
 
             Re-measure it once the greenhouse model is validated; the right reserve
             depends on how wrong the forecast actually is.
+        peak_value_eur_per_kw: Grid mode's exchange rate between euros and peak
+            import. See :data:`GRID_PEAK_VALUE_EUR_PER_KW`.
+        peak_cap_kw: Candidates importing more than this at any hour are never
+            accepted. Grid relief sets it to the cost-optimal plan's peak, so that
+            choosing it can never raise the peak, whatever the exchange rate.
     """
 
     name: str = "optimizing"
@@ -302,6 +323,8 @@ class OptimizingScheduler:
     objective_mode: str = "balanced"
     forbidden_chp_hours: tuple[int, ...] = ()
     prefer_stored_heat: bool = False
+    peak_value_eur_per_kw: float = GRID_PEAK_VALUE_EUR_PER_KW
+    peak_cap_kw: float | None = None
     evaluations: int = field(default=0, init=False)
     margin_used: float = field(default=0.0, init=False)
     sweeps_used: int = field(default=0, init=False)
@@ -336,15 +359,12 @@ class OptimizingScheduler:
                         self.final_cost_eur = best_score.cost_eur
                         return best
                     score = self._score(candidate, hub, conditions, self.margin_used)
-                    if _better(
-                        score.objective(
-                            self.objective_mode,
-                            prefer_stored_heat=self.prefer_stored_heat,
-                        ),
-                        best_score.objective(
-                            self.objective_mode, prefer_stored_heat=self.prefer_stored_heat
-                        ),
+                    if (
+                        self.peak_cap_kw is not None
+                        and score.peak_import_kw > self.peak_cap_kw + 1e-6
                     ):
+                        continue
+                    if _better(self._objective(score), self._objective(best_score)):
                         best, best_score = candidate, score
                         improved = True
             if not improved:
@@ -352,6 +372,13 @@ class OptimizingScheduler:
 
         self.final_cost_eur = best_score.cost_eur
         return best
+
+    def _objective(self, score: ScheduleScore) -> tuple[float, ...]:
+        return score.objective(
+            self.objective_mode,
+            prefer_stored_heat=self.prefer_stored_heat,
+            peak_value_eur_per_kw=self.peak_value_eur_per_kw,
+        )
 
     def _score(
         self,

@@ -455,6 +455,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         print("      python3 -m venv .venv-greenlight")
         print("      ./.venv-greenlight/bin/pip install -r workers/greenlight/requirements.txt")
 
+    _doctor_real_data(network=getattr(args, "network", False))
+
     if importlib.util.find_spec("gl_gym") is not None:
         print(
             "\n  WARNING: gl_gym is importable from THIS environment. It is AGPL-3.0 "
@@ -464,6 +466,27 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             "environment. See docs/DECISIONS.md ADR-0002."
         )
     return 0
+
+
+def _doctor_real_data(network: bool) -> None:
+    """What real (non-demo) mode still needs. Reports whether a key is set, never it."""
+    import os  # noqa: PLC0415
+
+    from kasflex.api_connections import ENTSOE_KEY, probe_data_hosts  # noqa: PLC0415
+
+    print("\nReal data (demo mode needs none of this):")
+    if os.environ.get(ENTSOE_KEY):
+        print(f"  [x] {ENTSOE_KEY:<22} set")
+    else:
+        print(f"  [ ] {ENTSOE_KEY:<22} not set. Register at https://transparency.entsoe.eu/,")
+        print("      then email transparency@entsoe.eu with subject 'Restful API access'.")
+        print("      Put the token in .env or in Configuration > APIs.")
+    if not network:
+        print("  [?] data hosts             not checked; run `kasflex doctor --network`")
+        return
+    for url, result in probe_data_hosts().items():
+        ok = result == "reachable"
+        print(f"  [{'x' if ok else ' '}] {url.split('/')[2]:<45} {'' if ok else result}")
 
 
 def cmd_mcp(args) -> int:
@@ -589,6 +612,8 @@ def main(argv: list[str] | None = None) -> int:
     p_prepare.set_defaults(func=cmd_prepare_agc2)
 
     p_doc = sub.add_parser("doctor", help="check the environment")
+    p_doc.add_argument("--network", action="store_true",
+                       help="also test that the price and weather hosts are reachable")
     p_doc.set_defaults(func=cmd_doctor)
 
     p_mcp = sub.add_parser("mcp", help="run the optional MCP stdio server")
