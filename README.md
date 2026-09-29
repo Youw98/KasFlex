@@ -23,6 +23,7 @@ whole-plan regeneration.
 · [Data & provenance](docs/DATA.md)
 · [Parameters](docs/PARAMETERS.md)
 · [Validation](docs/VALIDATION.md)
+· [Calibration](docs/CALIBRATION.md)
 · [Grower usability test](docs/USABILITY_TEST.md)
 · [MCP integration](docs/MCP.md)
 
@@ -32,7 +33,7 @@ whole-plan regeneration.
 
 1. Download the file for your operating system from
    [Releases](https://github.com/Youw98/KasFlex/releases).
-2. Start KasFlex. The browser opens the new daily-planning workspace.
+2. Start KasFlex. The browser opens the grower workspace at `/`.
 3. KasFlex opens in **Showcase (offline)** mode by default: a fixed, deterministic
    winter day that needs no network connection and is clearly labelled as showcase
    data. For a data-provenance demonstration, switch **Demo data** to
@@ -56,6 +57,18 @@ whole-plan regeneration.
    the trade-off. Approval unlocks only after all four dimensions have been reviewed
    and the current revision passes the checker.
 
+![KasFlex grower workspace: tomorrow's market and weather, grower priorities, and the independent safety check](docs/ui-grower-prepare.png)
+
+_Step 1: tomorrow's prices, weather and grid contract, then the grower's priority
+and preferences. The header shows the data mode, the model-validation status, the
+language (English/Dutch) and the AI model that explains the plan._
+
+![KasFlex decision screen: expected cost, simulated crop growth, bad-weather case, energy position and the four dimensions](docs/ui-grower-decision.png)
+
+_Step 2: the checked plan. The grower answers money, crop, grid and practical fit
+separately; **Why?** explains each one, and the side panel opens the plan highlights,
+position & grid, risk & confidence, the 24-hour plan and the data sources._
+
 The default showcase is intentionally synthetic and deterministic so a team
 presentation cannot fail because of Wi-Fi or an external API. It is labelled as
 showcase data in the interface. The **Real historical** option keeps the stricter
@@ -63,11 +76,11 @@ research behaviour: prepared input data is cached with provenance and checksums,
 and missing real data is never silently replaced. A separate badge reports the
 greenhouse-model validation state.
 
-The first measured replay is now published over twelve deterministic AGC2 Reference
-days. It is useful because it fails honestly: electricity accounting has 11.4%
-mean absolute relative error, but heat has 389.0% and CO₂ 78.0%. The present
-parameterisation is therefore **not calibrated for operational use**. See the
-[full per-day validation table](docs/VALIDATION.md).
+The greenhouse model is now calibrated against measured AGC2 compartment data and
+tested on 80 held-out days. Heat error fell from 93 to 22 kWh per day and CO₂ error
+from 3.6 to 1.3 kg per day; heat is close in winter but still about three times too
+high in April–May. The model is therefore still **not validated for operational
+use**. See [validation](docs/VALIDATION.md) and [calibration](docs/CALIBRATION.md).
 
 | Platform | Release file |
 |---|---|
@@ -190,34 +203,46 @@ KasFlex is a research testbed for that second question.
 
 ### Team demo
 
-The main workspace prepares a real historical Dutch day automatically. It uses a
-public convenience mirror of ENTSO-E-derived Dutch day-ahead prices plus Open-Meteo
-historical forecast data.
+The grower workspace has two data modes, chosen with **Demo data** in the header:
 
-Before making a plan, the interface shows the actual input story: cheap/expensive
+| Mode | What it uses | Network |
+|---|---|---|
+| **Showcase (offline)**, the default | a fixed, deterministic winter day, labelled as showcase data | none |
+| **Real historical** | a real Dutch day: day-ahead prices from a public mirror of ENTSO-E data, plus Open-Meteo historical forecast weather | Open-Meteo and GitHub, once |
+
+Before making a plan, the interface shows the input story: cheap and expensive
 hours, temperature range, daylight and grid limits. Grower priorities then become
 structured planner policy rather than decorative UI settings.
 
-The prepared demo day is cached with source metadata and checksums. Reopening the
-demo reuses the cached data instead of downloading it again.
-
-If KasFlex cannot find a cached demo and cannot reach the data source, it stops. It
-does **not** quietly replace real inputs with synthetic ones.
+A prepared real day is cached with source metadata and checksums. Reopening it
+reuses the cache; **Refresh** downloads it again. If KasFlex has no cached day and
+cannot reach the source, it stops with an error. It does **not** quietly replace
+real inputs with synthetic ones.
 
 ### Direct ENTSO-E workflow
 
-For a research run, use the direct ENTSO-E pipeline:
+For a research run, fetch prices straight from ENTSO-E. This needs two things:
+
+1. **An ENTSO-E token.** Register at
+   [transparency.entsoe.eu](https://transparency.entsoe.eu/), then email
+   transparency@entsoe.eu with the subject "Restful API access". Put the token in
+   `.env` as `ENTSOE_API_KEY`, or save it under **Configuration → APIs** in `/advanced`.
+   Keys stay on your computer and are never shown back.
+2. **Network access** to `web-api.tp.entsoe.eu`, `api.open-meteo.com`,
+   `historical-forecast-api.open-meteo.com` and `archive-api.open-meteo.com`.
+   Sandboxes and company proxies often block these.
+
+`kasflex doctor --network` checks both and names whatever is missing.
 
 ```bash
-export ENTSOE_API_KEY=...
-
+kasflex doctor --network
 kasflex fetch --date 2026-09-21
 kasflex run --data-source cache --date 2026-09-21
 ```
 
-The fetch date and run date must match.
-
-After the fetch completes, the run itself is cache-only and can be replayed offline.
+The fetch date and run date must match. After the fetch, the run is cache-only and
+can be replayed offline. `kasflex daily` does fetch, plan and record in one step for
+an unattended job.
 
 ### Synthetic mode
 
@@ -253,41 +278,56 @@ the plan was accepted.
 
 ---
 
-## Two interfaces
+## Interfaces
 
-### Grower UI — `/`
+`kasflex ui` serves four pages on `http://127.0.0.1:8765`.
 
-The default interface focuses on the decision:
+### Grower workspace — `/`
 
-- What is KasFlex proposing?
-- Why?
-- What changes compared with normal operation?
-- What is the expected cost effect?
+The default page, shown above. It focuses on the decision:
+
+- What is KasFlex proposing, and why?
+- What changes compared with normal operation, and what does it cost?
 - Are the constraints satisfied?
-- Do I agree?
+- Do I agree, part by part?
 
-The grower can compare verification on/off before making a plan and can object to
-money, crop, grid or practical fit separately without discarding accepted parts.
-Position and grid exposure have their own full screen, with contracted volume,
-planned use, deviation, settlement and the short/long direction for every hour.
+The grower can compare verification on and off before making a plan, and can object
+to money, crop, grid or practical fit separately without discarding accepted parts.
+Position and grid exposure have their own screen, with contracted volume, planned
+use, deviation, settlement and the short/long direction for every hour. A research
+consent dialog decides whether interaction data is recorded; the demo works fully
+without it.
 
-### Research UI — `/advanced`
+### Research workspace — `/advanced`
 
-The advanced interface exposes:
+![KasFlex research workspace overview](docs/ui.png)
 
-- all 24 hourly intervals;
-- planner output;
-- checker details and violations;
-- data provenance;
-- configuration;
-- metrics;
-- human edits;
-- audit information.
+| View | What it does |
+|---|---|
+| **Overview** | generate a daily plan; cost breakdown, crop growth, hard-limit violations, prices, weather, battery state and what each asset does |
+| **Plan & review** | all 24 hourly intervals, editable; every edit must be re-verified before **Approve** or **Reject**; export as PDF or JSON |
+| **Experiments** | compare rule-based, learned and naive planners on one scenario |
+| **History** | earlier plans and decisions |
+| **Research notes** | the boundaries of the simulation |
 
-![KasFlex advanced research interface](docs/ui.png)
+**Configuration** (top right) holds every adjustable setting: site location, prices
+and contract, grid limits, battery, CHP, heat buffer, PV, crop light target, the
+planner, the safety checker, grid relief's value per kW, and the **APIs** section
+for the ENTSO-E key and the AI model key. AI models: Anthropic Claude, OpenAI,
+Google Gemini, Ollama on your own computer, or any OpenAI-compatible server. The
+AI layer only explains; planning and checking work without it.
 
-_The advanced research workspace exposes the full schedule and audit context. The
-default `/` route is the compact grower decision workflow described above._
+### Study setup — `/setup`
+
+For researchers running a study: participants, reliance measurement, experiment
+condition, all settings, experiment batches, and exports (summary CSV, a JSON-LD
+research bundle, and the disagreements CSV).
+
+### Previous grower screen — `/legacy-grower`
+
+The earlier grower interface, kept for comparison. Its onboarding sets the site
+location from either a **street address** (looked up to coordinates) or **latitude
+and longitude**, for remote greenhouses without an address.
 
 ---
 
@@ -347,7 +387,8 @@ kasflex run --greenhouse greenlight
 ```
 
 Its use does not automatically make the KasFlex scenario validated against measured
-greenhouse operation.
+greenhouse operation. The AGC2 calibration (lamp cooling, cover area, vent area,
+leakage) applies to the measured-data replay, not to the 5 ha planning scenario.
 
 ---
 
@@ -357,18 +398,26 @@ KasFlex contains a measured-data validation workflow based on the Autonomous
 Greenhouse Challenge dataset.
 
 ```bash
-kasflex validate
+kasflex prepare-agc2 --all-days --compartment AICU
+kasflex validate --greenhouse greenlight
 ```
 
-The validation target is the measured research compartment, **not** the 5 ha
+The validation target is a measured 96 m² research compartment, **not** the 5 ha
 commercial scenario.
 
-See [docs/VALIDATION.md](docs/VALIDATION.md) for the current validation status and
-dataset instructions.
+| Quantity, 80 held-out days | gl-gym defaults | Calibrated |
+|---|---:|---:|
+| Heat, mean error per day | 93.1 kWh | 21.6 kWh |
+| CO₂, mean error per day | 3.59 kg | 1.31 kg |
+| Lamp electricity, mean error per day | 6.7 kWh | 6.7 kWh |
 
-The measured replay is complete, but the present calibration did not pass an
-operational threshold. Model-derived greenhouse performance numbers must therefore
-still be treated as **apparatus, not findings**.
+Two of the original errors were in the comparison, not the model: AGC2's heat is
+computed from pipe temperatures, not metered, and the LEDs were replayed at full
+power. Both are fixed. The remaining gap is spring heat. See
+[docs/VALIDATION.md](docs/VALIDATION.md) and [docs/CALIBRATION.md](docs/CALIBRATION.md).
+
+The calibration has not passed an operational threshold. Model-derived greenhouse
+performance numbers must therefore still be treated as **apparatus, not findings**.
 
 ---
 
@@ -381,7 +430,7 @@ still be treated as **apparatus, not findings**.
 | `learned` | demand forecast + schedule optimisation |
 | `naive` | deliberately simple comparison |
 | `llm` | language-model planner |
-| `mpc` | extension point |
+| `mpc` | extension point, not implemented |
 
 Examples:
 
@@ -399,7 +448,7 @@ operate without an LLM.
 ## Common commands
 
 ```bash
-# Open the browser UI
+# Open the browser UI (add --anonymous to keep operator identity out of the audit log)
 kasflex ui
 
 # Check the installation and optional components
@@ -417,6 +466,12 @@ kasflex fetch --date 2026-09-21
 # Run that cached day
 kasflex run --data-source cache --date 2026-09-21
 
+# Unattended daily job: fetch, plan, record
+kasflex daily
+
+# Verify an existing plan file against the safety checker
+kasflex verify --plan plan.json
+
 # Compare experiment conditions
 kasflex experiment --days 3
 
@@ -424,14 +479,26 @@ kasflex experiment --days 3
 pip install -e ".[mcp]"
 kasflex mcp
 
-# Validate against measured greenhouse data
-kasflex validate
+# Prepare measured AGC2 days (any compartment) and validate against them
+kasflex prepare-agc2 --all-days --compartment AICU
+kasflex validate --greenhouse greenlight
 
 # Show registered datasets and provenance
 kasflex datasets
 ```
 
 For the full workflow, see [docs/USAGE.md](docs/USAGE.md).
+
+---
+
+## What is still open
+
+| Topic | Status | What it needs |
+|---|---|---|
+| Greenhouse model accuracy | Calibrated; heat close in winter, about 3× too high in April–May; CO₂ and lamp electricity close | Fit on indoor temperature too and free the screen and cover radiation parameters; confirm on the Reference compartment from the official 4TU archive |
+| Grid relief trade-off | Done: a lower peak is bought only when each kW costs less than `grid_peak_value_eur_per_kw` (default €3.57, Liander 2026 kWmax) | Set your own network operator's tariff |
+| Real data | Works; `kasflex doctor --network` reports what is missing | An ENTSO-E token, and network access to ENTSO-E and Open-Meteo |
+| MPC reference planner | Interface only | A mixed-integer formulation; see `src/kasflex/controllers/mpc.py` |
 
 ---
 
@@ -485,7 +552,7 @@ src/kasflex/
 ├── energy/              assets and dispatch
 ├── forecast/            forecasting
 └── ui/                  grower + research interfaces
-workers/greenlight/      isolated GreenLight-Gym2 worker
+workers/greenlight/      isolated GreenLight-Gym2 worker and calibration harness
 tests/                   offline test suite
 ```
 
@@ -500,6 +567,7 @@ tests/                   offline test suite
 | [Provenance](docs/PROVENANCE.md) | engineering provenance notes |
 | [Parameters](docs/PARAMETERS.md) | every shipped parameter: source or explicit **ASSUMPTION** |
 | [Validation](docs/VALIDATION.md) | measured-data validation status |
+| [Calibration](docs/CALIBRATION.md) | how the GreenLight parameters were fitted and tested |
 | [MCP](docs/MCP.md) | optional agent-agnostic integration surface |
 | [Decisions](docs/DECISIONS.md) | architecture decision records |
 | [FAIR](docs/FAIR.md) | research-data principles |

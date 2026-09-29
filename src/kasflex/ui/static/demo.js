@@ -182,8 +182,8 @@ async function loadValidationStatus() {
     if (status.validated) {
       pill.className = "pill measured";
       pill.textContent = state.lang === "nl"
-        ? `Meetreplay · kalibratie nodig (${status.days_compared} d)`
-        : `Measured replay · calibration needed (${status.days_compared} d)`;
+        ? `Meetreplay · niet gevalideerd voor de praktijk (${status.days_compared} d)`
+        : `Measured replay · not validated for operation (${status.days_compared} d)`;
       pill.title = `${status.dataset} · ${status.model || "model"}`;
     } else {
       pill.className = "pill pending";
@@ -379,8 +379,8 @@ function renderDecision(run, {preserveDimensions=false}={}) {
   const crop = Number(run.metrics?.fruit_growth_kg_m2 || 0);
   $("result-crop").textContent = `${crop.toFixed(2)} kg/m²`;
   $("result-crop-note").textContent = state.lang === "nl"
-    ? "modeluitkomst · gemeten replay, nog niet gekalibreerd"
-    : "model output · measured replay, not yet calibrated";
+    ? "modeluitkomst · gesimuleerd, niet gevalideerd voor de praktijk"
+    : "model output · simulated, not validated for operation";
 
   const badge = $("checker-badge");
   if (!run.checker_enabled) {
