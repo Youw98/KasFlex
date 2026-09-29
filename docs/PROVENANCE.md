@@ -144,6 +144,23 @@ README](../README.md#where-the-numbers-come-from).
 | `grid_peak_value_eur_per_kw` (`GRID_PEAK_VALUE_EUR_PER_KW`) | 3.57 EUR/kW | documented | Liander 2026 transport tariff, medium voltage (MS, >136 kW): the kWmax charge of EUR 3.57 per kW per month on the month's highest import ([Liander tarieven 2026](https://www.liander.nl/grootzakelijk/tarieven)). The "grid relief" priority only buys a lower peak when it costs less than this per kW saved. Counting the whole monthly charge against one day assumes that day sets the month's peak, so it is an upper bound. Other network operators, or a congestion contract, need their own value. |
 | `seed` | 0 | choice | Reproducibility (R6). Any integer is fine; 0 is the default so the same run reproduces. |
 
+## GreenLight calibration for AGC2 compartments (validation replay only)
+
+These replace gl-gym defaults in the measured AGC2 replay, not in the 5 ha planning
+scenario. Method and held-out errors: [CALIBRATION.md](CALIBRATION.md).
+
+| Field | Value | Tag | Source / rationale |
+|---|---|---|---|
+| `etaLampCool` | 0 (gl-gym 0.63) | documented | AGC2 ReadMe: 81 W/m² HPS plus Heliospectra LEDs, no active lamp cooling, so all lamp power heats the compartment. gl-gym's default is for water-cooled LEDs. |
+| `aCov` | 156 m² per 144 m² floor (gl-gym 216.6) | fitted | Roof glass at 23° slope only; the 96 m² compartment shares its walls with heated neighbours. Chosen from {156, 180, 216.6} on even ISO weeks of AICU. |
+| `aRoof` | 17.4 m² per 144 m² floor (gl-gym 52.2) | fitted | Chosen from {7.2, 17.4, 52.2}. The default is 36% of floor area. |
+| `cLeakage` | 1e-5 (gl-gym 3e-5) | fitted | Chosen from {1e-5, 3e-5, 1e-4}. |
+| AGC heat formula | `(t_rail − t_air) × 2.1 + (t_grow − t_air) × 0.62` W/m² | documented | AGC2 ReadMe, `Heat_cons`. Applied to simulated pipes so heat is compared like with like. |
+| AGC lamp power | 81 × HPS + 7.27 × blue + 25.3 × red + 6.23 × far-red + 22.72 × white W/m² | documented | AGC2 ReadMe, `ElecHigh`/`ElecLow`; LED intensities from `int_*_vip` (0–1000). |
+
+"fitted" is a fourth tag used only here: chosen by a documented search against
+measured data, with the held-out error published.
+
 ## Numbers that come from someone else's code, not this file
 
 | Where | Source |

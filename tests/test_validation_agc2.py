@@ -6,9 +6,13 @@ from datetime import date
 import pytest
 
 from kasflex.validation_agc2 import (
+    AGC2_CALIBRATION,
+    AGC2_LAMP_POWER_W_M2,
     REFERENCE_AREA_M2,
+    _lamp_fraction,
     _measured_totals,
     excel_datetime,
+    prepare_agc2,
     select_days,
     sky_temperature_c,
 )
@@ -37,3 +41,48 @@ def test_sky_temperature_from_net_longwave_is_physical():
     sky = sky_temperature_c(outdoor_c=10.0, net_longwave_w_m2=-70.0)
     assert math.isfinite(sky)
     assert sky < 10.0
+
+
+def _day_rows(**columns):
+    start = excel_datetime("43903")  # 2020-03-13 00:00
+    from datetime import timedelta
+
+    return [
+        (start + timedelta(minutes=5 * i), {k: str(v) for k, v in columns.items()})
+        for i in range(288)
+    ]
+
+
+def test_lamp_power_follows_each_dimmed_led_channel():
+    """The LEDs were dimmable per channel. Treating the HPS state as the state of
+    every lamp put all LEDs at full power and overstated electricity and heat."""
+    rows = _day_rows(AssimLight=100, int_blue_vip=0, int_red_vip=500,
+                     int_farred_vip=0, int_white_vip=1000)
+    expected = (81.0 + 25.3 * 0.5 + 22.72) / AGC2_LAMP_POWER_W_M2
+    assert _lamp_fraction(rows) == pytest.approx([expected] * 96)
+
+
+def test_leds_are_off_when_the_hps_is_off_and_full_when_unrecorded():
+    off = _day_rows(AssimLight=0, int_blue_vip=1000, int_red_vip=1000,
+                    int_farred_vip=1000, int_white_vip=1000)
+    assert _lamp_fraction(off) == pytest.approx([0.0] * 96)
+    unknown = _day_rows(AssimLight=100, int_blue_vip="NaN", int_red_vip="",
+                        int_farred_vip="NaN", int_white_vip="NaN")
+    assert _lamp_fraction(unknown) == pytest.approx([1.0] * 96)
+
+
+def test_unknown_compartment_is_refused(tmp_path):
+    with pytest.raises(ValueError, match="unknown AGC2 compartment"):
+        prepare_agc2(tmp_path, tmp_path, compartment="Greenhouse7")
+
+
+def test_missing_compartment_files_name_the_compartment(tmp_path):
+    with pytest.raises(FileNotFoundError, match="AICU"):
+        prepare_agc2(tmp_path, tmp_path, compartment="AICU")
+
+
+def test_calibration_keeps_lamp_heat_inside_the_greenhouse():
+    """gl-gym's LED default removes 63% of lamp power by active cooling. AGC2
+    lamps are HPS plus uncooled LEDs, so that heat must stay in the model."""
+    assert AGC2_CALIBRATION["etaLampCool"] == 0.0
+    assert set(AGC2_CALIBRATION) == {"etaLampCool", "aCov", "aRoof", "cLeakage"}

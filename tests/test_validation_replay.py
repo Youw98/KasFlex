@@ -115,3 +115,38 @@ def test_only_completed_numeric_validation_becomes_green_status(tmp_path):
         )
     )
     assert validation_status(result)["validated"] is False
+
+
+def test_greenlight_replay_passes_calibration_and_uses_the_agc_heat_formula(
+    tmp_path, monkeypatch
+):
+    """AGC2 Heat_cons is pipe heat computed from pipe temperatures, so the replay
+    must compare the simulated pipes by that formula, not boiler input, and must
+    hand the replay's calibration to the worker."""
+    import dataclasses
+
+    from kasflex.adapters import greenlight_worker
+    from kasflex.adapters.greenhouse import SurrogateGreenhouse
+
+    date = _agc_fixture(tmp_path)
+    path = tmp_path / "agc2" / "replay" / f"{date}.json"
+    payload = json.loads(path.read_text())
+    payload["greenlight_calibration"] = {"etaLampCool": 0.0, "aRoof": 17.4}
+    path.write_text(json.dumps(payload))
+
+    seen = {}
+
+    def fake_simulate(self, plan, conditions, floor_area_m2):
+        seen["calibration"] = dict(self.calibration)
+        outcome = SurrogateGreenhouse().simulate_day(plan, conditions, floor_area_m2)
+        return dataclasses.replace(outcome, diagnostics={
+            "heating_energy_kwh": 999.0,
+            "pipe_heat_agc_formula_kwh": 42.0,
+            "lighting_electricity_kwh": 100.0,
+            "co2_dosed_kg": 5.0,
+        })
+
+    monkeypatch.setattr(greenlight_worker.GreenLightWorker, "simulate_day", fake_simulate)
+    result = replay_simulator(tmp_path, model="greenlight")(date)
+    assert seen["calibration"] == {"etaLampCool": 0.0, "aRoof": 17.4}
+    assert result["heating_kwh"] == 42.0

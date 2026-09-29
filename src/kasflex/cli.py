@@ -417,6 +417,7 @@ def cmd_prepare_agc2(args: argparse.Namespace) -> int:
             Path(args.source),
             Path(args.cache_dir),
             sample_days=None if args.all_days else args.sample_days,
+            compartment=args.compartment,
         )
     except (FileNotFoundError, ValueError) as exc:
         print(f"AGC2 preparation failed: {exc}", file=sys.stderr)
@@ -609,6 +610,10 @@ def main(argv: list[str] | None = None) -> int:
     p_prepare.add_argument("--cache-dir", default="data/cache")
     p_prepare.add_argument("--sample-days", type=int, default=12)
     p_prepare.add_argument("--all-days", action="store_true")
+    p_prepare.add_argument("--compartment", default="Reference",
+                           choices=("Reference", "AICU", "Automatoes", "Digilog", "IUACAAS",
+                                    "TheAutomators"),
+                           help="which AGC2 compartment to replay (all are 96 m2)")
     p_prepare.set_defaults(func=cmd_prepare_agc2)
 
     p_doc = sub.add_parser("doctor", help="check the environment")

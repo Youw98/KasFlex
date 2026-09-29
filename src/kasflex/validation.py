@@ -241,7 +241,7 @@ def replay_simulator(cache_dir: str | Path, model: str = "greenlight"):
         if not replay_path.is_file():
             raise ValidationNotRunnable(
                 f"Measured AGC data exist for {iso_date}, but {replay_path} is missing. "
-                "Prepare the canonical replay from the AGC Reference compartment first."
+                "Prepare the canonical replay with `kasflex prepare-agc2` first."
             )
         try:
             payload = json.loads(replay_path.read_text())
@@ -281,6 +281,10 @@ def replay_simulator(cache_dir: str | Path, model: str = "greenlight"):
                         payload.get("greenlight_parameter_overrides") or {}
                     ).items()
                 },
+                calibration={
+                    str(key): float(value)
+                    for key, value in dict(payload.get("greenlight_calibration") or {}).items()
+                },
                 seed=int(payload.get("seed", 0)),
             )
         else:
@@ -290,7 +294,13 @@ def replay_simulator(cache_dir: str | Path, model: str = "greenlight"):
 
         outcome = greenhouse.simulate_day(plan, conditions, floor_area)
         diagnostics = outcome.diagnostics
-        heating = float(diagnostics.get("heating_energy_kwh", sum(outcome.heat_demand_kw)))
+        # AGC2 does not meter heat: Heat_cons is pipe heat release computed from pipe
+        # and air temperature. Compare the simulated pipes by the same formula when
+        # the worker reports it; boiler input is a different quantity.
+        heating = float(diagnostics.get(
+            "pipe_heat_agc_formula_kwh",
+            diagnostics.get("heating_energy_kwh", sum(outcome.heat_demand_kw)),
+        ))
         lighting = diagnostics.get("lighting_electricity_kwh")
         if lighting is None:
             lamp_power_w_m2 = float(payload.get("lamp_power_w_m2", 110.0))
