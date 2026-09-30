@@ -742,3 +742,13 @@ def test_refresh_fetches_a_new_demo_day_even_when_one_is_cached(tmp_path, monkey
                                        refresh=True)
     assert refreshed.date == new_day.isoformat()
     assert not refreshed.reused_cache and fetched["n"] == 1
+
+
+@pytest.mark.parametrize("sheet", ["demo.css", "design.css"])
+def test_the_hidden_attribute_always_wins(sheet):
+    """Views are switched with ``el.hidden``. ``.decision-view{display:flex}`` has the
+    same specificity as a plain ``[hidden]{display:none}`` and came later, so the
+    decision screen stayed visible and "Position & grid" opened off-screen below it:
+    the button looked dead. Only ``!important`` makes ``hidden`` beat every class."""
+    css = (static_dir() / sheet).read_text(encoding="utf-8")
+    assert re.search(r"(^|[}\s])\[hidden\]\s*\{\s*display\s*:\s*none\s*!important", css), sheet

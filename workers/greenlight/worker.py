@@ -41,6 +41,31 @@ P_LAMP_POWER = 172
 
 STEPS_PER_HOUR = 4  # 900 s solver timestep
 
+# State indices: air, rail-pipe and growth-pipe temperature [deg C].
+X_T_AIR = 2
+X_T_PIPE = 9
+X_T_GRO_PIPE = 19
+# AGC2 ReadMe, Resources/Heat_cons: the dataset does not meter heat. It computes
+# pipe heat release as (t_rail - t_air) * 2.1 + (t_grow - t_air) * 0.62 [W/m2].
+# Applying the same formula to the simulated pipes compares like with like.
+AGC_RAIL_W_M2_K = 2.1
+AGC_GROW_W_M2_K = 0.62
+
+#: GreenLight construction parameters a calibration may set, by name. gl-gym's own
+#: override registry only exposes floor area, heating, CO2 and lamp capacity; heat
+#: loss is governed by these. Named rather than indexed so a calibration file can
+#: be read without the parameter table. Indices from gl_gym/configs/default_params.py.
+CALIBRATION_PARAMETERS = {
+    "aCov": 47,        # cover area incl. side walls [m2, per model floor area p[46]]
+    "cHecIn": 50,      # convective exchange cover-indoor air [W m-2 K-1]
+    "cHecOut1": 51,    # convective exchange cover-outdoor air, constant term
+    "aRoof": 55,       # roof ventilation area [m2, per model floor area p[46]]
+    "cLeakage": 60,    # leakage coefficient [-]
+    "tauRfNir": 68,    # cover NIR transmission [-]
+    "tauRfPar": 69,    # cover PAR transmission [-]
+    "etaLampCool": 186,  # fraction of lamp input removed by active lamp cooling [-]
+}
+
 # Defaults from configs/agents/rule_based.yml, which the GL-Gym baseline script loads.
 RULE_BASED_DEFAULTS = dict(
     lamps_on=0, lamps_off=18, lamps_day_start=-1, lamps_day_stop=366,
@@ -95,6 +120,18 @@ def simulate_day(request: dict) -> dict:
     reset_options = reset_options or None
     env.reset(seed=seed, options=reset_options)
 
+    calibration = dict(request.get("calibration") or {})
+    unknown = sorted(set(calibration) - set(CALIBRATION_PARAMETERS))
+    if unknown:
+        raise ValueError(f"unknown calibration parameter(s): {unknown}")
+    for name, value in calibration.items():
+        value = float(value)
+        if not np.isfinite(value) or value < 0:
+            raise ValueError(f"calibration {name} must be finite and non-negative")
+        # ``self.p`` is passed to the solver on every step, so this takes effect
+        # for the whole episode. None of these feeds a derived parameter.
+        env.unwrapped.p[CALIBRATION_PARAMETERS[name]] = value
+
     controller = RuleBasedController(**{**RULE_BASED_DEFAULTS, **(request.get("rule_based") or {})})
     raw = env.unwrapped
     p = np.asarray(raw.p, dtype=float)
@@ -104,6 +141,7 @@ def simulate_day(request: dict) -> dict:
     heat_kw, co2_kg_h, temp_c, rh_pct, co2_ppm = [], [], [], [], []
     natural_dli = 0.0
     lighting_electricity_kwh = 0.0
+    pipe_heat_kwh = 0.0
     fruit_start = float(raw.x[25])
     truncated_at = None
     replay = dict(request.get("replay_controls") or {})
@@ -203,6 +241,12 @@ def simulate_day(request: dict) -> dict:
             lighting_electricity_kwh += (
                 lamp_w_m2 * floor_area_m2 / 1000.0 * float(raw.dt) / 3600.0
             )
+            x = np.asarray(raw.x, dtype=float)
+            pipe_w_m2 = (
+                AGC_RAIL_W_M2_K * max(0.0, x[X_T_PIPE] - x[X_T_AIR])
+                + AGC_GROW_W_M2_K * max(0.0, x[X_T_GRO_PIPE] - x[X_T_AIR])
+            )
+            pipe_heat_kwh += pipe_w_m2 * floor_area_m2 / 1000.0 * float(raw.dt) / 3600.0
 
             climate = np.asarray(obs["IndoorClimateObservations"], dtype=float)
             hour_co2ppm += climate[0]
@@ -255,6 +299,7 @@ def simulate_day(request: dict) -> dict:
             "max_heating_power_w_m2": float(p[P_MAX_HEATING_POWER] / model_area),
             "truncated_at_hour": -1 if truncated_at is None else truncated_at,
             "heating_energy_kwh": float(sum(heat_kw)),
+            "pipe_heat_agc_formula_kwh": float(pipe_heat_kwh),
             "lighting_electricity_kwh": float(lighting_electricity_kwh),
             "co2_dosed_kg": float(sum(co2_kg_h)),
         },

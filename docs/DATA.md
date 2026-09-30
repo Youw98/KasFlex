@@ -34,6 +34,13 @@ The Open-Meteo historical forecast archive does not cover the 2019–2020 AGC
 validation period. KasFlex therefore keeps measured-model validation and modern
 market/forecast scenarios as separate evidence tracks.
 
+The current calibration and held-out validation use the **AICU** compartment files
+from a public GitHub copy of the CC0 dataset
+([masoudgheisari92/greenhouse-temperature-prediction](https://github.com/masoudgheisari92/greenhouse-temperature-prediction),
+commit `205db94`), because the 4TU archive was unreachable. That copy is not
+checksum-verified against the official archive, and the manifest says so. See
+[CALIBRATION.md](CALIBRATION.md).
+
 ## Automated acquisition
 
 `kasflex fetch` and `kasflex daily` populate the cache from ENTSO-E (day-ahead

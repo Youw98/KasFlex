@@ -1,4 +1,4 @@
-"""Prepare official AGC2 Reference data for an honest GreenLight replay.
+"""Prepare official AGC2 compartment data for an honest GreenLight replay.
 
 The raw 4TU archive is intentionally not distributed with KasFlex.  This
 module converts a locally extracted copy into the small, canonical input
@@ -22,9 +22,35 @@ from typing import Any
 AGC2_DOI = "10.4121/uuid:88d22c60-21b3-4ea8-90db-20249a5be2a7"
 AGC2_ARCHIVE_SHA256 = "b889e9ab1663fe3b8a90a3dab71d4340a6ecd49492532c43784cc82d799708ca"
 REFERENCE_AREA_M2 = 96.0
+#: Every AGC2 compartment is the same 96 m2 Bleiswijk glasshouse; only who ran it
+#: differs. Reference was run by commercial growers, the rest by the five AI teams.
+COMPARTMENTS = ("Reference", "AICU", "Automatoes", "Digilog", "IUACAAS", "TheAutomators")
 # ReadMe.pdf, Resources section: 81 W/m2 HPS plus four LED channels
 # (7.27 + 25.3 + 6.23 + 22.72 W/m2). ``AssimLight`` is their aggregate state.
-AGC2_LAMP_POWER_W_M2 = 81.0 + 7.27 + 25.3 + 6.23 + 22.72
+AGC2_HPS_W_M2 = 81.0
+#: LED channel -> (intensity column, W/m2 at full intensity). Intensities run 0-1000.
+AGC2_LED_CHANNELS = {
+    "blue": ("int_blue_vip", 7.27),
+    "red": ("int_red_vip", 25.3),
+    "farred": ("int_farred_vip", 6.23),
+    "white": ("int_white_vip", 22.72),
+}
+AGC2_LAMP_POWER_W_M2 = AGC2_HPS_W_M2 + sum(watts for _col, watts in AGC2_LED_CHANNELS.values())
+#: GreenLight construction parameters for an AGC2 compartment, fitted on the even
+#: ISO weeks of the AICU compartment and tested on the odd weeks. The method,
+#: search grid and held-out errors are in docs/CALIBRATION.md; the harness is
+#: workers/greenlight/calibrate_agc2.py.
+#:
+#: * ``etaLampCool`` 0: gl-gym defaults to actively cooled LEDs that carry 63% of
+#:   lamp input out of the greenhouse. AGC2 lit with 81 W/m2 HPS plus uncooled
+#:   LEDs, so all lamp power ends up as heat inside. Physical, not fitted.
+#: * ``aCov`` 156 m2 per 144 m2 floor: roof glass only (slope 23 deg). A 96 m2
+#:   compartment shares its side walls with heated neighbours; gl-gym's 216.6
+#:   assumes a free-standing house with glass walls. Fitted within that range.
+#: * ``aRoof`` 17.4 m2 per 144 m2 (12%), fitted; gl-gym's 52.2 (36%) is three
+#:   times the vent area of a Venlo roof.
+#: * ``cLeakage`` 1e-5, fitted; gl-gym's default is 3e-5.
+AGC2_CALIBRATION = {"etaLampCool": 0.0, "aCov": 156.0, "aRoof": 17.4, "cLeakage": 1e-5}
 STEFAN_BOLTZMANN = 5.670374419e-8
 EXCEL_EPOCH = datetime(1899, 12, 30)
 
@@ -132,6 +158,33 @@ def _quarter_hours(rows: list[tuple[datetime, dict[str, str]]], key: str) -> lis
     return [sum(bucket) / len(bucket) for bucket in buckets]
 
 
+def _lamp_fraction(rows: list[tuple[datetime, dict[str, str]]]) -> list[float]:
+    """Quarter-hour lamp power as a fraction of the installed 142.5 W/m2.
+
+    The dataset computes electricity from the HPS state plus each dimmable LED
+    channel's intensity; the LEDs only run while the HPS is on. Treating
+    ``AssimLight`` as the state of all lamps put every LED at full power whenever
+    the HPS was on, overstating both electricity and lamp heat. A channel with no
+    reading while the HPS is on keeps that old full-power assumption, the only
+    one available; with the HPS off the LEDs are off.
+    """
+    buckets: list[list[float]] = [[] for _ in range(96)]
+    for timestamp, row in rows:
+        hps = min(1.0, max(0.0, numeric(row.get("AssimLight")) / 100))
+        watts = AGC2_HPS_W_M2 * hps
+        for column, full in AGC2_LED_CHANNELS.values():
+            level = numeric(row.get(column))
+            if not math.isfinite(level):
+                level = 1000.0 if hps > 0 else 0.0
+            watts += full * min(1.0, max(0.0, level / 1000)) * (1.0 if hps > 0 else 0.0)
+        buckets[(timestamp.hour * 60 + timestamp.minute) // 15].append(
+            watts / AGC2_LAMP_POWER_W_M2
+        )
+    if any(len(bucket) != 3 for bucket in buckets):
+        raise ValueError("lamp state: day is not a complete five-minute series")
+    return [sum(bucket) / 3 for bucket in buckets]
+
+
 def _hourly(values: list[float]) -> list[float]:
     return [sum(values[index : index + 4]) / 4 for index in range(0, 96, 4)]
 
@@ -216,10 +269,11 @@ def _replay_payload(
     climate: list[tuple[datetime, dict[str, str]]],
     weather: list[tuple[datetime, dict[str, str]]],
     weather_dir: Path,
+    compartment: str = "Reference",
 ) -> dict[str, Any]:
     series = {key: _quarter_hours(climate, key) for key in CLIMATE_FIELDS}
     weather_series = {key: _quarter_hours(weather, key) for key in WEATHER_FIELDS}
-    lighting = [min(1.0, max(0.0, value / 100)) for value in series["AssimLight"]]
+    lighting = _lamp_fraction(climate)
     vent = [
         min(1.0, max(0.0, (lee + wind) / 200))
         for lee, wind in zip(series["VentLee"], series["Ventwind"], strict=True)
@@ -236,7 +290,7 @@ def _replay_payload(
             "battery_power_kw": 0.0,
             "chp_mode": "off",
             "co2_source": "liquid",
-            "reasoning": "Measured AGC2 Reference-compartment replay",
+            "reasoning": f"Measured AGC2 {compartment}-compartment replay",
         }
         for hour in range(24)
     ]
@@ -280,6 +334,7 @@ def _replay_payload(
             "pred_horizon": 0,
         },
         "greenlight_parameter_overrides": {"lamp_power": AGC2_LAMP_POWER_W_M2},
+        "greenlight_calibration": dict(AGC2_CALIBRATION),
         "replay_controls": {
             "heating_setpoint_c": series["t_heat_vip"],
             "co2_setpoint_ppm": series["co2_vip"],
@@ -291,7 +346,9 @@ def _replay_payload(
             "source_columns": {
                 "heating_setpoint_c": "t_heat_vip",
                 "co2_setpoint_ppm": "co2_vip",
-                "lighting_fraction": "AssimLight",
+                "lighting_fraction": (
+                    "(81 * AssimLight/100 + sum(LED W/m2 * int_<channel>_vip/1000)) / 142.52"
+                ),
                 "thermal_screen_fraction": "EnScr",
                 "blackout_screen_fraction": "BlackScr",
                 "ventilation_fraction": "mean(VentLee, Ventwind)",
@@ -300,10 +357,17 @@ def _replay_payload(
     }
 
 
-def prepare_agc2(source: Path, cache_dir: Path, sample_days: int | None = 12) -> list[date]:
+def prepare_agc2(
+    source: Path,
+    cache_dir: Path,
+    sample_days: int | None = 12,
+    compartment: str = "Reference",
+) -> list[date]:
     """Convert an extracted official archive into canonical validation inputs."""
-    resources_path = source / "Reference" / "Resources.csv"
-    climate_path = source / "Reference" / "GreenhouseClimate.csv"
+    if compartment not in COMPARTMENTS:
+        raise ValueError(f"unknown AGC2 compartment {compartment!r}; one of {COMPARTMENTS}")
+    resources_path = source / compartment / "Resources.csv"
+    climate_path = source / compartment / "GreenhouseClimate.csv"
     weather_path = source / "Weather" / "Weather.csv"
     missing = [path for path in (resources_path, climate_path, weather_path) if not path.is_file()]
     if missing:
@@ -335,7 +399,7 @@ def prepare_agc2(source: Path, cache_dir: Path, sample_days: int | None = 12) ->
     ]
     selected = select_days(resources, complete, sample_days)
     if not selected:
-        raise ValueError("no complete AGC2 Reference days were found")
+        raise ValueError(f"no complete AGC2 {compartment} days were found")
 
     root = cache_dir / "agc2"
     measured_dir = root / "measured"
@@ -357,20 +421,20 @@ def prepare_agc2(source: Path, cache_dir: Path, sample_days: int | None = 12) ->
             writer = csv.DictWriter(handle, fieldnames=list(totals))
             writer.writeheader()
             writer.writerow(totals)
-        payload = _replay_payload(day, climate[day], weather[day], weather_dir)
+        payload = _replay_payload(day, climate[day], weather[day], weather_dir, compartment)
         (replay_dir / f"{day.isoformat()}.json").write_text(
             json.dumps(payload, indent=2, sort_keys=True) + "\n"
         )
 
     manifest = {
-        "dataset": "Autonomous Greenhouse Challenge, Second Edition — Reference compartment",
+        "dataset": f"Autonomous Greenhouse Challenge, Second Edition — {compartment} compartment",
         "doi": AGC2_DOI,
         "licence": "CC0-1.0",
         "retrieved_at": datetime.now(UTC).date().isoformat(),
         "archive_name": archive_name,
         "archive_sha256": archive_hash or AGC2_ARCHIVE_SHA256,
         "archive_checksum_verified": archive_hash is not None,
-        "compartment": "Reference",
+        "compartment": compartment,
         "floor_area_m2": REFERENCE_AREA_M2,
         "lamp_power_w_m2": AGC2_LAMP_POWER_W_M2,
         "lamp_power_source": (
@@ -383,8 +447,13 @@ def prepare_agc2(source: Path, cache_dir: Path, sample_days: int | None = 12) ->
             if sample_days is None
             else f"{len(selected)} deterministic, evenly spaced heating-consumption quantiles"
         ),
+        "greenlight_calibration": dict(AGC2_CALIBRATION),
         "conversions": {
-            "heating_kwh": "Heat_cons [MJ/m2/day] * 96 m2 / 3.6",
+            "heating_kwh": (
+                "Heat_cons [MJ/m2/day] * 96 m2 / 3.6. Heat_cons is not metered: the "
+                "ReadMe defines it as (t_rail - t_air) * 2.1 + (t_grow - t_air) * 0.62 "
+                "W/m2, and the simulated pipes are compared by the same formula."
+            ),
             "electricity_kwh": "(ElecHigh + ElecLow) [kWh/m2/day] * 96 m2",
             "co2_kg": "CO2_cons [kg/m2/day] * 96 m2",
         },
@@ -405,6 +474,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cache-dir", type=Path, default=Path("data/cache"))
     parser.add_argument("--sample-days", type=int, default=12)
     parser.add_argument("--all-days", action="store_true")
+    parser.add_argument("--compartment", choices=COMPARTMENTS, default="Reference")
     return parser
 
 
@@ -414,6 +484,7 @@ def main(argv: list[str] | None = None) -> int:
         args.source,
         args.cache_dir,
         sample_days=None if args.all_days else args.sample_days,
+        compartment=args.compartment,
     )
     print(f"Prepared {len(selected)} AGC2 day(s): " + ", ".join(map(str, selected)))
     print(f"Canonical cache: {(args.cache_dir / 'agc2').resolve()}")

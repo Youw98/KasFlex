@@ -89,6 +89,31 @@ jobs:
           assert 69_000 < lighting < 70_200, lighting
           print(f"OK: peak heat demand {max(w_m2):.0f} W/m2")
           PY
+      - name: Worker applies the AGC2 calibration and refuses unknown parameters
+        run: |
+          python - <<'PY'
+          import json, subprocess, sys
+          plan = {"intervals": [
+              {"hour": h, "heat_source": "boiler", "lighting_level": 1.0 if h < 16 else 0.0,
+               "battery": "idle", "battery_power_kw": 0, "chp_mode": "off",
+               "co2_source": "chp", "reasoning": ""} for h in range(24)]}
+
+          def call(extra):
+              req = {"cmd": "simulate_day", "plan": plan, "floor_area_m2": 96, "seed": 0, **extra}
+              p = subprocess.run([sys.executable, "workers/greenlight/worker.py"],
+                                 input=json.dumps(req) + "\n", capture_output=True, text=True)
+              return json.loads(p.stdout.strip().splitlines()[-1])
+
+          cooled = call({})["outcome"]["diagnostics"]
+          uncooled = call({"calibration": {"etaLampCool": 0.0}})["outcome"]["diagnostics"]
+          # Keeping lamp heat inside the greenhouse must reduce the heat the boiler supplies.
+          assert uncooled["heating_energy_kwh"] < cooled["heating_energy_kwh"], (cooled, uncooled)
+          assert uncooled["pipe_heat_agc_formula_kwh"] >= 0
+          bad = call({"calibration": {"notAParameter": 1.0}})
+          assert not bad["ok"] and "unknown calibration" in bad["error"], bad
+          print("OK: calibration applied", round(cooled["heating_energy_kwh"], 1), "->",
+                round(uncooled["heating_energy_kwh"], 1), "kWh")
+          PY
 
   metadata:
     runs-on: ubuntu-latest

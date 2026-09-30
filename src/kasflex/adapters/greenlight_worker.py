@@ -45,6 +45,8 @@ class GreenLightWorker:
         seed: Passed to ``env.reset`` for reproducibility (R6).
         timeout_s: Per-request timeout.
         env_kwargs: Extra keyword arguments forwarded to ``gymnasium.make``.
+        calibration: Named GreenLight construction parameters to set after reset,
+            e.g. the AGC2 calibration. See ``CALIBRATION_PARAMETERS`` in the worker.
     """
 
     name: str = "greenlight-gym2"
@@ -55,6 +57,7 @@ class GreenLightWorker:
     scenario: dict[str, object] = field(default_factory=dict)
     replay_controls: dict[str, object] = field(default_factory=dict)
     parameter_overrides: dict[str, float] = field(default_factory=dict)
+    calibration: dict[str, float] = field(default_factory=dict)
     seed: int = 0
     timeout_s: float = 900.0
     env_kwargs: dict[str, object] = field(default_factory=dict)
@@ -101,6 +104,7 @@ class GreenLightWorker:
             "env_kwargs": self.env_kwargs,
             "replay_controls": self.replay_controls,
             "parameter_overrides": self.parameter_overrides,
+            "calibration": self.calibration,
         }
         try:
             proc = subprocess.run(

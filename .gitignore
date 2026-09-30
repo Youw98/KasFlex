@@ -13,6 +13,7 @@ results/
 !results/
 results/*
 !results/validation-agc2.json
+!results/calibration-agc2.json
 data/cache/*
 !data/cache/.gitkeep
 !data/cache/MANIFEST.json
