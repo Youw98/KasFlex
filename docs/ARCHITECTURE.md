@@ -190,6 +190,7 @@ table would measure nothing.
 
 | Module | Responsibility |
 |---|---|
+| `kasflex.admin_auth` | The settings lock (admin password, server-checked tokens) and the saved site settings it guards. |
 | `kasflex.api_connections` | Local .env credential loading and persistence; status-only API responses |
 | `kasflex.intent` | The intent schema. Parses and validates planner output. |
 | `kasflex.checker.rules` | The named, individually switchable checks. |

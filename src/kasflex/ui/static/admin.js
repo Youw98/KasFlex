@@ -5,8 +5,13 @@
 
 const $ = (id) => document.getElementById(id);
 const SVG = "http://www.w3.org/2000/svg";
-const state = {lang: readStore("kasflex.demo.lang") === "nl" ? "nl" : "en", status: null, editing: null};
+const state = {lang: readStore("kasflex.demo.lang") === "nl" ? "nl" : "en", status: null, editing: null,
+               token: readSession("kasflex.admin.token") || ""};
 
+function readSession(key) { try { return sessionStorage.getItem(key); } catch { return null; } }
+function writeSession(key, value) {
+  try { value ? sessionStorage.setItem(key, value) : sessionStorage.removeItem(key); } catch {}
+}
 function readStore(key) { try { return localStorage.getItem(key); } catch { return null; } }
 function writeStore(key, value) { try { localStorage.setItem(key, value); } catch {} }
 function T(en, nl) { return state.lang === "nl" ? nl : en; }
@@ -18,16 +23,52 @@ function el(tag, className="", text="") {
 }
 
 async function api(path, body) {
+  const headers = body === undefined ? {} : {"Content-Type": "application/json"};
+  if (state.token) headers["X-KasFlex-Admin"] = state.token;
   const response = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
-    headers: body === undefined ? {} : {"Content-Type": "application/json"},
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
   let payload = {};
   try { payload = text ? JSON.parse(text) : {}; } catch {}
+  if (response.status === 401 && path !== "/api/admin/login") {
+    showLogin();
+    throw new Error(payload.error || "Locked");
+  }
   if (!response.ok) throw new Error(payload.error || `Request failed (${response.status})`);
   return payload;
+}
+
+// -- the password gate: nothing on this page shows until the server accepts it ----
+
+function showLogin(message="") {
+  state.token = "";
+  writeSession("kasflex.admin.token", "");
+  $("workspace").hidden = true;
+  $("admin-login").hidden = false;
+  $("admin-login-error").hidden = !message;
+  $("admin-login-error").textContent = message;
+  $("admin-password").value = "";
+  $("admin-password").focus();
+}
+async function unlock(event) {
+  event?.preventDefault();
+  try {
+    const result = await api("/api/admin/login", {password:$("admin-password").value});
+    state.token = result.token;
+    writeSession("kasflex.admin.token", result.token);
+    await start();
+  } catch (error) {
+    showLogin(T("Wrong password.", "Verkeerd wachtwoord."));
+  }
+}
+async function start() {
+  try { await api("/api/site-settings"); } catch { return; }
+  $("admin-login").hidden = true;
+  $("workspace").hidden = false;
+  await load();
 }
 function showError(error) {
   $("error").textContent = String(error?.message || error);
@@ -62,7 +103,8 @@ function translate() {
   document.documentElement.lang = state.lang;
   $("language-select").value = state.lang;
   const texts = {
-    "t-subtitle":["Workshop admin", "Workshopbeheer"], "t-open-grower":["Open grower page ↗", "Telerscherm openen ↗"],
+    "t-subtitle":["Workshop admin", "Workshopbeheer"], "t-password":["Password", "Wachtwoord"],
+    "admin-unlock":["Unlock", "Ontgrendelen"], "t-open-grower":["Open grower page ↗", "Telerscherm openen ↗"],
     "t-language":["Language", "Taal"], "t-title":["Workshop set-up", "Workshop instellen"],
     "t-intro":["Choose what participants see, which day they plan, and manage the scenarios.",
                "Kies wat deelnemers zien, welke dag ze plannen, en beheer de scenario's."],
@@ -481,5 +523,12 @@ $("f-flaw-type").addEventListener("change", updateFlawFields);
 $("f-prices").addEventListener("input", renderPreview);
 $("f-temps").addEventListener("input", renderPreview);
 
+$("admin-unlock").addEventListener("click", unlock);
+$("admin-login").addEventListener("submit", unlock);
+$("admin-lock").addEventListener("click", async () => {
+  try { await api("/api/admin/logout", {}); } catch {}
+  showLogin();
+});
+
 translate();
-load();
+if (state.token) start(); else showLogin();

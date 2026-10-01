@@ -15,6 +15,7 @@
     </a>
     <div class="top-controls">
       <a class="ghost link-button" href="/" id="t-open-grower">Open grower page ↗</a>
+      <button id="admin-lock" type="button" class="ghost">🔒</button>
       <label class="compact-select">
         <span id="t-language">Language</span>
         <select id="language-select" aria-label="Language">
@@ -25,7 +26,14 @@
     </div>
   </header>
 
-  <main id="workspace" class="admin">
+  <form id="admin-login" class="panel admin-login" hidden>
+    <h1>🔒</h1>
+    <label><span id="t-password">Password</span><input id="admin-password" type="password" autocomplete="current-password"></label>
+    <button id="admin-unlock" type="button" class="primary dark">Unlock</button>
+    <p id="admin-login-error" class="error" hidden></p>
+  </form>
+
+  <main id="workspace" class="admin" hidden>
     <div id="error" class="error" hidden></div>
     <h1 id="t-title">Workshop set-up</h1>
     <p id="t-intro" class="lead">Choose what participants see, which day they plan, and manage the scenarios.</p>

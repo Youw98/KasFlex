@@ -36,6 +36,8 @@ from urllib.parse import parse_qsl, urlsplit
 from kasflex import i18n
 from kasflex.actions import derive_actions
 from kasflex.actions import summarise as summarise_actions
+from kasflex.admin_auth import HEADER as ADMIN_HEADER
+from kasflex.admin_auth import SITE_FIELDS, AdminGate, SiteSettings
 from kasflex.api_connections import ApiConnections
 from kasflex.checker.rules import SafetyChecker
 from kasflex.config import ConfigError, ScenarioConfig
@@ -50,6 +52,7 @@ from kasflex.conversation import (
 )
 from kasflex.deliberation import DIMENSIONS, RESPONSES, DeliberationLog
 from kasflex.documents import DocumentStore
+from kasflex.energy.contracts import CONTRACT_TYPES
 from kasflex.energy.contracts import describe as describe_contract
 from kasflex.fair import DatasetMetadata, build_bundle, conflict_table, to_csv
 from kasflex.forecast.cost import project_cost
@@ -501,10 +504,17 @@ class UiServer(WorkshopMixin):
     profiles: ProfileStore = field(init=False)
     scenarios: ScenarioStore = field(init=False)
     workshop: WorkshopStore = field(init=False)
+    documents: DocumentStore = field(init=False)
+    file_base: ScenarioConfig = field(init=False, repr=False)
+    gate: AdminGate = field(init=False, repr=False)
+    site: SiteSettings = field(init=False, repr=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
     def __post_init__(self) -> None:
-        self.base = ScenarioConfig.from_yaml(self.config_path)
+        self.file_base = ScenarioConfig.from_yaml(self.config_path)
+        self.gate = AdminGate()
+        self.site = SiteSettings(resolve_output("results/site-settings.json"))
+        self.base = self._with_site_settings(self.site.get())
         self.connections = ApiConnections(resolve_output(".env"))
         self.reviews = ReviewStore(resolve_output("results/reviews.sqlite3"))
         self.memory = GrowerMemory(resolve_output(self.base.memory_path))
@@ -515,6 +525,44 @@ class UiServer(WorkshopMixin):
         self.scenarios = _scenario_store()
         self.workshop = WorkshopStore(resolve_output("results/workshop.json"))
         self.documents = DocumentStore(resolve_output("results/documents"))
+
+    # -- the settings menu (behind the admin password) ------------------------
+
+    def _with_site_settings(self, values: dict[str, Any]) -> ScenarioConfig:
+        """The scenario file with the saved site settings on top. A saved value that
+        no longer validates (a file edited by hand) is dropped, not fatal."""
+        try:
+            return _apply_overrides(self.file_base, values)
+        except ApiError:
+            return self.file_base
+
+    def site_settings(self) -> dict[str, Any]:
+        saved = self.site.get()
+        fields = []
+        for entry in ADJUSTABLE:
+            if entry["path"] in SITE_FIELDS:
+                fields.append({**entry, "value": _get_path(self.base, entry["path"]),
+                               "default": _get_path(self.file_base, entry["path"]),
+                               "saved": entry["path"] in saved})
+        language = i18n.normalise(self.base.language)
+        return {"fields": fields, "models": self.model_status(),
+                "connections": self.connections.status(),
+                "contract_names": {key: describe_contract(key, language)["name"]
+                                   for key in CONTRACT_TYPES}}
+
+    def save_site_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
+        values = payload.get("values")
+        if not isinstance(values, dict):
+            raise ApiError("Send the settings to save.")
+        unknown = set(values) - set(SITE_FIELDS)
+        if unknown:
+            raise ApiError(f"Not a setting of this menu: {sorted(unknown)}")
+        merged = {**self.site.get(), **values}
+        merged = {k: v for k, v in merged.items() if v not in (None, "")}
+        # Validate everything together before anything is written.
+        self.base = _apply_overrides(self.file_base, merged)
+        self.site.save({**{k: None for k in SITE_FIELDS}, **merged})
+        return self.site_settings()
 
     # -- what this plan changes, against normal settings --------------------
 
@@ -1097,6 +1145,7 @@ class UiServer(WorkshopMixin):
         language = i18n.normalise(str(overrides.get("language") or self.base.language))
         alternative = None
         remembered_id = ""
+        reason_summary = ""
 
         if response == "agree":
             counter = (
@@ -1122,6 +1171,7 @@ class UiServer(WorkshopMixin):
                     "Say in a few words why you disagree, so KasFlex can take it into account.",
                     422)
             reading = interpret_reason(reason, dimension, language)
+            reason_summary = reading["summary"]
             policy = dict(current.get("policy") or {})
             if reading["effects"]:
                 policy = apply_effects(policy, reading["effects"])
@@ -1230,6 +1280,7 @@ class UiServer(WorkshopMixin):
             "counter_model": counter_model,
             "alternative": alternative,
             "remembered_id": remembered_id,
+            "reason_summary": reason_summary,
             "recorded": recorded,
         }
 
@@ -1774,6 +1825,7 @@ class UiServer(WorkshopMixin):
             },
             "storage": {"battery_kwh": config.hub.battery.capacity_kwh,
                         "buffer_kwh": config.hub.buffer.capacity_kwh},
+            "crop_target_mol_m2": config.hub.crop.dli_target_mol_m2,
             "scenario": scenario_info,
             "version": config.condition or self.workshop.get().version,
             "remembered_applied": [
@@ -2068,6 +2120,17 @@ class _Handler(BaseHTTPRequestHandler):
             return value[:end + 1] if end >= 0 else value
         return value.rsplit(":", 1)[0]
 
+    #: Requests that change how the site is set up: only with the admin password.
+    _ADMIN_POSTS = frozenset({
+        "/api/connections", "/api/site-settings", "/api/workshop", "/api/scenarios",
+        "/api/scenarios/delete", "/api/documents/save", "/api/documents/delete",
+        "/api/memory/forget",
+    })
+
+    def _require_admin(self) -> None:
+        if not self.ui.gate.check(self.headers.get(ADMIN_HEADER)):
+            raise ApiError("Settings are locked: enter the admin password.", 401)
+
     def _guard_request(self, *, write: bool = False) -> None:
         """Reject DNS-rebinding and cross-site browser requests to the local app."""
         if self._request_host() not in self.allowed_hosts:
@@ -2138,6 +2201,9 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(self.ui.measured_validation_status())
             elif self.path.startswith("/api/settings"):
                 self._json(self.ui.get_settings())
+            elif self.path == "/api/site-settings":
+                self._require_admin()
+                self._json(self.ui.site_settings())
             elif self.path.startswith("/api/i18n"):
                 query = dict(parse_qsl(urlsplit(self.path).query))
                 self._json(self.ui.translations(query.get("lang", "")))
@@ -2205,6 +2271,24 @@ class _Handler(BaseHTTPRequestHandler):
                     raise ApiError("API key request is too large.", 413)
             body = self._body()
             overrides = body.get("overrides", {})
+            if self.path in self._ADMIN_POSTS or (
+                    self.path == "/api/memory" and body.get("everyone") is True):
+                self._require_admin()
+            if self.path == "/api/admin/login":
+                token = self.ui.gate.login(str(body.get("password") or ""))
+                if token is None:
+                    time.sleep(0.4)  # a little friction for guessing
+                    raise ApiError("Wrong password.", 401)
+                self._json({"token": token, "header": ADMIN_HEADER})
+                return
+            if self.path == "/api/admin/logout":
+                self.ui.gate.logout(self.headers.get(ADMIN_HEADER))
+                self._json({"locked": True})
+                return
+            if self.path == "/api/site-settings":
+                with self.ui._lock:
+                    self._json(self.ui.save_site_settings(body))
+                return
             if self.path == "/api/connections":
                 try:
                     with self.ui._lock:

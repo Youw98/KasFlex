@@ -153,6 +153,7 @@ README](../README.md#where-the-numbers-come-from).
 | `PRICE_SWING`, `COST_EDGE` (recommend) | 2.5×, 1 % | choice | "Lowest cost" is suggested when the dearest hour costs at least 2.5 times the cheapest and cost-first saves at least 1 % more than balanced. Otherwise "balanced". |
 | Recommended reserve | 55 % on a night below 0 °C, else 45 % | choice | A frost night keeps more stored energy back. 45 % is the existing default battery reserve. |
 | Heating targets (`heat_day_c`, `heat_night_c`) | model default 19.5 / 16.5 °C | choice | The grower's own setpoints replace the surrogate greenhouse's, so heat demand and cost follow them. Kept between 10–30 °C (day) and 8–28 °C (night). GreenLight runs its own climate control; there the target is reported as not applied. |
+| Settings password | `admin99` (`KASFLEX_ADMIN_PASSWORD`) | choice | A placeholder agreed for the workshop; change it before any use outside a supervised session. Tokens last 8 hours. |
 | Built-in workshop scenarios | 4 days, prices and temperatures set by hand | choice | Two good days and two with a deliberate error the planner cannot see (a grid operator's curtailment notice; a CHP maintenance visit). Shaped on Dutch winter and spring day-ahead patterns, not copied from a specific day, so every participant sees the same, explainable situation. Editable on the admin page. |
 
 ## GreenLight calibration for AGC2 compartments (validation replay only)

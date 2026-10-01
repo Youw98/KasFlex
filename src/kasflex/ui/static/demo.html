@@ -17,25 +17,13 @@
     <div class="top-controls">
       <span id="data-pill" class="pill loading">Loading…</span>
       <span id="validation-pill" class="pill pending" data-i18n="validation.pending">Model validation pending</span>
-      <label class="compact-select">
-        <span data-i18n="input.mode">Demo data</span>
-        <select id="input-mode" aria-label="Demo data mode">
-          <option value="scenario" data-i18n="input.scenario">Workshop scenario</option>
-          <option value="showcase" data-i18n="input.showcase">Showcase (offline)</option>
-          <option value="real" data-i18n="input.real">Real historical</option>
-        </select>
-      </label>
-      <label class="compact-select">
-        <span data-i18n="language">Language</span>
-        <select id="language-select" aria-label="Language">
-          <option value="en">English</option>
-          <option value="nl">Nederlands</option>
-        </select>
-      </label>
-      <label class="compact-select" id="model-field">
-        <span data-i18n="model">AI model</span>
-        <select id="model-select" aria-label="AI model"></select>
-      </label>
+      <select id="language-select" class="lang-select" aria-label="Language">
+        <option value="en">EN</option>
+        <option value="nl">NL</option>
+      </select>
+      <button id="open-settings" type="button" class="icon-button" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" transform="translate(-1 0)"/></svg>
+      </button>
     </div>
   </header>
 
@@ -50,15 +38,8 @@
     <!-- Step 1: the day, the story, and (in the AI versions) KasFlex's suggestion. -->
     <section id="prepare-view" class="view prepare-view">
       <div class="intro">
-        <div>
-          <h1 data-i18n="prepare.title">Make tomorrow's energy plan together.</h1>
-          <p id="intro-copy" data-i18n="prepare.copy">KasFlex looks at prices and weather first and makes a suggestion. You decide.</p>
-        </div>
-        <div class="day-card">
-          <span data-i18n="prepare.day">Planning day</span>
-          <strong id="planning-date">—</strong>
-          <small id="source-summary">—</small>
-        </div>
+        <h1 data-i18n="prepare.title">Make tomorrow's energy plan together.</h1>
+        <div class="day-card"><span data-i18n="prepare.day">Tomorrow</span><strong id="planning-date">—</strong></div>
       </div>
 
       <article id="scenario-card" class="scenario-card" hidden>
@@ -71,9 +52,9 @@
       </article>
 
       <div class="context-strip">
-        <article><span data-i18n="metric.cheap">Cheapest power</span><strong id="price-low">—</strong><small id="price-low-hours">—</small></article>
-        <article><span data-i18n="metric.expensive">Dearest power</span><strong id="price-high">—</strong><small id="price-high-hours">—</small></article>
-        <article><span data-i18n="metric.weather">Outside</span><strong id="temp-range">—</strong><small id="sun-hours">—</small></article>
+        <article><span data-i18n="metric.cheap">Cheapest power</span><strong id="price-low">—</strong></article>
+        <article><span data-i18n="metric.expensive">Dearest power</span><strong id="price-high">—</strong></article>
+        <article><span data-i18n="metric.weather">Outside</span><strong id="temp-range">—</strong></article>
         <article><span data-i18n="metric.grid">Grid contract</span><strong id="grid-limit">—</strong><small id="grid-window">—</small></article>
       </div>
 
@@ -90,9 +71,10 @@
         <article id="recommend-panel" class="panel recommend-panel" hidden>
           <span class="tag ai" data-i18n="recommend.tag">KasFlex suggests</span>
           <h2 id="recommend-title">—</h2>
-          <ul id="recommend-reasons" class="reasons"></ul>
-          <div id="recommend-options" class="option-bars"></div>
+          <div id="recommend-facts" class="facts"></div>
+          <div id="recommend-options" class="option-chart"></div>
           <div id="recommend-memory" class="memory-note" hidden></div>
+          <details class="why-text"><summary data-i18n="recommend.why">Why, in words</summary><ul id="recommend-reasons" class="reasons"></ul></details>
           <div class="recommend-actions">
             <button id="accept-recommendation" type="button" class="primary" data-i18n="recommend.accept">Plan with this suggestion</button>
             <button id="choose-own" type="button" class="ghost" data-i18n="recommend.own">I choose differently</button>
@@ -103,10 +85,10 @@
       <article id="choices-panel" class="panel choices-panel">
         <h2 data-i18n="prepare.priority.title">What matters most tomorrow?</h2>
         <div class="priority-grid" role="radiogroup">
-          <label><input type="radio" name="priority" value="balanced" checked><span><strong data-i18n="priority.balanced">Balanced</strong><small data-i18n="priority.balanced.note">Cost, crop and grid together.</small></span></label>
-          <label><input type="radio" name="priority" value="cost"><span><strong data-i18n="priority.cost">Lowest cost</strong><small data-i18n="priority.cost.note">Euros first.</small></span></label>
-          <label><input type="radio" name="priority" value="crop"><span><strong data-i18n="priority.crop">Crop first</strong><small data-i18n="priority.crop.note">Light and climate first.</small></span></label>
-          <label><input type="radio" name="priority" value="grid"><span><strong data-i18n="priority.grid">Grid relief</strong><small data-i18n="priority.grid.note">Lower peak, when a kW saved is worth it.</small></span></label>
+          <label><input type="radio" name="priority" value="balanced" checked><span><i aria-hidden="true">⚖</i><strong data-i18n="priority.balanced">Balanced</strong></span></label>
+          <label><input type="radio" name="priority" value="cost"><span><i aria-hidden="true">€</i><strong data-i18n="priority.cost">Lowest cost</strong></span></label>
+          <label><input type="radio" name="priority" value="crop"><span><i aria-hidden="true">🌱</i><strong data-i18n="priority.crop">Crop first</strong></span></label>
+          <label><input type="radio" name="priority" value="grid"><span><i aria-hidden="true">⚡</i><strong data-i18n="priority.grid">Grid relief</strong></span></label>
         </div>
         <div class="policy-row">
           <label><input id="avoid-chp-night" type="checkbox"><span data-i18n="policy.chp">Avoid CHP overnight</span></label>
@@ -125,7 +107,6 @@
           <label><span data-i18n="goals.heatday">Heating, day</span><span class="unit-input"><input id="target-heat-day" type="number" min="10" max="30" step="0.5" inputmode="decimal" placeholder="19.5"><em>°C</em></span></label>
           <label><span data-i18n="goals.heatnight">Heating, night</span><span class="unit-input"><input id="target-heat-night" type="number" min="8" max="28" step="0.5" inputmode="decimal" placeholder="16.5"><em>°C</em></span></label>
         </div>
-        <p class="hint" data-i18n="goals.hint">The grid maximum is a hard limit: the check rejects any plan that goes over it. Heating temperatures set the heat the plan must deliver. Light and budget are compared after planning.</p>
         <div id="goal-list" class="goal-list"></div>
         <div class="goal-form">
           <input id="goal-name" type="text" maxlength="80" data-i18n-placeholder="goals.name" placeholder="Name, e.g. Quiet mornings">
@@ -145,7 +126,7 @@
       <details id="safety-panel" class="panel safety-panel">
         <summary data-i18n="checker.toggle">Independent safety check</summary>
         <label class="checker-toggle">
-          <span><strong data-i18n="checker.on">Check every plan</strong><small data-i18n="checker.toggle.note">Keep this on. Turn it off only to show what the check prevents.</small></span>
+          <span><strong data-i18n="checker.on">Check every plan</strong></span>
           <input id="checker-enabled" type="checkbox" checked>
           <span class="switch-ui" aria-hidden="true"></span>
         </label>
@@ -156,7 +137,6 @@
       </details>
 
       <div class="prepare-action">
-        <strong id="build-note" data-i18n="prepare.action.title">Ready to make the plan?</strong>
         <button id="build-plan" type="button" class="primary" data-i18n="prepare.action.button" disabled>Build tomorrow's plan</button>
       </div>
     </section>
@@ -173,7 +153,7 @@
       <div class="headline-metrics">
         <article class="money"><span data-i18n="decision.expected">Expected cost</span><strong id="result-cost">—</strong><small id="result-saving">—</small></article>
         <article><span data-i18n="decision.crop">Tomato growth (simulated)</span><strong id="result-crop">—</strong><small id="result-crop-note">—</small></article>
-        <article><span data-i18n="decision.gridpeak">Highest grid import</span><strong id="result-peak">—</strong><small id="result-peak-note">—</small></article>
+        <article><span data-i18n="decision.gridpeak">Highest grid import</span><strong id="result-peak">—</strong><span class="meter" id="result-peak-meter"><i></i></span><small id="result-peak-note">—</small></article>
         <article><span data-i18n="decision.work">Work</span><strong id="result-work">—</strong><small id="result-work-note">—</small></article>
       </div>
 
@@ -191,7 +171,6 @@
           <section id="dimension-panel" class="panel dimension-panel">
             <div class="dimension-head">
               <h2 data-i18n="dimension.prompt">This plan…</h2>
-              <span data-i18n="dimension.help">Give your view on each part. Disagree? Say why: KasFlex adjusts and remembers.</span>
             </div>
             <div id="dimensions" class="dimensions"></div>
           </section>
@@ -224,9 +203,8 @@
           </div>
 
           <div class="final-box">
-            <small id="review-progress">0/3</small>
-            <strong id="final-title" data-i18n="final.title">Give your view on every part</strong>
-            <p id="decision-copy" data-i18n="final.note">Approve once every part has your view and the check accepts the plan.</p>
+            <div id="review-progress" class="progress-dots" aria-label="Progress"></div>
+            <p id="decision-copy" hidden></p>
             <button id="approve-plan" type="button" class="primary" disabled data-i18n="final.approve">Approve final plan</button>
             <button id="back-to-choices" type="button" class="ghost" data-i18n="final.rebuild">Change choices & rebuild</button>
           </div>
@@ -244,7 +222,6 @@
       <div class="position-page-head">
         <div>
           <h1 id="position-page-title">Position, deviation and grid</h1>
-          <p id="position-page-copy">See what was contracted, what the plan needs and where the grid position is short or long.</p>
         </div>
         <button id="back-from-position" class="ghost" type="button">← Back to decision</button>
       </div>
@@ -265,6 +242,48 @@
       <button id="chat-send" type="submit" class="small-primary" data-i18n="chat.send">Ask</button>
     </form>
   </aside>
+
+  <dialog id="settings-dialog" class="settings-dialog">
+    <div class="dialog-head"><h2 data-i18n="settings.title">Settings</h2><button id="close-settings" class="ghost" type="button" aria-label="Close">×</button></div>
+    <form id="settings-login" class="settings-login">
+      <label><span data-i18n="settings.password">Password</span><input id="settings-password" type="password" autocomplete="current-password"></label>
+      <button id="unlock-settings" type="button" class="primary dark" data-i18n="settings.unlock">Unlock</button>
+      <p id="settings-login-error" class="error" hidden></p>
+    </form>
+    <div id="settings-body" class="settings-body" hidden>
+      <section>
+        <h3 data-i18n="settings.ai">AI</h3>
+        <div class="settings-grid">
+          <label><span data-i18n="settings.provider">Service</span><select id="set-llm_provider"></select></label>
+          <label><span data-i18n="model">Model</span><input id="set-llm_model" list="model-options" type="text"><datalist id="model-options"></datalist></label>
+          <label id="base-url-field"><span data-i18n="settings.baseurl">Server address</span><input id="set-llm_base_url" type="url" placeholder="http://localhost:11434"></label>
+          <label id="api-key-field"><span><span data-i18n="settings.key">API key</span> <b id="key-status" class="status-dot"></b></span><input id="set-api-key" type="password" autocomplete="off" placeholder="••••••••"></label>
+        </div>
+        <div class="settings-actions"><button id="test-ai" type="button" class="ghost" data-i18n="settings.test">Test</button><span id="test-ai-result" class="muted"></span></div>
+      </section>
+      <section>
+        <h3 data-i18n="settings.data">Data</h3>
+        <div class="settings-grid">
+          <label><span data-i18n="input.mode">Demo data</span>
+            <select id="input-mode" aria-label="Demo data mode">
+              <option value="scenario" data-i18n="input.scenario">Workshop scenario</option>
+              <option value="showcase" data-i18n="input.showcase">Showcase (offline)</option>
+              <option value="real" data-i18n="input.real">Real historical</option>
+            </select></label>
+          <label><span><span>ENTSO-E</span> <b id="entsoe-status" class="status-dot"></b></span><input id="set-entsoe-key" type="password" autocomplete="off" placeholder="••••••••"></label>
+        </div>
+      </section>
+      <section>
+        <h3 data-i18n="settings.site">Site</h3>
+        <div class="settings-grid" id="site-fields"></div>
+      </section>
+      <div class="settings-footer">
+        <button id="save-settings" type="button" class="primary dark" data-i18n="settings.save">Save</button>
+        <button id="open-admin" type="button" class="ghost" data-i18n="settings.admin">Workshop admin</button>
+        <button id="lock-settings" type="button" class="ghost" data-i18n="settings.lock">Lock</button>
+      </div>
+    </div>
+  </dialog>
 
   <dialog id="detail-dialog">
     <div class="dialog-head"><div><h2 id="dialog-title"></h2><p id="dialog-eyebrow" class="muted"></p></div><button id="close-dialog" class="ghost" type="button" aria-label="Close">×</button></div>

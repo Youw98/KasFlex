@@ -101,6 +101,14 @@ def test_local_endpoint_saves_and_refuses_cross_origin(tmp_path, monkeypatch):
     try:
         data = json.dumps({"provider": "entsoe", "api_key": "fixture-token"}).encode()
         headers = {"Content-Type": "application/json", "Origin": root}
+        # Saving a key is a settings change: refused without the admin password.
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(urllib.request.Request(root + "/api/connections", data, headers))
+        assert exc.value.code == 401
+        login = urllib.request.Request(root + "/api/admin/login",
+                                       json.dumps({"password": "admin99"}).encode(), headers)
+        with urllib.request.urlopen(login) as response:
+            headers["X-KasFlex-Admin"] = json.loads(response.read())["token"]
         request = urllib.request.Request(root + "/api/connections", data, headers)
         with urllib.request.urlopen(request) as response:
             body = response.read().decode()

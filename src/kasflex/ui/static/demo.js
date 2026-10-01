@@ -38,26 +38,39 @@ const state = {
   openReason: "",
   chooseOwn: false,
   providers: [],
-  selectedProvider: "",
-  selectedModel: "",
+  adminToken: readSession("kasflex.admin.token") || "",
   approved: false,
 };
 
+function readSession(key) { try { return sessionStorage.getItem(key); } catch { return null; } }
+function writeSession(key, value) {
+  try { value ? sessionStorage.setItem(key, value) : sessionStorage.removeItem(key); } catch {}
+}
 function readStore(key) { try { return localStorage.getItem(key); } catch { return null; } }
 function writeStore(key, value) {
   try { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch {}
 }
 
 async function api(path, body) {
+  const headers = body === undefined ? {} : {"Content-Type": "application/json"};
+  if (state.adminToken) headers["X-KasFlex-Admin"] = state.adminToken;
   const response = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
-    headers: body === undefined ? {} : {"Content-Type": "application/json"},
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
   let payload = {};
   try { payload = text ? JSON.parse(text) : {}; } catch {}
-  if (!response.ok) throw new Error(payload.error || `Request failed (${response.status})`);
+  if (response.status === 401 && state.adminToken) {
+    state.adminToken = "";
+    writeSession("kasflex.admin.token", "");
+  }
+  if (!response.ok) {
+    const error = new Error(payload.error || `Request failed (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
   return payload;
 }
 
@@ -157,12 +170,6 @@ function dimensionsFor(run=state.run) {
 
 function applyVersion() {
   const advised = isAdvised();
-  $("model-field").hidden = !advised;
-  $("intro-copy").textContent = advised
-    ? T("KasFlex looks at prices, weather and your grid contract first and makes a suggestion. You decide.",
-        "KasFlex kijkt eerst naar prijzen, weer en uw netcontract en doet een voorstel. U beslist.")
-    : T("Choose what matters and set your targets. KasFlex calculates the plan and checks it.",
-        "Kies wat telt en stel uw doelen in. KasFlex rekent het plan uit en controleert het.");
   $("recommend-panel").hidden = !advised || !state.recommendation;
   $("choices-panel").hidden = advised && Boolean(state.recommendation) && !state.chooseOwn;
   $("open-factors").hidden = !advised;
@@ -242,8 +249,6 @@ function overrides() {
     seed:showcase ? SHOWCASE_SEED : undefined,
     language:state.lang,
     condition:state.version,
-    llm_provider:state.selectedProvider || undefined,
-    llm_model:state.selectedModel || undefined,
     participant_id:state.participantId || undefined,
     "checker.enabled":$("checker-enabled").checked,
   };
@@ -257,42 +262,6 @@ function overrides() {
 }
 function runRef(run=state.run) {
   return {run_id:run.run_id, revision:run.revision, plan_hash:run.plan_hash};
-}
-
-async function loadModels() {
-  const previousProvider = state.selectedProvider;
-  const previousModel = state.selectedModel;
-  const select = $("model-select");
-  let payload;
-  try { payload = await api("/api/models"); }
-  catch {
-    state.providers = [];
-    select.replaceChildren();
-    const option = el("option", "", T("Built-in planner", "Ingebouwde planner"));
-    option.value = JSON.stringify({provider:previousProvider, model:previousModel});
-    select.append(option);
-    return;
-  }
-  state.providers = payload.providers || [];
-  const selected = payload.selected || {};
-  state.selectedProvider = previousProvider || selected.provider || "";
-  state.selectedModel = previousModel || selected.model || "";
-  select.replaceChildren();
-  for (const provider of state.providers) {
-    const models = provider.models?.length ? provider.models : [state.selectedModel || "default"];
-    for (const model of models) {
-      const status = provider.configured === false ? T(" · setup needed", " · installatie nodig") : "";
-      const option = el("option", "", `${provider.name} — ${model}${status}`);
-      option.value = JSON.stringify({provider:provider.id, model});
-      if (provider.id === state.selectedProvider && model === state.selectedModel) option.selected = true;
-      select.append(option);
-    }
-  }
-  if (!select.options.length) {
-    const option = el("option", "", T("Built-in planner", "Ingebouwde planner"));
-    option.value = JSON.stringify({provider:"", model:""});
-    select.append(option);
-  }
 }
 
 async function loadValidationStatus() {
@@ -371,20 +340,6 @@ function renderContext(ctx) {
   $("planning-date").textContent = new Date(ctx.date + "T12:00:00").toLocaleDateString(locale, {
     weekday:"short", day:"numeric", month:"short", year:"numeric"
   });
-  if (ctx.data_source === "synthetic") {
-    $("source-summary").textContent = T("Fixed showcase prices · simulated weather",
-                                        "Vaste showcaseprijzen · gesimuleerd weer");
-  } else if (ctx.data_source === "scenario") {
-    $("source-summary").textContent = T("Workshop scenario", "Workshopscenario");
-  } else {
-    const provenance = ctx.provenance || {};
-    const market = provenance.prices?.dataset_key === "entsoe_da"
-      ? T("ENTSO-E-derived NL prices", "ENTSO-E-afgeleide NL-prijzen") : T("electricity prices", "stroomprijzen");
-    const weather = provenance.forecast_weather?.dataset_key === "openmeteo_hist_forecast"
-      ? "Open-Meteo" : T("weather forecast", "weersverwachting");
-    $("source-summary").textContent = `${market} · ${weather}`;
-  }
-
   const scenario = ctx.scenario;
   $("scenario-card").hidden = !scenario;
   if (scenario) {
@@ -394,18 +349,11 @@ function renderContext(ctx) {
 
   $("price-low").textContent = cents(ctx.price.min_eur_kwh);
   $("price-high").textContent = cents(ctx.price.max_eur_kwh);
-  $("price-low-hours").textContent = hourList(ctx.price.cheapest_hours);
-  $("price-high-hours").textContent = hourList(ctx.price.dearest_hours);
   $("temp-range").textContent =
     `${ctx.weather.min_temp_c.toFixed(0)}${T(" to ", " tot ")}${ctx.weather.max_temp_c.toFixed(0)} °C`;
-  $("sun-hours").textContent = T(`${ctx.weather.sun_hours} h daylight`, `${ctx.weather.sun_hours} uur daglicht`);
   const grid = ctx.grid || {};
   $("grid-limit").textContent = mw(grid.import_limit_kw);
-  const lowered = (grid.hourly_import_kw || []).map((kw, hour) => [kw, hour])
-    .filter(([kw]) => kw < grid.import_limit_kw - 1e-6).map(([, hour]) => hour);
-  const name = grid.contract?.name || "";
-  $("grid-window").textContent = lowered.length
-    ? `${name} · ${T("lower", "lager")} ${hourRuns(lowered)}` : name;
+  $("grid-window").textContent = grid.contract?.name || "";
   $("grid-window").title = grid.contract?.summary || "";
   renderContextChart(ctx);
 }
@@ -490,7 +438,7 @@ function renderContextChart(ctx) {
   const describe = (h) => `${hh(h)} · ${prices[h].toFixed(1)} ct/kWh`
     + (temps.length ? ` · ${temps[h].toFixed(1)} °C` : "")
     + (limits.length ? ` · ${T("grid limit", "netgrens")} ${mw(limits[h])}` : "");
-  readout.textContent = T("Point at an hour for its numbers.", "Wijs een uur aan voor de getallen.");
+  readout.textContent = "";
   const pick = (event) => {
     const box = chart.getBoundingClientRect();
     const hour = Math.floor(((event.clientX - box.left) / box.width * W - L) / step);
@@ -532,37 +480,71 @@ async function loadRecommendation() {
   applyVersion();
 }
 
+function fact(icon, value, label, cls="") {
+  const chip = el("span", `fact ${cls}`.trim());
+  chip.append(el("i", "", icon), el("strong", "", value));
+  chip.title = label;
+  return chip;
+}
+
 function renderRecommendation(advice) {
   $("recommend-title").textContent = T(PRIORITY_NAMES[advice.priority][0], PRIORITY_NAMES[advice.priority][1]);
-  const list = $("recommend-reasons");
-  list.replaceChildren(...(advice.reasons || []).map((reason) => el("li", "", reason)));
+  $("recommend-reasons").replaceChildren(...(advice.reasons || []).map((reason) => el("li", "", reason)));
 
+  // The reasons as numbers: one chip each, the sentence only in the tooltip.
+  const facts = $("recommend-facts");
+  facts.replaceChildren();
+  for (const item of advice.facts || []) {
+    if (item.kind === "light") facts.append(fact("☀", `${item.cheapest.toFixed(1)} / ${item.target.toFixed(0)} mol/m²`,
+      T("Light in the cheapest plan against the crop's need", "Licht in het goedkoopste plan tegenover de behoefte van het gewas"), "warn"));
+    else if (item.kind === "peak") facts.append(fact("⚡", `−${Math.round(item.drop_kw)} kW`,
+      T(`Lower grid peak for ${euro(item.extra_eur)} more`, `Lagere netpiek voor ${euro(item.extra_eur)} extra`)));
+    else if (item.kind === "swing") facts.append(fact("€", `${(item.low_eur_kwh * 100).toFixed(0)}→${(item.high_eur_kwh * 100).toFixed(0)} ct`,
+      T("Cheapest and dearest hour", "Goedkoopste en duurste uur")));
+    else if (item.kind === "saving") facts.append(fact(item.eur >= 0 ? "▼" : "▲", euro(Math.abs(item.eur)),
+      T("Against normal control", "Tegenover de normale regeling"), item.eur >= 0 ? "good" : "warn"));
+    else if (item.kind === "frost") facts.append(fact("❄", `${item.temp_c.toFixed(0)} °C → 🔋 ${item.reserve_pct.toFixed(0)}%`,
+      T("Frost tonight: more reserve in battery and buffer", "Vorst vannacht: meer reserve in batterij en buffer")));
+  }
+
+  // Every option side by side: cost and light, the suggestion emphasised.
   const root = $("recommend-options");
   root.replaceChildren();
-  const options = advice.options || [];
-  const max = Math.max(...options.map((o) => o.cost_eur), advice.normal?.cost_eur || 0, 1);
-  const rows = [...options, {...advice.normal, priority:"normal"}];
-  for (const option of rows) {
-    const row = el("div", "option-row" + (option.priority === advice.priority ? " chosen" : ""));
-    const name = option.priority === "normal" ? T("Normal control", "Normale regeling")
+  const rows = [...(advice.options || []), {...advice.normal, priority:"normal"}];
+  const target = (advice.facts || []).find((f) => f.kind === "light")?.target;
+  const costMax = Math.max(...rows.map((o) => o.cost_eur), 1);
+  const lightMax = Math.max(...rows.map((o) => o.light_mol_m2 || 0), target || 0, 1);
+  const W = 520, L = 112, colW = 150, gap = 40, rowH = 26, top = 22;
+  const H = top + rows.length * rowH + 4;
+  const chart = svg("svg", {viewBox:`0 0 ${W} ${H}`, class:"svg-chart", role:"img",
+                            "aria-label":T("Cost and light per option", "Kosten en licht per optie")}, root);
+  const costX = L, lightX = L + colW + gap + 50;
+  svgText(chart, costX, 12, "€", {class:"panel-label"});
+  svgText(chart, lightX, 12, "☀ mol/m²", {class:"panel-label"});
+  rows.forEach((option, i) => {
+    const y = top + i * rowH;
+    const chosen = option.priority === advice.priority;
+    const name = option.priority === "normal" ? T("Normal", "Normaal")
       : T(PRIORITY_NAMES[option.priority][0], PRIORITY_NAMES[option.priority][1]);
-    const bar = el("span", "option-bar");
-    const fill = el("i");
-    fill.style.width = `${Math.max(4, option.cost_eur / max * 100)}%`;
-    bar.append(fill);
-    row.append(el("span", "option-name", name), bar, el("b", "", euro(option.cost_eur)),
-               el("small", "", `${Number(option.light_mol_m2 || 0).toFixed(1)} mol/m²`));
-    root.append(row);
+    svgText(chart, L - 10, y + 13, name, {class:chosen ? "label" : "tick", "text-anchor":"end"});
+    const cw = option.cost_eur / costMax * colW;
+    svg("rect", {x:costX, y:y + 3, width:Math.max(2, cw), height:14, rx:3, class:chosen ? "col-plan" : "col-normal"}, chart);
+    svgText(chart, costX + cw + 6, y + 14, euro(option.cost_eur), {class:chosen ? "label" : "tick"});
+    const lw = (option.light_mol_m2 || 0) / lightMax * (colW - 40);
+    svg("rect", {x:lightX, y:y + 3, width:Math.max(2, lw), height:14, rx:3, class:chosen ? "col-plan" : "col-normal"}, chart);
+    svgText(chart, lightX + lw + 6, y + 14, (option.light_mol_m2 || 0).toFixed(1), {class:chosen ? "label" : "tick"});
+  });
+  if (target) {
+    const tx = lightX + target / lightMax * (colW - 40);
+    svg("line", {x1:tx, x2:tx, y1:top - 4, y2:H - 2, class:"line-target"}, chart);
+    svgText(chart, tx, top - 7, T("need", "nodig"), {class:"tick", "text-anchor":"middle"});
   }
 
   const memory = $("recommend-memory");
   const remembered = (advice.remembered || []).filter((item) => item.applied);
   memory.hidden = !remembered.length;
-  memory.replaceChildren();
-  if (remembered.length) {
-    memory.append(el("strong", "", T("Taken from what you said before:", "Meegenomen uit wat u eerder zei:")));
-    for (const item of remembered) memory.append(el("span", "", `“${item.said}”`));
-  }
+  memory.replaceChildren(...remembered.map((item) => fact("🧠", `“${item.said}”`,
+    T("Taken from what you said before", "Meegenomen uit wat u eerder zei"))));
 }
 
 function chooseOwn() {
@@ -675,19 +657,19 @@ function renderDecision(run, {preserveDimensions=false}={}) {
   const saving = Number(run.normal_settings?.saving_eur || 0);
   $("result-cost").textContent = euro(run.metrics?.net_cost_eur);
   $("result-saving").textContent = run.normal_settings
-    ? T(`${euro(Math.abs(saving))} ${saving >= 0 ? "below" : "above"} normal`,
-        `${euro(Math.abs(saving))} ${saving >= 0 ? "lager" : "hoger"} dan normaal`) : "—";
+    ? `${saving >= 0 ? "▼" : "▲"} ${euro(Math.abs(saving))} ${T("vs normal", "t.o.v. normaal")}` : "—";
   $("result-crop").textContent = `${Number(run.metrics?.fruit_growth_kg_m2 || 0).toFixed(2)} kg/m²`;
-  $("result-crop-note").textContent = T(
-    `${Number(run.metrics?.supplemental_dli_mol_m2 || 0).toFixed(1)} mol/m² extra light`,
-    `${Number(run.metrics?.supplemental_dli_mol_m2 || 0).toFixed(1)} mol/m² extra licht`);
+  $("result-crop-note").textContent = `☀ ${Number(run.metrics?.supplemental_dli_mol_m2 || 0).toFixed(1)} mol/m²`;
   const grid = run.grid || {};
   $("result-peak").textContent = mw(grid.peak_import_kw);
-  $("result-peak-note").textContent = T(`limit ${mw(grid.import_limit_kw)}`, `grens ${mw(grid.import_limit_kw)}`);
+  $("result-peak-note").textContent = `/ ${mw(grid.import_limit_kw)}`;
+  const share = Math.min(1, (grid.peak_import_kw || 0) / Math.max(1, grid.import_limit_kw || 1));
+  $("result-peak-meter").firstElementChild.style.width = `${share * 100}%`;
+  const ratio = (grid.peak_import_kw || 0) / Math.max(1, grid.import_limit_kw || 1);
+  $("result-peak-meter").className = "meter" + (ratio > 1.0001 ? " over" : ratio > 0.9 ? " near" : "");
   const work = run.work || {};
-  $("result-work").textContent = T(`${work.switches} switches`, `${work.switches} wisselingen`);
-  $("result-work-note").textContent = T(`CHP ${work.chp_hours} h · ${work.chp_night_hours} at night`,
-                                        `WKK ${work.chp_hours} u · ${work.chp_night_hours} 's nachts`);
+  $("result-work").textContent = `⇄ ${work.switches}`;
+  $("result-work-note").textContent = `${T("CHP", "WKK")} ${work.chp_hours} ${T("h", "u")} · ☾ ${work.chp_night_hours}`;
 
   const badge = $("checker-badge");
   if (!run.checker_enabled) {
@@ -712,10 +694,7 @@ function renderDecision(run, {preserveDimensions=false}={}) {
     problems.append(el("strong", "", T("The check does not approve this plan:", "De check keurt dit plan niet goed:")));
     const list = el("ul");
     for (const violation of (run.violations || []).slice(0, 4)) list.append(el("li", "", violation.message));
-    problems.append(list, el("p", "", isAdvised()
-      ? T("Disagree with a reason, or change your choices or targets and rebuild.",
-          "Geef bij 'Oneens' een reden, of pas uw keuzes of doelen aan en plan opnieuw.")
-      : T("Change your choices or targets and rebuild.", "Pas uw keuzes of doelen aan en plan opnieuw.")));
+    problems.append(list);
   }
   // The grid contract is a hard rule, not something to agree or disagree with.
   const gridBadge = $("grid-badge");
@@ -862,7 +841,7 @@ function renderPlanChart(root, run, {tall=false}={}) {
       + ` · ${T("grid", "net")} ${mw(row.grid_import_kw)} / ${mw(row.import_limit_kw)}`
       + (row.chp_running ? ` · ${T("CHP on", "WKK aan")}` : "");
   };
-  if (readout) readout.textContent = T("Point at an hour to see what happens then.", "Wijs een uur aan om te zien wat er dan gebeurt.");
+  if (readout) readout.textContent = "";
   const pick = (event) => {
     const box = chart.getBoundingClientRect();
     const hour = Math.floor(((event.clientX - box.left) / box.width * W - L) / step);
@@ -882,9 +861,10 @@ function renderDonut(run) {
   const totals = run.cost_forecast?.totals || {};
   // Part-to-whole with three parts: a donut. Fixed slot order 1-3.
   const parts = [
-    {label:T("Electricity", "Stroom"), value:totals.electricity_import_eur || 0, colour:"var(--s-1)"},
-    {label:T("Gas", "Gas"), value:totals.gas_eur || 0, colour:"var(--s-2)"},
-    {label:T("CO₂", "CO₂"), value:totals.liquid_co2_eur || 0, colour:"var(--s-3)"},
+    // Electricity is what the grid import costs, so it wears the grid's colour.
+    {label:T("Electricity", "Stroom"), value:totals.electricity_import_eur || 0, colour:"var(--s-grid)"},
+    {label:T("Gas", "Gas"), value:totals.gas_eur || 0, colour:"var(--s-7)"},
+    {label:T("CO₂", "CO₂"), value:totals.liquid_co2_eur || 0, colour:"var(--s-8)"},
   ].filter((p) => p.value > 0.5);
   const sum = parts.reduce((a, p) => a + p.value, 0) || 1;
   const r = 56, c = 2 * Math.PI * r;
@@ -962,27 +942,94 @@ function dimensionTitle(dimension) {
   }[dimension] || dimension;
 }
 
-function dimensionEvidence(dimension) {
+/** A labelled horizontal bar: the value as a share of a scale, the number at its end. */
+function barRow(label, value, max, text, cls="") {
+  const row = el("div", `bar-row ${cls}`.trim());
+  const track = el("span", "bar-track");
+  const fill = el("i");
+  fill.style.width = `${Math.max(2, Math.min(1, value / Math.max(max, 1e-9)) * 100)}%`;
+  track.append(fill);
+  row.append(el("span", "bar-label", label), track, el("b", "", text));
+  return row;
+}
+
+/** What each part of the plan amounts to, drawn rather than written. */
+function dimensionVisual(dimension) {
   const run = state.run;
+  const box = el("div", "evidence");
   const work = run.work || {};
   if (dimension === "money") {
-    const saving = Number(run.normal_settings?.saving_eur || 0);
-    return T(`${euro(run.metrics?.net_cost_eur)} expected · ${euro(Math.abs(saving))} ${saving >= 0 ? "less" : "more"} than normal control.`,
-             `${euro(run.metrics?.net_cost_eur)} verwacht · ${euro(Math.abs(saving))} ${saving >= 0 ? "minder" : "meer"} dan de normale regeling.`);
+    const plan = Number(run.metrics?.net_cost_eur || 0);
+    const normal = Number(run.normal_settings?.net_cost_eur || plan);
+    const max = Math.max(plan, normal);
+    box.append(barRow(T("Normal", "Normaal"), normal, max, euro(normal), "muted-bar"),
+               barRow("KasFlex", plan, max, euro(plan)));
+  } else if (dimension === "crop") {
+    const light = Number(run.metrics?.dli_mol_m2 || 0);
+    const target = Number(run.crop_target_mol_m2 || 10);
+    box.append(barRow(T("☀ Light", "☀ Licht"), light, Math.max(light, target), `${light.toFixed(1)} / ${target.toFixed(0)}`,
+                      light + 0.05 >= target ? "" : "warn"));
+    // One tick per hour inside the crop's temperature band.
+    const hours = Math.round(Number(run.metrics?.temperature_band_hours || 0));
+    const strip = el("div", "hour-strip");
+    strip.title = T(`${hours} of 24 h in the temperature band`, `${hours} van 24 u binnen de temperatuurband`);
+    for (let h = 0; h < 24; h++) strip.append(el("i", h < hours ? "on" : ""));
+    const row = el("div", "bar-row");
+    row.append(el("span", "bar-label", T("🌡 Temp.", "🌡 Temp.")), strip, el("b", "", `${hours}/24`));
+    box.append(row);
+  } else if (dimension === "work") {
+    const stats = el("div", "stat-icons");
+    for (const [icon, value, label] of [
+      ["⇄", work.switches, T("switches", "wisselingen")],
+      ["⚙", `${work.chp_hours} ${T("h", "u")}`, T("CHP running", "WKK aan")],
+      ["☾", `${work.chp_night_hours} ${T("h", "u")}`, T("CHP at night", "WKK 's nachts")],
+    ]) {
+      const stat = el("span", "stat");
+      stat.title = label;
+      stat.append(el("i", "", icon), el("strong", "", String(value)), el("small", "", label));
+      stats.append(stat);
+    }
+    // Which hours the plan does something else than normal control.
+    const normal = run.normal_settings?.plan || [];
+    const strip = el("div", "hour-strip changed");
+    strip.title = T(`${work.hours_changed_vs_normal} of 24 h differ from normal`, `${work.hours_changed_vs_normal} van 24 u anders dan normaal`);
+    (run.plan || []).forEach((row, h) => {
+      const other = normal[h] || {};
+      const differs = ["heat_source", "lighting_level", "battery", "chp_mode"].some((f) => row[f] !== other[f]);
+      strip.append(el("i", differs ? "on" : ""));
+    });
+    const row = el("div", "bar-row");
+    row.append(el("span", "bar-label", T("≠ Normal", "≠ Normaal")), strip, el("b", "", `${work.hours_changed_vs_normal}/24`));
+    box.append(stats, row);
+  } else {
+    const chips = el("div", "goal-chips");
+    for (const item of [...(run.targets || []), ...(run.goals || [])]) {
+      const name = item.name || {max_import_kw:"⚡ MW", light_mol_m2:"☀", budget_eur:"€",
+                                 heat_day_c:"🌡 ☀", heat_night_c:"🌡 ☾"}[item.key] || item.key;
+      chips.append(el("span", `goal-chip ${item.met ? "met" : "unmet"}`, `${item.met ? "✓" : "✗"} ${name}`));
+    }
+    box.append(chips);
   }
-  if (dimension === "crop") {
-    const dli = Number(run.metrics?.supplemental_dli_mol_m2 || 0);
-    const hours = Number(run.metrics?.temperature_band_hours || 0);
-    return T(`${dli.toFixed(1)} mol/m² extra light · ${hours.toFixed(0)} of 24 h in the temperature band (simulated).`,
-             `${dli.toFixed(1)} mol/m² extra licht · ${hours.toFixed(0)} van 24 uur binnen de temperatuurband (gesimuleerd).`);
+  return box;
+}
+
+/** Current plan against the alternative, metric by metric. */
+function compareVisual(current, alternative) {
+  const table = el("div", "compare");
+  const rows = [
+    ["€", current.metrics?.net_cost_eur, alternative.metrics?.net_cost_eur, euro, false],
+    ["⚡", current.grid?.peak_import_kw, alternative.grid?.peak_import_kw, mw, false],
+    ["⇄", current.work?.switches, alternative.work?.switches, String, false],
+    ["☀", current.metrics?.dli_mol_m2, alternative.metrics?.dli_mol_m2, (v) => Number(v || 0).toFixed(1), true],
+  ];
+  for (const [icon, before, after, format, upIsGood] of rows) {
+    const delta = Number(after || 0) - Number(before || 0);
+    const same = Math.abs(delta) < 1e-6;
+    const better = upIsGood ? delta > 0 : delta < 0;
+    table.append(el("span", "c-icon", icon), el("span", "c-before", format(before)),
+                 el("span", "c-arrow", "→"), el("strong", `c-after ${same ? "" : better ? "good" : "worse"}`.trim(), format(after)));
   }
-  if (dimension === "work") {
-    return T(`${work.switches} switches of equipment · CHP ${work.chp_hours} h (${work.chp_night_hours} at night, ${work.chp_starts} starts) · ${work.hours_changed_vs_normal} of 24 h differ from normal.`,
-             `${work.switches} keer wisselen van installatie · WKK ${work.chp_hours} u (${work.chp_night_hours} 's nachts, ${work.chp_starts} starts) · ${work.hours_changed_vs_normal} van 24 uur anders dan normaal.`);
-  }
-  const all = [...(run.targets || []), ...(run.goals || [])];
-  const met = all.filter((g) => g.met).length;
-  return T(`${met} of ${all.length} of your targets met.`, `${met} van ${all.length} van uw doelen gehaald.`);
+  return table;
 }
 
 function renderDimensions() {
@@ -997,7 +1044,7 @@ function renderDimensions() {
     const top = el("div", "dimension-card-top");
     top.append(el("strong", "", dimensionTitle(dimension)));
     if (saved.final) top.append(el("span", "done", {agree:"✓", unsure:"?", disagree:"✗"}[saved.final] || "✓"));
-    card.append(top, el("p", "evidence", dimensionEvidence(dimension)));
+    card.append(top, dimensionVisual(dimension));
 
     const choices = el("div", "response-choices");
     for (const response of ["agree", "unsure", "disagree"]) {
@@ -1017,8 +1064,7 @@ function renderDimensions() {
     if (state.openReason === dimension && !saved.final && !saved.counter) {
       const box = el("div", "reason-box");
       const label = el("label");
-      label.append(el("span", "", T("Why do you disagree? KasFlex adjusts the plan and remembers it.",
-                                     "Waarom bent u het oneens? KasFlex past het plan aan en onthoudt het.")));
+      label.append(el("span", "", T("Why?", "Waarom?")));
       const input = el("textarea");
       input.rows = 2;
       input.maxLength = 300;
@@ -1050,14 +1096,17 @@ function renderDimensions() {
 
     if (saved.counter) {
       const counter = el("div", "counter");
-      if (saved.reason) counter.append(el("p", "said", `“${saved.reason}”`));
-      counter.append(el("p", "", saved.counter));
+      if (saved.reason) counter.append(el("p", "said", `“${saved.reason}” ${saved.remembered ? "🧠" : ""}`.trim()));
+      if (saved.summary) counter.append(el("p", "applied", saved.summary));
+      if (saved.alternative && saved.before) {
+        counter.append(compareVisual(saved.before, saved.alternative));
+        counter.append(el("span", `checker ${saved.alternative.accepted ? "good" : "bad"}`,
+          saved.alternative.accepted ? T("✓ Checked", "✓ Gecontroleerd") : T("Not safe", "Niet veilig")));
+      }
+      const words = el("details", "why-text");
+      words.append(el("summary", "", T("In words", "In woorden")), el("p", "", saved.counter));
+      counter.append(words);
       if (saved.alternative && !saved.final) {
-        const alt = saved.alternative;
-        const diff = el("p", "alt-numbers", T(
-          `New plan: ${euro(alt.metrics?.net_cost_eur)} · ${mw(alt.grid?.peak_import_kw)} peak · ${alt.work?.switches} switches`,
-          `Nieuw plan: ${euro(alt.metrics?.net_cost_eur)} · piek ${mw(alt.grid?.peak_import_kw)} · ${alt.work?.switches} wisselingen`));
-        counter.append(diff);
         const actions = el("div", "counter-actions");
         const use = el("button", "small-primary", tr("counter.use", "Use this alternative"));
         use.type = "button";
@@ -1097,6 +1146,9 @@ async function respondDimension(dimension, response) {
       ...previous, busy:false,
       initial:response,
       counter:response === "disagree" ? reply.counter_response : "",
+      summary:reply.reason_summary || "",
+      remembered:Boolean(reply.remembered_id),
+      before:response === "disagree" ? state.run : null,
       counterModel:reply.counter_model || "",
       alternative:reply.alternative,
       final:response === "disagree" ? "" : response,
@@ -1163,16 +1215,14 @@ async function keepCurrent(dimension) {
 function updateApproval() {
   const dims = dimensionsFor();
   const done = dims.filter((dimension) => state.dimensions[dimension]?.final).length;
-  $("review-progress").textContent = dims.length ? `${done}/${dims.length}` : "";
-  $("final-title").textContent = dims.length
-    ? T("Give your view on every part", "Geef uw oordeel over elk onderdeel")
-    : T("Happy with this plan?", "Tevreden met dit plan?");
-  if (!state.approved) {
-    $("decision-copy").textContent = dims.length
-      ? T("Approve once every part has your view and the check accepts the plan.",
-          "Goedkeuren kan zodra elk onderdeel is beoordeeld en de check het plan accepteert.")
-      : T("Not happy? Change your choices and rebuild.", "Niet tevreden? Pas uw keuzes aan en plan opnieuw.");
-  }
+  // Progress as dots, one per part: filled once the grower has given a view.
+  const dots = $("review-progress");
+  dots.replaceChildren(...dims.map((dimension) => {
+    const dot = el("span", state.dimensions[dimension]?.final ? "dot done" : "dot");
+    dot.title = dimensionTitle(dimension);
+    return dot;
+  }));
+  dots.setAttribute("aria-label", `${done}/${dims.length}`);
   $("approve-plan").disabled = state.approved
     || !(done === dims.length && state.run?.checker_enabled && state.run?.accepted);
 }
@@ -1183,6 +1233,7 @@ function openDialog(title, subtitle="") {
   state.detailExpansions += 1;
   $("dialog-title").textContent = title;
   $("dialog-eyebrow").textContent = subtitle;
+  $("dialog-eyebrow").title = "";
   const body = $("dialog-body");
   body.replaceChildren();
   $("detail-dialog").showModal();
@@ -1213,7 +1264,7 @@ async function openFactors() {
   if (!state.run) return;
   state.whyClicks += 1;
   const root = openDialog(T("Why this plan?", "Waarom dit plan?"),
-                          T("What the plan leans on most", "Waar het plan het meest op leunt"));
+                          T("Hours that change without each factor ⓘ", "Uren die veranderen zonder elke factor ⓘ"));
   root.append(el("p", "muted", T("Working it out…", "Even rekenen…")));
   try {
     const result = await api("/api/explain-factors", {...runRef(), overrides:overrides()});
@@ -1233,7 +1284,8 @@ async function openFactors() {
       row.title = bar.sentence;
       chart.append(row);
     }
-    root.append(chart, el("p", "hint", result.method || ""));
+    root.append(chart);
+    $("dialog-eyebrow").title = result.method || "";
   } catch (error) {
     root.replaceChildren(el("p", "error", String(error.message || error)));
   }
@@ -1241,8 +1293,7 @@ async function openFactors() {
 
 async function openWeek() {
   if (!state.run) return;
-  const root = openDialog(T("A week like this", "Een week als deze"),
-                          T("Estimate: KasFlex plans one day at a time", "Schatting: KasFlex plant één dag tegelijk"));
+  const root = openDialog(T("A week like this", "Een week als deze"), T("Estimate ⓘ", "Schatting ⓘ"));
   root.append(el("p", "muted", T("Planning seven days…", "Zeven dagen plannen…")));
   try {
     const result = await api("/api/week-outlook", {overrides:overrides(), policy:state.run.policy || selectedPolicy()});
@@ -1285,9 +1336,11 @@ async function openWeek() {
     }
     const table = tableView([T("Day", "Dag"), T("Normal control", "Normale regeling"), "KasFlex", T("Growth", "Groei")],
       result.days.map((d) => [String(d.day), euro(d.normal_cost_eur), euro(d.cost_eur), `${d.growth_kg_m2.toFixed(3)} kg/m²`]));
-    root.append(summary, chart, legend, table, el("p", "hint", T(
-      "Why not a week plan? The day-ahead market sets prices one day at a time, and weather forecasts lose most of their skill after two or three days. So KasFlex plans tomorrow, and this outlook only estimates what a week of such days adds up to.",
-      "Waarom geen weekplan? De day-aheadmarkt zet prijzen per dag vast, en weersverwachtingen worden na twee à drie dagen veel onzekerder. KasFlex plant dus morgen; dit overzicht schat alleen wat een week van zulke dagen oplevert.")));
+    root.append(summary, chart, legend, table);
+    // Why there is no week plan, for whoever wonders: on hover, not on the screen.
+    $("dialog-eyebrow").title = T(
+      "The day-ahead market sets prices one day at a time, and weather forecasts lose most of their skill after two or three days. So KasFlex plans tomorrow; this outlook only estimates a week of such days.",
+      "De day-aheadmarkt zet prijzen per dag vast, en weersverwachtingen worden na twee à drie dagen veel onzekerder. KasFlex plant dus morgen; dit overzicht schat alleen een week van zulke dagen.");
   } catch (error) {
     root.replaceChildren(el("p", "error", String(error.message || error)));
   }
@@ -1328,9 +1381,6 @@ function renderPositionDetail(root) {
 
 function renderPositionPage() {
   $("position-page-title").textContent = T("Position, deviation and grid", "Positie, afwijking en net");
-  $("position-page-copy").textContent = T(
-    "What was bought ahead, what the plan needs, and which hours are short or long.",
-    "Wat vooraf is ingekocht, wat het plan nodig heeft en welke uren tekort of over zijn.");
   $("back-from-position").textContent = T("← Back to the plan", "← Terug naar het plan");
   const body = $("position-page-body");
   body.replaceChildren();
@@ -1502,8 +1552,6 @@ async function approvePlan() {
       } catch {}
     }
     state.approved = true;
-    $("decision-copy").textContent = T("Approved. This checked plan is recorded as the final day plan.",
-                                       "Goedgekeurd. Dit gecontroleerde plan is vastgelegd als het definitieve dagplan.");
     button.textContent = T("✓ Approved", "✓ Goedgekeurd");
     showDebrief(state.run);
     toast(T("Final plan recorded.", "Definitief plan vastgelegd."));
@@ -1570,6 +1618,152 @@ function resetToPrepare() {
   applyVersion();
 }
 
+// -- settings (behind the admin password) ------------------------------------------
+
+function openSettings() {
+  $("settings-dialog").showModal();
+  if (state.adminToken) loadSettings();
+  else showSettingsLogin();
+}
+function showSettingsLogin(message="") {
+  $("settings-login").hidden = false;
+  $("settings-body").hidden = true;
+  $("settings-login-error").hidden = !message;
+  $("settings-login-error").textContent = message;
+  $("settings-password").value = "";
+  $("settings-password").focus();
+}
+async function unlockSettings(event) {
+  event?.preventDefault();
+  try {
+    const result = await api("/api/admin/login", {password:$("settings-password").value});
+    state.adminToken = result.token;
+    writeSession("kasflex.admin.token", result.token);
+    await loadSettings();
+  } catch (error) {
+    showSettingsLogin(error.status === 401 ? T("Wrong password.", "Verkeerd wachtwoord.") : String(error.message || error));
+  }
+}
+async function lockSettings() {
+  try { await api("/api/admin/logout", {}); } catch {}
+  state.adminToken = "";
+  writeSession("kasflex.admin.token", "");
+  showSettingsLogin();
+}
+
+function selectedProviderInfo() {
+  return (state.settings?.models?.providers || []).find((p) => p.id === $("set-llm_provider").value) || {};
+}
+function renderProviderFields() {
+  const provider = selectedProviderInfo();
+  const list = $("model-options");
+  list.replaceChildren(...(provider.models || []).map((model) => { const o = el("option"); o.value = model; return o; }));
+  $("base-url-field").hidden = !(provider.local || provider.base_url_env);
+  $("api-key-field").hidden = !provider.requires_key;
+  $("key-status").className = "status-dot " + (provider.configured ? "on" : "off");
+  $("key-status").title = provider.configured ? T("Key saved", "Sleutel opgeslagen") : T("No key yet", "Nog geen sleutel");
+  $("test-ai-result").textContent = "";
+}
+
+async function loadSettings() {
+  try {
+    state.settings = await api("/api/site-settings");
+  } catch (error) {
+    if (error.status === 401) { showSettingsLogin(); return; }
+    showSettingsLogin(String(error.message || error));
+    return;
+  }
+  $("settings-login").hidden = true;
+  $("settings-body").hidden = false;
+  const fields = Object.fromEntries(state.settings.fields.map((f) => [f.path, f]));
+  const providerSelect = $("set-llm_provider");
+  providerSelect.replaceChildren(...(state.settings.models?.providers || []).map((provider) => {
+    const option = el("option", "", provider.name);
+    option.value = provider.id;
+    return option;
+  }));
+  providerSelect.value = fields.llm_provider?.value || "";
+  $("set-llm_model").value = fields.llm_model?.value || "";
+  $("set-llm_base_url").value = fields.llm_base_url?.value || "";
+  $("set-api-key").value = "";
+  $("set-entsoe-key").value = "";
+  renderProviderFields();
+  const entsoe = (state.settings.connections?.connections || []).find((c) => c.id === "entsoe");
+  $("entsoe-status").className = "status-dot " + (entsoe?.configured ? "on" : "off");
+
+  // The site's own numbers: one input per field, unit beside it, no explanations.
+  const root = $("site-fields");
+  root.replaceChildren();
+  for (const field of state.settings.fields) {
+    if (field.path.startsWith("llm_")) continue;
+    const label = el("label");
+    label.title = field.help || "";
+    let input;
+    if (field.kind === "choice") {
+      input = el("select");
+      for (const choice of field.choices || []) {
+        const option = el("option", "", state.settings.contract_names?.[choice] || choice);
+        option.value = choice;
+        input.append(option);
+      }
+    } else {
+      input = el("input");
+      input.type = "number";
+      if (field.min !== undefined) input.min = field.min;
+      if (field.max !== undefined) input.max = field.max;
+      input.step = field.step || "any";
+    }
+    input.value = field.value ?? "";
+    input.dataset.path = field.path;
+    const name = el("span", "", field.label + (field.unit ? ` (${field.unit})` : ""));
+    label.append(name, input);
+    root.append(label);
+  }
+}
+
+async function saveSettings() {
+  const values = {
+    llm_provider:$("set-llm_provider").value,
+    llm_model:$("set-llm_model").value.trim(),
+    llm_base_url:$("set-llm_base_url").value.trim(),
+  };
+  document.querySelectorAll("#site-fields [data-path]").forEach((input) => {
+    values[input.dataset.path] = input.tagName === "SELECT" ? input.value
+      : (input.value === "" ? "" : Number(input.value));
+  });
+  const button = $("save-settings");
+  button.disabled = true;
+  try {
+    const key = $("set-api-key").value.trim();
+    if (key) await api("/api/connections", {provider:$("set-llm_provider").value, api_key:key});
+    const entsoe = $("set-entsoe-key").value.trim();
+    if (entsoe) await api("/api/connections", {provider:"entsoe", api_key:entsoe});
+    await api("/api/site-settings", {values});
+    await loadSettings();
+    toast(T("Saved.", "Opgeslagen."));
+    if (state.context) { resetToPrepare(); await loadContext(); }
+  } catch (error) {
+    if (error.status === 401) showSettingsLogin(T("Locked again: enter the password.", "Weer vergrendeld: voer het wachtwoord in."));
+    else toast(String(error.message || error));
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function testAi() {
+  const out = $("test-ai-result");
+  out.textContent = "…";
+  try {
+    const result = await api("/api/models/test", {provider:$("set-llm_provider").value,
+      model:$("set-llm_model").value.trim(), base_url:$("set-llm_base_url").value.trim()});
+    out.textContent = result.ok ? "✓" : `✗ ${result.message || ""}`;
+    out.className = result.ok ? "ok" : "bad";
+  } catch (error) {
+    out.textContent = `✗ ${error.message || error}`;
+    out.className = "bad";
+  }
+}
+
 $("battery-reserve").addEventListener("input", () => $("reserve-value").textContent = $("battery-reserve").value + "%");
 $("checker-enabled").addEventListener("change", () => {
   const on = $("checker-enabled").checked;
@@ -1596,6 +1790,15 @@ $("close-dialog").addEventListener("click", () => $("detail-dialog").close());
 $("consent-anonymous").addEventListener("click", consentAnonymous);
 $("consent-study").addEventListener("click", consentStudy);
 $("chat-toggle").addEventListener("click", () => toggleChat());
+$("open-settings").addEventListener("click", openSettings);
+$("close-settings").addEventListener("click", () => $("settings-dialog").close());
+$("unlock-settings").addEventListener("click", unlockSettings);
+$("settings-login").addEventListener("submit", unlockSettings);
+$("lock-settings").addEventListener("click", lockSettings);
+$("save-settings").addEventListener("click", saveSettings);
+$("test-ai").addEventListener("click", testAi);
+$("open-admin").addEventListener("click", () => { window.location.href = "/admin"; });
+$("set-llm_provider").addEventListener("change", renderProviderFields);
 $("chat-close").addEventListener("click", () => toggleChat(false));
 $("chat-send").addEventListener("click", (event) => { event.preventDefault(); sendChat(); });
 $("chat-form").addEventListener("submit", (event) => { event.preventDefault(); sendChat(); });
@@ -1617,22 +1820,14 @@ $("language-select").addEventListener("change", async (event) => {
   await loadLanguage(event.target.value);
   $("checker-comparison").hidden = true;
   await loadWorkshop();
-  await Promise.all([loadModels(), loadValidationStatus()]);
+  await loadValidationStatus();
   if (state.context) await loadContext();
-});
-$("model-select").addEventListener("change", (event) => {
-  try {
-    const selected = JSON.parse(event.target.value);
-    state.selectedProvider = selected.provider || "";
-    state.selectedModel = selected.model || "";
-  } catch {}
 });
 
 async function boot() {
   try {
     await loadLanguage(state.lang);
     await loadWorkshop();
-    await loadModels();
     await loadValidationStatus();
     await handleConsent();
     await loadContext();

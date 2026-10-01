@@ -83,6 +83,8 @@ def recommend(
     peak_drop = options["cost"]["peak_import_kw"] - options["grid"]["peak_import_kw"]
     cost_edge = options["balanced"]["cost_eur"] - options["cost"]["cost_eur"]
     reasons: list[str] = []
+    # The same reasons as numbers, for the interface to draw instead of write.
+    facts: list[dict[str, Any]] = []
 
     if light_short > LIGHT_SHORTFALL:
         choice = "crop"
@@ -91,6 +93,8 @@ def recommend(
             f"{light_short:.1f} onder de lichtbehoefte van {target:.1f}." if nl else
             f"The cheapest plan gives {options['cost']['light_mol_m2']:.1f} mol/m² of light, "
             f"{light_short:.1f} below the crop's {target:.1f}.")
+        facts.append({"kind": "light", "cheapest": options["cost"]["light_mol_m2"],
+                      "target": target})
     elif peak_drop >= PEAK_SHARE * hub.contract.import_limit_kw:
         choice = "grid"
         extra = options["grid"]["cost_eur"] - options["cost"]["cost_eur"]
@@ -99,6 +103,7 @@ def recommend(
             f"extra; een kW minder piek is €{peak_value_eur_per_kw:.2f} waard." if nl else
             f"Grid relief lowers the peak by {peak_drop:,.0f} kW for €{extra:,.0f} more; "
             f"one kW less peak is worth €{peak_value_eur_per_kw:.2f}.")
+        facts.append({"kind": "peak", "drop_kw": round(peak_drop, 1), "extra_eur": round(extra, 2)})
     elif swing >= PRICE_SWING and cost_edge >= COST_EDGE * options["balanced"]["cost_eur"]:
         choice = "cost"
         reasons.append(
@@ -106,6 +111,7 @@ def recommend(
             f"kosten eerst bespaart €{cost_edge:,.0f} meer dan in balans." if nl else
             f"Power prices swing from {cheapest * 100:.1f} to {dearest * 100:.1f} ct/kWh; "
             f"cost first saves €{cost_edge:,.0f} more than balanced.")
+        facts.append({"kind": "swing", "low_eur_kwh": cheapest, "high_eur_kwh": dearest})
     else:
         choice = "balanced"
         reasons.append(
@@ -121,6 +127,7 @@ def recommend(
         f"{'lager' if saving >= 0 else 'hoger'} dan de normale regeling." if nl else
         f"Expected cost €{chosen['cost_eur']:,.0f}, €{abs(saving):,.0f} "
         f"{'below' if saving >= 0 else 'above'} normal control.")
+    facts.append({"kind": "saving", "eur": round(saving, 2)})
 
     night = [c.outdoor_temp_c for c in conditions if c.hour in (0, 1, 2, 3, 4, 5, 22, 23)]
     reserve = 55.0 if night and min(night) < 0 else 45.0
@@ -130,6 +137,7 @@ def recommend(
             "batterij en buffer." if nl else
             f"It freezes tonight ({min(night):.0f} °C): I keep {reserve:.0f}% reserve in "
             "battery and buffer.")
+        facts.append({"kind": "frost", "temp_c": round(min(night), 1), "reserve_pct": reserve})
 
     policy = {
         "priority": choice,
@@ -141,6 +149,7 @@ def recommend(
         "priority": choice,
         "policy": policy,
         "reasons": reasons,
+        "facts": facts,
         "options": [options[p] for p in PRIORITIES],
         "normal": normal,
         "model": "kasflex-recommender-v1",

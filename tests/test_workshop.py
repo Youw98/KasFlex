@@ -534,3 +534,96 @@ def test_charts_never_put_two_scales_on_one_plot():
     css = (static_dir() / "demo.css").read_text(encoding="utf-8")
     for slot in ("--s-buffer", "--s-chp", "--s-boiler", "--s-lamps", "--s-battery", "--s-grid"):
         assert slot in css
+
+
+# --- the settings lock ----------------------------------------------------------------------
+
+
+def test_admin_password_unlocks_settings_and_wrong_ones_do_not(monkeypatch):
+    from kasflex.admin_auth import AdminGate
+
+    gate = AdminGate()
+    assert gate.login("wrong") is None
+    token = gate.login("admin99")
+    assert token and gate.check(token) and not gate.check("made-up")
+    gate.logout(token)
+    assert not gate.check(token)
+    monkeypatch.setenv("KASFLEX_ADMIN_PASSWORD", "another")
+    assert gate.login("admin99") is None and gate.login("another")
+
+
+def test_site_settings_change_the_base_and_survive_a_restart(tmp_path, monkeypatch):
+    monkeypatch.setenv("KASFLEX_HOME", str(tmp_path))
+    server = UiServer(config_path=CONFIG)
+    saved = server.save_site_settings({"values": {"grid_contract_type": "firm",
+                                                  "hub.contract.import_limit_kw": 4500}})
+    assert server.base.grid_contract_type == "firm"
+    assert server.base.hub.contract.import_limit_kw == 4500
+    assert {f["path"] for f in saved["fields"]} >= {"llm_provider", "grid_contract_type"}
+    again = UiServer(config_path=CONFIG)
+    assert again.base.hub.contract.import_limit_kw == 4500
+    with pytest.raises(ApiError):
+        server.save_site_settings({"values": {"checker.enabled": False}})
+    with pytest.raises(ApiError):
+        server.save_site_settings({"values": {"grid_contract_type": "nonsense"}})
+    assert server.base.grid_contract_type == "firm"  # a refused save changes nothing
+    server.save_site_settings({"values": {"grid_contract_type": "",
+                                          "hub.contract.import_limit_kw": ""}})
+    assert server.base.hub.contract.import_limit_kw == server.file_base.hub.contract.import_limit_kw
+
+
+def test_settings_endpoints_are_locked_over_http(tmp_path, monkeypatch):
+    import threading
+    import urllib.error
+    import urllib.request
+
+    from kasflex.ui.server import serve
+
+    monkeypatch.setenv("KASFLEX_HOME", str(tmp_path))
+    server = serve(config_path=CONFIG, port=0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    root = f"http://127.0.0.1:{server.server_address[1]}"
+
+    def post(path, body, token=""):
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["X-KasFlex-Admin"] = token
+        request = urllib.request.Request(root + path, json.dumps(body).encode(), headers)
+        with urllib.request.urlopen(request) as response:
+            return json.loads(response.read())
+
+    try:
+        for path, body in (("/api/site-settings", {"values": {}}),
+                           ("/api/workshop", {"version": "ai"}),
+                           ("/api/scenarios/delete", {"scenario_id": "x"}),
+                           ("/api/documents/save", {"title": "a", "text": "b"}),
+                           ("/api/memory/forget", {"everyone": True}),
+                           ("/api/memory", {"everyone": True})):
+            with pytest.raises(urllib.error.HTTPError) as exc:
+                post(path, body)
+            assert exc.value.code == 401, path
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            post("/api/admin/login", {"password": "nope"})
+        assert exc.value.code == 401
+        token = post("/api/admin/login", {"password": "admin99"})["token"]
+        assert post("/api/workshop", {"version": "ai"}, token)["version"] == "ai"
+        assert post("/api/site-settings", {"values": {"gas_price_eur_kwh": 0.04}}, token)
+        post("/api/admin/logout", {}, token)
+        with pytest.raises(urllib.error.HTTPError):
+            post("/api/workshop", {"version": "ai"}, token)
+        # What growers use stays open.
+        assert post("/api/memory", {"overrides": {}})["remembered"] == []
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_grower_page_has_a_locked_settings_menu_and_no_open_model_switch():
+    html = (static_dir() / "demo.html").read_text(encoding="utf-8")
+    assert 'id="open-settings"' in html and 'id="settings-password"' in html
+    assert 'type="password"' in html
+    assert 'id="model-select"' not in html
+    topbar = html.split("</header>")[0]
+    assert 'id="input-mode"' not in topbar, "data mode belongs behind the lock"

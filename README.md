@@ -35,9 +35,9 @@ whole-plan regeneration.
    [Releases](https://github.com/Youw98/KasFlex/releases).
 2. Start KasFlex. The browser opens the grower workspace at `/`.
 3. KasFlex opens on a **workshop scenario**: a fixed day with a short story
-   ("It's Monday morning in January…"), no network needed. **Demo data** also
-   offers **Showcase (offline)**, a fixed synthetic winter day, and **Real
-   historical**, a cached or downloaded Dutch market and weather day.
+   ("It's Monday morning in January…"), no network needed. Behind ⚙ (password),
+   **Demo data** also offers **Showcase (offline)**, a fixed synthetic winter day,
+   and **Real historical**, a cached or downloaded Dutch market and weather day.
 4. **KasFlex goes first.** It plans tomorrow four ways (balanced, lowest cost,
    crop first, grid relief), compares them with normal control, and suggests one
    with its reasons in numbers. Click **Plan with this suggestion**, or **I choose
@@ -326,6 +326,22 @@ chart has a "Show as table" twin. Position and grid exposure have their own scre
 consent dialog decides whether interaction data is recorded; the demo works fully
 without it.
 
+### Settings — the ⚙ button
+
+The cogwheel in the top bar opens the settings, behind a password (`admin99`
+unless `KASFLEX_ADMIN_PASSWORD` is set). Inside:
+
+- **AI**: service (Claude, OpenAI, Gemini, Ollama, any OpenAI-compatible server),
+  model, server address, API key, and a **Test** button;
+- **Data**: workshop scenario, showcase or real historical data, and the ENTSO-E key;
+- **Site**: grid contract type, import and export limits, battery and CHP size, gas
+  price and the value of a lower peak.
+
+Saved settings apply to every session until changed. The same password guards the
+workshop admin page, API keys, documents and clearing remembered reasons; the
+password is checked on the server, not only in the page. It stops a participant
+from changing the set-up, not someone with access to the computer itself.
+
 ### Workshop admin — `/admin`
 
 For the researcher running a workshop:
@@ -344,8 +360,7 @@ For the researcher running a workshop:
 5. **Remembered reasons**: what participants said when they disagreed. Clear them
    between workshop groups.
 
-The admin page has no login: like the rest of the interface it is served on
-localhost only.
+The admin page asks for the settings password before it shows anything.
 
 ### Research workspace — `/advanced`
 
@@ -548,6 +563,7 @@ For the full workflow, see [docs/USAGE.md](docs/USAGE.md).
 | Grid relief trade-off | Done: a lower peak is bought only when each kW costs less than `grid_peak_value_eur_per_kw` (default €3.57, Liander 2026 kWmax) | Set your own network operator's tariff |
 | Real data | Works; `kasflex doctor --network` reports what is missing | An ENTSO-E token, and network access to ENTSO-E and Open-Meteo |
 | MPC reference planner | Interface only | A mixed-integer formulation; see `src/kasflex/controllers/mpc.py` |
+| Text on screen | Kept to what a chart, number or icon cannot say; the reasons in words sit behind "Why, in words" | – |
 | Reasons in free text | Rules recognise maintenance hours, staff, frost, light, buffer, grid limits (Dutch and English); other text is kept but changes nothing | An AI model could read more, but its reading would need the same checker-backed effects |
 | Week plan | Deliberately not: KasFlex plans one day ahead, the week outlook is an estimate (ADR-0013) | – |
 
