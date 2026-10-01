@@ -95,7 +95,7 @@
   "goals.import": "Max. netafname",
   "goals.light": "Extra licht minstens",
   "goals.budget": "Dagbudget hoogstens",
-  "goals.hint": "De netgrens is een harde grens: de check keurt elk plan af dat erboven komt. Licht en budget worden na het plannen vergeleken.",
+  "goals.hint": "De netgrens is een harde grens: de check keurt elk plan af dat erboven komt. De verwarmingstemperatuur bepaalt hoeveel warmte het plan moet leveren. Licht en budget worden na het plannen vergeleken.",
   "goals.name": "Naam, bijv. Rustige ochtenden",
   "goals.metric.switches": "Wisselingen van installatie",
   "goals.metric.chp": "Draaiuren WKK",
@@ -111,5 +111,7 @@
   "chat.open": "Vraag het KasFlex",
   "chat.title": "Vraag het KasFlex",
   "chat.placeholder": "Waarom draait de WKK om 18 uur?",
-  "chat.send": "Vraag"
+  "chat.send": "Vraag",
+  "goals.heatday": "Verwarming, dag",
+  "goals.heatnight": "Verwarming, nacht"
 }

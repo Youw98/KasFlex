@@ -12,6 +12,7 @@ from typing import Any
 
 from kasflex import i18n
 from kasflex.assistant import answer as offline_answer
+from kasflex.documents import search as search_documents
 from kasflex.energy.contracts import CONTRACT_TYPES, describe
 from kasflex.factors import explain_factors
 from kasflex.recommend import recommend
@@ -37,7 +38,9 @@ def participant_key(overrides: dict[str, Any] | None) -> str:
 def clean_targets(raw: Any) -> dict[str, float | None]:
     raw = raw if isinstance(raw, dict) else {}
     limits = {"max_import_kw": (0.0, 50_000.0), "light_mol_m2": (0.0, 30.0),
-              "budget_eur": (0.0, 1_000_000.0)}
+              "budget_eur": (0.0, 1_000_000.0),
+              # Heating setpoints, the targets a grower's climate computer works to.
+              "heat_day_c": (10.0, 30.0), "heat_night_c": (8.0, 28.0)}
     out: dict[str, float | None] = {}
     for key, (low, high) in limits.items():
         value = raw.get(key)
@@ -121,6 +124,11 @@ def evaluate_goals(goals, targets, metrics, work) -> tuple[list[dict], list[dict
               ("supplemental_dli_mol_m2", ">="), "budget_eur": ("net_cost_eur", "<=")}
     for key, value in targets.items():
         if value is None:
+            continue
+        if key in ("heat_day_c", "heat_night_c"):
+            # A setpoint is an input the plan is built on, not an outcome to check.
+            target_rows.append({"key": key, "value": value, "actual": value, "op": "=",
+                                "met": True})
             continue
         metric, op = checks[key]
         actual = float(values.get(metric, 0) or 0)
@@ -269,9 +277,26 @@ class WorkshopMixin:
         config = self.planning_config(_apply_overrides(self.base, overrides), policy)
         day = _day_for(config)
         forecast = self.adjusted_forecast(day.forecast, policy)
-        greenhouse = build_greenhouse(config.greenhouse, config)
+        greenhouse = self.planning_greenhouse(build_greenhouse(config.greenhouse, config), policy)
         conditions, _ = _conditions_for(config, greenhouse, forecast)
         return config, conditions
+
+    @staticmethod
+    def planning_greenhouse(greenhouse, policy: dict[str, Any]):
+        """The greenhouse model with the grower's heating setpoints, where it has them.
+
+        The surrogate turns day and night setpoints into the heat demand the planner
+        meets, so a warmer target costs more heat. GreenLight runs its own climate
+        control and is returned unchanged; the run reports that the target did not
+        apply.
+        """
+        targets = policy.get("targets") or {}
+        changes = {}
+        if targets.get("heat_day_c") is not None and hasattr(greenhouse, "setpoint_day_c"):
+            changes["setpoint_day_c"] = float(targets["heat_day_c"])
+        if targets.get("heat_night_c") is not None and hasattr(greenhouse, "setpoint_night_c"):
+            changes["setpoint_night_c"] = float(targets["heat_night_c"])
+        return dataclasses.replace(greenhouse, **changes) if changes else greenhouse
 
     @staticmethod
     def planning_config(config, policy: dict[str, Any]):
@@ -368,20 +393,47 @@ class WorkshopMixin:
         record = self._may_record(overrides, "quotes")
         run_payload = {**current, "grid": {"import_limit_kw":
                                            snapshot["config"]["hub"]["contract"]["import_limit_kw"]}}
+        passages = search_documents(question, self.documents.all(language))
         try:
             explainer, _ = self._explainer(payload.get("overrides") or overrides)
             context = self._plan_context({**current, "overrides": overrides}, language)
+            context = dataclasses.replace(context, background="\n\n".join(
+                f"[{hit['title']}] {hit['passage']}" for hit in passages))
             reply = explainer.ask(context, question, record=record)
             model = reply.get("model", "")
             text = reply["answer"]
         except (ApiError, LlmError):
             said = [p.reason for p in self.remembered(participant)]
-            text = offline_answer(question, run_payload, language=language, remembered=said)
+            text = offline_answer(question, run_payload, language=language, remembered=said,
+                                  passages=passages)
             model = "kasflex-offline-assistant"
             if record:
                 self.memory.add_turn(current["run_id"], "grower", question)
                 self.memory.add_turn(current["run_id"], "assistant", text, model=model)
-        return {"question": question, "answer": text, "model": model, "recorded": record}
+        return {"question": question, "answer": text, "model": model, "recorded": record,
+                "sources": [{"title": hit["title"], "passage": hit["passage"]}
+                            for hit in passages]}
+
+    # -- documents ---------------------------------------------------------------
+
+    def list_documents(self, language: str = "en") -> dict[str, Any]:
+        return {"documents": [
+            {"id": d.id, "title": d.title, "text": d.text, "added_at": d.added_at,
+             "builtin": d.builtin, "characters": len(d.text)}
+            for d in self.documents.all(i18n.normalise(language))]}
+
+    def save_document(self, payload: dict[str, Any]) -> dict[str, Any]:
+        from kasflex.ui.server import ApiError  # noqa: PLC0415
+
+        try:
+            document = self.documents.save(payload.get("title", ""), payload.get("text", ""),
+                                           str(payload.get("id") or ""))
+        except ValueError as exc:
+            raise ApiError(str(exc)) from exc
+        return {"saved": {"id": document.id, "title": document.title}}
+
+    def delete_document(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return {"deleted": self.documents.delete(str(payload.get("id", "")))}
 
     # -- a week ahead ----------------------------------------------------------
 
@@ -407,7 +459,7 @@ class WorkshopMixin:
         overrides = dict(payload.get("overrides") or {})
         policy = self._compile_policy(payload.get("policy") or {}, overrides=overrides)
         config = self.planning_config(_apply_overrides(self.base, overrides), policy)
-        greenhouse = build_greenhouse(config.greenhouse, config)
+        greenhouse = self.planning_greenhouse(build_greenhouse(config.greenhouse, config), policy)
         days = []
         for offset in range(7):
             day = synthetic_day(f"{config.date}+{offset}", seed=config.seed + 100 + offset,

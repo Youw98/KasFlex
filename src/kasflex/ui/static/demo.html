@@ -84,7 +84,7 @@
             <button id="refresh-data" class="ghost" type="button" data-i18n="refresh">Refresh</button>
           </div>
           <div id="price-chart" class="chart" role="img" aria-label="Price and temperature per hour"></div>
-          <div class="legend"><span class="key price"></span><span data-i18n="legend.price">Power price</span><span class="key temp"></span><span data-i18n="legend.temp">Outside temperature</span><span class="key limit"></span><span data-i18n="legend.limit">Grid limit lowered</span></div>
+          <p id="price-hover" class="hover-readout" aria-live="polite"></p>
         </article>
 
         <article id="recommend-panel" class="panel recommend-panel" hidden>
@@ -122,8 +122,10 @@
           <label><span data-i18n="goals.import">Max. grid import</span><span class="unit-input"><input id="target-import" type="number" min="0" step="0.1" inputmode="decimal"><em>MW</em></span></label>
           <label><span data-i18n="goals.light">Extra light at least</span><span class="unit-input"><input id="target-light" type="number" min="0" step="0.5" inputmode="decimal"><em>mol/m²</em></span></label>
           <label><span data-i18n="goals.budget">Day budget at most</span><span class="unit-input"><input id="target-budget" type="number" min="0" step="100" inputmode="numeric"><em>€</em></span></label>
+          <label><span data-i18n="goals.heatday">Heating, day</span><span class="unit-input"><input id="target-heat-day" type="number" min="10" max="30" step="0.5" inputmode="decimal" placeholder="19.5"><em>°C</em></span></label>
+          <label><span data-i18n="goals.heatnight">Heating, night</span><span class="unit-input"><input id="target-heat-night" type="number" min="8" max="28" step="0.5" inputmode="decimal" placeholder="16.5"><em>°C</em></span></label>
         </div>
-        <p class="hint" data-i18n="goals.hint">The grid maximum is a hard limit: the check rejects any plan that goes over it. Light and budget are compared after planning.</p>
+        <p class="hint" data-i18n="goals.hint">The grid maximum is a hard limit: the check rejects any plan that goes over it. Heating temperatures set the heat the plan must deliver. Light and budget are compared after planning.</p>
         <div id="goal-list" class="goal-list"></div>
         <div class="goal-form">
           <input id="goal-name" type="text" maxlength="80" data-i18n-placeholder="goals.name" placeholder="Name, e.g. Quiet mornings">

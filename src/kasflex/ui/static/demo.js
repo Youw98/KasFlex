@@ -8,7 +8,13 @@ const PRIORITY_NAMES = {
   balanced:["Balanced","In balans"], cost:["Lowest cost","Laagste kosten"],
   crop:["Crop first","Gewas eerst"], grid:["Grid relief","Net ontlasten"],
 };
-const HEAT_COLOURS = {boiler:"#9aa7a0", chp:"#d08a3c", buffer:"#4f8fb0", heat_pump:"#6b9e5a"};
+// Chart colours follow the entity, the same in every chart on the page, from a
+// validated categorical palette (see demo.css: --s-*). Price is not an entity
+// with an identity; it is drawn in neutral ink with the dearest hours emphasised.
+const SERIES = {
+  buffer:"var(--s-buffer)", chp:"var(--s-chp)", boiler:"var(--s-boiler)", lamps:"var(--s-lamps)",
+  battery:"var(--s-battery)", grid:"var(--s-grid)", heat_pump:"var(--s-heatpump)",
+};
 
 const state = {
   lang: readStore("kasflex.demo.lang") || "en",
@@ -206,6 +212,8 @@ function targets() {
     max_import_kw: importMw === null ? null : importMw * 1000,
     light_mol_m2: number("target-light"),
     budget_eur: number("target-budget"),
+    heat_day_c: number("target-heat-day"),
+    heat_night_c: number("target-heat-night"),
   };
 }
 
@@ -402,47 +410,105 @@ function renderContext(ctx) {
   renderContextChart(ctx);
 }
 
-/** Price (line, left axis) and outside temperature (dashed, right axis) per hour,
- *  with the hours where the grid contract allows less shaded. */
+/** A column with a 4px rounded data end and a square foot on the baseline. */
+function columnPath(x, y, width, height, radius=4) {
+  if (height <= 0) return "";
+  const r = Math.min(radius, width / 2, height);
+  return `M${x},${y + height}V${y + r}Q${x},${y} ${x + r},${y}H${x + width - r}`
+    + `Q${x + width},${y} ${x + width},${y + r}V${y + height}Z`;
+}
+
+/** A collapsed table with the same numbers as a chart: the accessible twin. */
+function tableView(headings, rows, label=T("Show as table", "Toon als tabel")) {
+  const details = el("details", "table-view");
+  details.append(el("summary", "", label));
+  const table = el("table");
+  const head = el("thead"), headRow = el("tr");
+  headings.forEach((text) => headRow.append(el("th", "", text)));
+  head.append(headRow);
+  const body = el("tbody");
+  for (const row of rows) {
+    const tr = el("tr");
+    row.forEach((cell) => tr.append(el("td", "", cell)));
+    body.append(tr);
+  }
+  table.append(head, body);
+  details.append(table);
+  return details;
+}
+
+/** Price and outside temperature as two small multiples on one hour axis (never
+ *  two y-scales on one plot), with the hours the grid contract allows less shaded. */
 function renderContextChart(ctx) {
   const root = $("price-chart");
   root.replaceChildren();
-  const W = 640, H = 230, L = 54, R = 40, top = 14, bottom = 28;
-  const pw = W - L - R, ph = H - top - bottom, step = pw / 24;
-  const chart = svg("svg", {viewBox:`0 0 ${W} ${H}`, class:"svg-chart", role:"img"}, root);
+  const W = 640, L = 58, R = 16, step = (W - L - R) / 24;
   const prices = ctx.price.series.map((p) => p * 100);
   const temps = ctx.weather.temperature_series || [];
-  const pMax = Math.max(...prices) * 1.1, pMin = Math.min(0, Math.min(...prices));
-  const tMin = Math.floor(Math.min(...temps, 0) - 1), tMax = Math.ceil(Math.max(...temps, 5) + 1);
-  const y = (v) => top + ph - (v - pMin) / (pMax - pMin) * ph;
-  const yt = (v) => top + ph - (v - tMin) / (tMax - tMin) * ph;
-  const x = (h) => L + step * h + step / 2;
-
   const grid = ctx.grid || {};
-  (grid.hourly_import_kw || []).forEach((kw, hour) => {
-    if (kw < grid.import_limit_kw - 1e-6) {
-      svg("rect", {x:L + step * hour, y:top, width:step, height:ph, class:"band-limit"}, chart);
+  const limits = grid.hourly_import_kw || [];
+  const panels = [
+    {label:T("Power price", "Stroomprijs"), unit:"ct", values:prices, top:22, h:112,
+     min:Math.min(0, ...prices), max:Math.max(...prices) * 1.12},
+    {label:T("Outside", "Buiten"), unit:"°C", values:temps, top:170, h:70,
+     min:Math.floor(Math.min(...temps, 0) - 1), max:Math.ceil(Math.max(...temps, 4) + 1)},
+  ];
+  const H = 268;
+  const chart = svg("svg", {viewBox:`0 0 ${W} ${H}`, class:"svg-chart", role:"img",
+                            "aria-label":T("Power price and outside temperature per hour", "Stroomprijs en buitentemperatuur per uur")}, root);
+  const x = (h) => L + step * h + step / 2;
+  const lowered = limits.map((kw, h) => kw < grid.import_limit_kw - 1e-6 ? h : -1).filter((h) => h >= 0);
+  for (const hour of lowered) {
+    svg("rect", {x:L + step * hour, y:panels[0].top, width:step, height:panels[1].top + panels[1].h - panels[0].top, class:"band-limit"}, chart);
+  }
+  if (lowered.length) {
+    svgText(chart, L + step * lowered[0] + 2, 12, T("grid limit lowered", "netgrens lager"), {class:"tick"});
+  }
+  const crosshair = svg("line", {x1:0, x2:0, y1:panels[0].top, y2:panels[1].top + panels[1].h, class:"crosshair", visibility:"hidden"}, chart);
+  for (const panel of panels) {
+    if (!panel.values.length) continue;
+    const y = (v) => panel.top + panel.h - (v - panel.min) / (panel.max - panel.min) * panel.h;
+    panel.y = y;
+    for (const value of [panel.min, (panel.min + panel.max) / 2, panel.max]) {
+      svg("line", {x1:L, x2:W - R, y1:y(value), y2:y(value), class:"gridline"}, chart);
+      svgText(chart, L - 6, y(value) + 4, value.toFixed(0), {class:"tick", "text-anchor":"end"});
     }
-  });
-  for (let i = 0; i <= 3; i++) {
-    const value = pMin + (pMax - pMin) * i / 3;
-    svg("line", {x1:L, x2:W - R, y1:y(value), y2:y(value), class:"gridline"}, chart);
-    svgText(chart, L - 6, y(value) + 4, i === 3 ? `${value.toFixed(0)} ct` : value.toFixed(0), {class:"tick", "text-anchor":"end"});
-    const temp = tMin + (tMax - tMin) * i / 3;
-    svgText(chart, W - R + 6, yt(temp) + 4, `${temp.toFixed(0)}°`, {class:"tick temp"});
+    svgText(chart, L, panel.top - 6, `${panel.label} (${panel.unit})`, {class:"panel-label"});
+    const line = panel.values.map((v, h) => `${h ? "L" : "M"}${x(h)},${y(v)}`).join("");
+    svg("path", {d:`${line}L${x(23)},${y(panel.min)}L${x(0)},${y(panel.min)}Z`, class:"area-series"}, chart);
+    svg("path", {d:line, class:"line-series"}, chart);
+    const peak = panel.values.indexOf(Math.max(...panel.values));
+    svg("circle", {cx:x(peak), cy:y(panel.values[peak]), r:4, class:"dot-series"}, chart);
+    svgText(chart, x(peak) + 8, y(panel.values[peak]) + 4,
+            `${panel.values[peak].toFixed(0)} ${panel.unit}`, {class:"label"});
+    panel.dot = svg("circle", {cx:0, cy:0, r:4, class:"dot-series", visibility:"hidden"}, chart);
   }
-  for (const hour of [0, 6, 12, 18, 23]) {
-    svgText(chart, x(hour), H - 8, hh(hour), {class:"tick", "text-anchor":"middle"});
-  }
-  const area = prices.map((p, h) => `${h ? "L" : "M"}${x(h)},${y(p)}`).join("");
-  svg("path", {d:`${area}L${x(23)},${y(pMin)}L${x(0)},${y(pMin)}Z`, class:"area-price"}, chart);
-  svg("path", {d:area, class:"line-price"}, chart);
-  if (temps.length) {
-    svg("path", {d:temps.map((t, h) => `${h ? "L" : "M"}${x(h)},${yt(t)}`).join(""), class:"line-temp"}, chart);
-  }
-  const dear = prices.indexOf(Math.max(...prices));
-  svg("circle", {cx:x(dear), cy:y(prices[dear]), r:4, class:"dot-price"}, chart);
-  svgText(chart, x(dear), y(prices[dear]) - 9, `${prices[dear].toFixed(0)} ct`, {class:"label", "text-anchor":"middle"});
+  svg("line", {x1:L, x2:W - R, y1:H - 22, y2:H - 22, class:"baseline"}, chart);
+  for (const hour of [0, 6, 12, 18, 23]) svgText(chart, x(hour), H - 6, hh(hour), {class:"tick", "text-anchor":"middle"});
+
+  const readout = $("price-hover");
+  const describe = (h) => `${hh(h)} · ${prices[h].toFixed(1)} ct/kWh`
+    + (temps.length ? ` · ${temps[h].toFixed(1)} °C` : "")
+    + (limits.length ? ` · ${T("grid limit", "netgrens")} ${mw(limits[h])}` : "");
+  readout.textContent = T("Point at an hour for its numbers.", "Wijs een uur aan voor de getallen.");
+  const pick = (event) => {
+    const box = chart.getBoundingClientRect();
+    const hour = Math.floor(((event.clientX - box.left) / box.width * W - L) / step);
+    if (hour < 0 || hour > 23) return;
+    crosshair.setAttribute("x1", x(hour)); crosshair.setAttribute("x2", x(hour));
+    crosshair.setAttribute("visibility", "visible");
+    for (const panel of panels) {
+      if (!panel.dot) continue;
+      panel.dot.setAttribute("cx", x(hour)); panel.dot.setAttribute("cy", panel.y(panel.values[hour]));
+      panel.dot.setAttribute("visibility", "visible");
+    }
+    readout.textContent = describe(hour);
+  };
+  chart.addEventListener("pointermove", pick);
+  chart.addEventListener("pointerdown", pick);
+  root.append(tableView([T("Hour", "Uur"), T("Price", "Prijs"), T("Outside", "Buiten"), T("Grid limit", "Netgrens")],
+    prices.map((p, h) => [hh(h), `${p.toFixed(1)} ct/kWh`, temps.length ? `${temps[h].toFixed(1)} °C` : "—",
+                          limits.length ? mw(limits[h]) : "—"])));
 }
 
 // -- AI goes first ---------------------------------------------------------------
@@ -666,96 +732,132 @@ function renderDecision(run, {preserveDimensions=false}={}) {
   updateApproval();
 }
 
-/** The 24-hour plan as stacked lanes on one hour axis, so a grower reads across:
- *  price, grid import against the limit, storage, heat source, lamps and CHP. */
+function heatName(source) {
+  return {boiler:T("boiler", "ketel"), chp:T("CHP", "WKK"), buffer:T("buffer", "buffer"),
+          heat_pump:T("heat pump", "warmtepomp")}[source] || source;
+}
+
+function planRows(run) {
+  return (run.plan || []).map((row) => [
+    hh(row.hour), cents(row.power_price_eur_kwh), mw(row.grid_import_kw), mw(row.import_limit_kw),
+    heatName(row.heat_source), `${Math.round((row.lighting_level || 0) * 100)}%`,
+    row.battery === "idle" ? "—" : `${row.battery === "charge" ? "+" : "−"}${Math.round(row.battery_power_kw)} kW`,
+    row.chp_running ? T("on", "aan") : "—",
+  ]);
+}
+function planHeadings() {
+  return [T("Hour", "Uur"), T("Price", "Prijs"), T("Grid", "Net"), T("Limit", "Grens"), T("Heat from", "Warmte uit"),
+          T("Lamps", "Lampen"), T("Battery", "Batterij"), T("CHP", "WKK")];
+}
+
+/** The 24-hour plan as lanes on one hour axis, read across: price, grid import
+ *  against the hourly limit, storage, heat source, lamps and CHP. Each entity keeps
+ *  its colour in every lane and chart; one shared legend sits under the chart. */
 function renderPlanChart(root, run, {tall=false}={}) {
   root.replaceChildren();
   const plan = run.plan || [];
   if (!plan.length) return;
-  const W = 960, L = 118, R = 14, step = (W - L - R) / 24;
+  const W = 960, L = 118, R = 70, step = (W - L - R) / 24, barW = Math.min(24, step - 4);
   const lanes = [
-    {key:"price", label:T("Power price", "Stroomprijs"), h:tall ? 110 : 78},
+    {key:"price", label:T("Power price", "Stroomprijs"), h:tall ? 100 : 72},
     {key:"grid", label:T("Grid import", "Netafname"), h:tall ? 96 : 66},
-    {key:"store", label:T("Storage", "Opslag"), h:tall ? 80 : 54},
+    {key:"store", label:T("Storage", "Opslag"), h:tall ? 80 : 56},
     {key:"heat", label:T("Heat from", "Warmte uit"), h:22},
-    {key:"lamps", label:T("Lamps", "Lampen"), h:26},
+    {key:"lamps", label:T("Lamps", "Lampen"), h:28},
     {key:"chp", label:T("CHP", "WKK"), h:22},
   ];
-  const gap = 12, axis = 22;
-  let cursor = 8;
+  const gap = 14, axis = 24;
+  let cursor = 10;
   for (const lane of lanes) { lane.y = cursor; cursor += lane.h + gap; }
   const H = cursor + axis;
   const chart = svg("svg", {viewBox:`0 0 ${W} ${H}`, class:"svg-chart plan-svg", role:"img",
                             "aria-label":T("Plan for each hour", "Plan per uur")}, root);
   const x = (h) => L + step * h;
+  const cx = (h) => x(h) + (step - barW) / 2;
   const highlight = svg("rect", {x:0, y:0, width:step, height:cursor - gap, class:"hover-col", visibility:"hidden"}, chart);
-
   for (const lane of lanes) {
-    svgText(chart, L - 10, lane.y + lane.h / 2 + 5, lane.label, {class:"lane-label", "text-anchor":"end"});
+    svgText(chart, L - 12, lane.y + lane.h / 2 + 5, lane.label, {class:"lane-label", "text-anchor":"end"});
   }
-  // Price: bars, dearest third highlighted.
+
+  // Price: neutral columns, the dearest third emphasised (no hue: price is not an entity).
   const price = lanes[0], prices = plan.map((r) => r.power_price_eur_kwh);
   const pMax = Math.max(...prices, 0.01), pMin = Math.min(...prices);
+  svg("line", {x1:L, x2:x(24), y1:price.y + price.h, y2:price.y + price.h, class:"baseline"}, chart);
   plan.forEach((row, h) => {
     const height = Math.max(2, row.power_price_eur_kwh / pMax * price.h);
-    svg("rect", {x:x(h) + 2, y:price.y + price.h - height, width:step - 4, height, rx:2,
-                 class:row.power_price_eur_kwh > pMin + (pMax - pMin) * .66 ? "bar-dear" : "bar-price"}, chart);
+    svg("path", {d:columnPath(cx(h), price.y + price.h - height, barW, height),
+                 class:row.power_price_eur_kwh > pMin + (pMax - pMin) * .66 ? "col-dear" : "col-price"}, chart);
   });
-  svgText(chart, x(24) - 2, price.y + 10, `${(pMax * 100).toFixed(0)} ct`, {class:"tick", "text-anchor":"end"});
+  svgText(chart, x(24) + 8, price.y + 10, `${(pMax * 100).toFixed(0)} ct`, {class:"tick"});
 
-  // Grid: import bars against the hourly limit (a step line).
+  // Grid import against the hourly limit (a threshold step line).
   const gl = lanes[1];
   const gMax = Math.max(...plan.map((r) => Math.max(r.grid_import_kw || 0, r.import_limit_kw || 0)), 1);
   const gy = (kw) => gl.y + gl.h - kw / gMax * gl.h;
+  svg("line", {x1:L, x2:x(24), y1:gl.y + gl.h, y2:gl.y + gl.h, class:"baseline"}, chart);
   plan.forEach((row, h) => {
     const over = (row.grid_import_kw || 0) > (row.import_limit_kw || Infinity) + 1e-6;
     const height = (row.grid_import_kw || 0) / gMax * gl.h;
-    svg("rect", {x:x(h) + 2, y:gl.y + gl.h - height, width:step - 4, height:Math.max(0, height), rx:2,
-                 class:over ? "bar-over" : "bar-grid"}, chart);
+    if (height > 0.5) svg("path", {d:columnPath(cx(h), gl.y + gl.h - height, barW, height), class:over ? "col-over" : "col-grid"}, chart);
   });
   svg("path", {d:plan.map((row, h) => `${h ? "L" : "M"}${x(h)},${gy(row.import_limit_kw)}H${x(h + 1)}`).join(""),
                class:"line-limit"}, chart);
-  svgText(chart, x(24) - 2, gl.y + 10, T(`limit ${mw(gMax)}`, `grens ${mw(gMax)}`), {class:"tick", "text-anchor":"end"});
+  svgText(chart, x(24) + 8, gy(plan[23].import_limit_kw) + 4, T("limit", "grens"), {class:"tick"});
 
-  // Storage: battery and heat buffer, each as a share of its capacity.
+  // Storage: battery and buffer as a share of capacity, direct-labelled at the end.
   const st = lanes[2], cap = run.storage || {};
   const sy = (share) => st.y + st.h - share * st.h;
-  const path = (field, capacity) => plan.map((row, h) =>
-    `${h ? "L" : "M"}${x(h) + step / 2},${sy(Math.min(1, (row[field] || 0) / Math.max(1, capacity)))}`).join("");
-  svg("line", {x1:L, x2:x(24), y1:st.y + st.h, y2:st.y + st.h, class:"gridline"}, chart);
-  svg("path", {d:path("battery_soc_kwh", cap.battery_kwh || 1), class:"line-battery"}, chart);
-  svg("path", {d:path("buffer_level_kwh", cap.buffer_kwh || 1), class:"line-buffer"}, chart);
-  svgText(chart, x(24) - 2, st.y + 10, T("battery ─  buffer ┄", "batterij ─  buffer ┄"), {class:"tick", "text-anchor":"end"});
+  svg("line", {x1:L, x2:x(24), y1:st.y + st.h, y2:st.y + st.h, class:"baseline"}, chart);
+  const stores = [
+    ["buffer_level_kwh", cap.buffer_kwh, SERIES.buffer, T("buffer", "buffer")],
+    ["battery_soc_kwh", cap.battery_kwh, SERIES.battery, T("battery", "batterij")],
+  ].map(([field, capacity, colour, name]) => {
+    const share = (row) => Math.min(1, (row[field] || 0) / Math.max(1, capacity || 1));
+    svg("path", {d:plan.map((row, h) => `${h ? "L" : "M"}${x(h) + step / 2},${sy(share(row))}`).join(""),
+                 class:"line-store", stroke:colour}, chart);
+    const end = sy(share(plan[23]));
+    svg("circle", {cx:x(23) + step / 2, cy:end, r:4, fill:colour, class:"end-dot"}, chart);
+    return {end, name};
+  });
+  // End labels only where they stand apart; converging lines lean on the legend.
+  if (Math.abs(stores[0].end - stores[1].end) >= 14) {
+    for (const store of stores) svgText(chart, x(24) + 8, store.end + 4, store.name, {class:"tick"});
+  }
 
-  // Heat source, lamps and CHP as rows of blocks.
+  // Heat source, lamps and CHP: cells with a 2px surface gap.
   const heat = lanes[3], lamps = lanes[4], chp = lanes[5];
+  svg("line", {x1:L, x2:x(24), y1:lamps.y + lamps.h, y2:lamps.y + lamps.h, class:"baseline"}, chart);
   plan.forEach((row, h) => {
     svg("rect", {x:x(h) + 1, y:heat.y, width:step - 2, height:heat.h, rx:3,
-                 fill:HEAT_COLOURS[row.heat_source] || "#b8c2bc"}, chart);
+                 fill:SERIES[row.heat_source] || "var(--ink-muted)"}, chart);
     const lit = Math.max(0, Math.min(1, row.lighting_level || 0));
-    if (lit > 0) svg("rect", {x:x(h) + 3, y:lamps.y + lamps.h * (1 - lit), width:step - 6, height:lamps.h * lit, rx:2, class:"bar-lamp"}, chart);
-    if (row.chp_running) svg("rect", {x:x(h) + 1, y:chp.y + 4, width:step - 2, height:chp.h - 8, rx:4, class:"bar-chp"}, chart);
+    if (lit > 0) svg("path", {d:columnPath(cx(h), lamps.y + lamps.h * (1 - lit), barW, lamps.h * lit), fill:SERIES.lamps}, chart);
+    if (row.chp_running) svg("rect", {x:x(h) + 1, y:chp.y + 3, width:step - 2, height:chp.h - 6, rx:3, fill:SERIES.chp}, chart);
   });
   for (const hour of [0, 3, 6, 9, 12, 15, 18, 21]) {
     svgText(chart, x(hour) + step / 2, H - 6, hh(hour), {class:"tick", "text-anchor":"middle"});
   }
-  // Legend for the heat colours, under the axis labels area on the left.
-  const used = [...new Set(plan.map((r) => r.heat_source))];
-  const readout = root.parentElement?.querySelector(".hover-readout") || $("plan-hover");
-  const heatNames = {boiler:T("boiler", "ketel"), chp:T("CHP", "WKK"), buffer:T("buffer", "buffer"), heat_pump:T("heat pump", "warmtepomp")};
-  const legend = el("div", "legend heat-legend");
-  for (const source of used) {
+
+  // One legend for every entity the chart shows.
+  const legend = el("div", "legend");
+  const used = new Set(plan.map((r) => r.heat_source));
+  const keys = [...["buffer", "chp", "boiler", "heat_pump"].filter((k) => used.has(k)).map((k) => [SERIES[k], heatName(k)]),
+                [SERIES.lamps, T("lamps", "lampen")], [SERIES.battery, T("battery", "batterij")],
+                [SERIES.grid, T("grid import", "netafname")]];
+  for (const [colour, name] of keys) {
     const key = el("span", "key");
-    key.style.background = HEAT_COLOURS[source] || "#b8c2bc";
-    legend.append(key, el("span", "", heatNames[source] || source));
+    key.style.background = colour;
+    legend.append(key, el("span", "", name));
   }
+  legend.append(el("span", "key limit-key"), el("span", "", T("grid limit", "netgrens")));
   root.append(legend);
 
+  const readout = root.parentElement?.querySelector(".hover-readout") || $("plan-hover");
   const describe = (row) => {
     const battery = row.battery === "idle" ? T("battery idle", "batterij rust")
       : row.battery === "charge" ? T(`battery charges ${Math.round(row.battery_power_kw)} kW`, `batterij laadt ${Math.round(row.battery_power_kw)} kW`)
       : T(`battery delivers ${Math.round(row.battery_power_kw)} kW`, `batterij levert ${Math.round(row.battery_power_kw)} kW`);
-    return `${hh(row.hour)} · ${cents(row.power_price_eur_kwh)} · ${T("heat from", "warmte uit")} ${heatNames[row.heat_source] || row.heat_source}`
+    return `${hh(row.hour)} · ${cents(row.power_price_eur_kwh)} · ${T("heat from", "warmte uit")} ${heatName(row.heat_source)}`
       + ` · ${T("lamps", "lampen")} ${Math.round((row.lighting_level || 0) * 100)}% · ${battery}`
       + ` · ${T("grid", "net")} ${mw(row.grid_import_kw)} / ${mw(row.import_limit_kw)}`
       + (row.chp_running ? ` · ${T("CHP on", "WKK aan")}` : "");
@@ -763,8 +865,7 @@ function renderPlanChart(root, run, {tall=false}={}) {
   if (readout) readout.textContent = T("Point at an hour to see what happens then.", "Wijs een uur aan om te zien wat er dan gebeurt.");
   const pick = (event) => {
     const box = chart.getBoundingClientRect();
-    const px = (event.clientX - box.left) / box.width * W;
-    const hour = Math.floor((px - L) / step);
+    const hour = Math.floor(((event.clientX - box.left) / box.width * W - L) / step);
     if (hour < 0 || hour > 23) { highlight.setAttribute("visibility", "hidden"); return; }
     highlight.setAttribute("x", x(hour));
     highlight.setAttribute("visibility", "visible");
@@ -772,37 +873,41 @@ function renderPlanChart(root, run, {tall=false}={}) {
   };
   chart.addEventListener("pointermove", pick);
   chart.addEventListener("pointerdown", pick);
+  root.append(tableView(planHeadings(), planRows(run)));
 }
 
 function renderDonut(run) {
   const root = $("cost-donut");
   root.replaceChildren();
   const totals = run.cost_forecast?.totals || {};
+  // Part-to-whole with three parts: a donut. Fixed slot order 1-3.
   const parts = [
-    {label:T("Electricity", "Stroom"), value:totals.electricity_import_eur || 0, colour:"#3f7f9a"},
-    {label:T("Gas", "Gas"), value:totals.gas_eur || 0, colour:"#d08a3c"},
-    {label:T("CO₂", "CO₂"), value:totals.liquid_co2_eur || 0, colour:"#8a9a90"},
+    {label:T("Electricity", "Stroom"), value:totals.electricity_import_eur || 0, colour:"var(--s-1)"},
+    {label:T("Gas", "Gas"), value:totals.gas_eur || 0, colour:"var(--s-2)"},
+    {label:T("CO₂", "CO₂"), value:totals.liquid_co2_eur || 0, colour:"var(--s-3)"},
   ].filter((p) => p.value > 0.5);
   const sum = parts.reduce((a, p) => a + p.value, 0) || 1;
-  const size = 160, r = 60, c = 2 * Math.PI * r;
-  const chart = svg("svg", {viewBox:`0 0 ${size} ${size}`, class:"donut-svg", role:"img",
+  const r = 56, c = 2 * Math.PI * r;
+  const chart = svg("svg", {viewBox:"0 0 160 160", class:"donut-svg", role:"img",
                             "aria-label":T("Cost by kind", "Kosten per soort")}, root);
   let offset = 0;
   for (const part of parts) {
     const length = part.value / sum * c;
-    svg("circle", {cx:80, cy:80, r, fill:"none", stroke:part.colour, "stroke-width":22,
-                   "stroke-dasharray":`${Math.max(0, length - 2)} ${c}`, "stroke-dashoffset":-offset,
-                   transform:"rotate(-90 80 80)"}, chart);
+    const arc = svg("circle", {cx:80, cy:80, r, fill:"none", stroke:part.colour, "stroke-width":20,
+                               "stroke-dasharray":`${Math.max(0, length - 2)} ${c}`, "stroke-dashoffset":-offset,
+                               transform:"rotate(-90 80 80)"}, chart);
+    const title = svg("title", {}, arc);
+    title.textContent = `${part.label}: ${euro(part.value)} (${Math.round(part.value / sum * 100)}%)`;
     offset += length;
   }
-  svgText(chart, 80, 78, euro(totals.net_cost_eur), {class:"donut-total", "text-anchor":"middle"});
-  svgText(chart, 80, 96, T("net", "netto"), {class:"tick", "text-anchor":"middle"});
+  svgText(chart, 80, 80, euro(totals.net_cost_eur), {class:"donut-total", "text-anchor":"middle"});
+  svgText(chart, 80, 98, T("net", "netto"), {class:"tick", "text-anchor":"middle"});
   const list = el("ul", "donut-legend");
   for (const part of parts) {
     const item = el("li");
     const key = el("span", "key");
     key.style.background = part.colour;
-    item.append(key, el("span", "", part.label), el("b", "", euro(part.value)));
+    item.append(key, el("span", "", `${part.label} · ${Math.round(part.value / sum * 100)}%`), el("b", "", euro(part.value)));
     list.append(item);
   }
   if (totals.export_revenue_eur > 0.5) {
@@ -817,9 +922,13 @@ function renderDonut(run) {
 function renderGoalResults(run) {
   const items = [...(run.targets || []).map((t) => ({
     name:{max_import_kw:T("Max. grid import", "Max. netafname"), light_mol_m2:T("Extra light", "Extra licht"),
-          budget_eur:T("Day budget", "Dagbudget")}[t.key] || t.key,
+          budget_eur:T("Day budget", "Dagbudget"), heat_day_c:T("Heating, day", "Verwarming, dag"),
+          heat_night_c:T("Heating, night", "Verwarming, nacht")}[t.key] || t.key,
     text:t.key === "max_import_kw" ? `${mw(t.actual)} ${t.op} ${mw(t.value)}`
-      : t.key === "budget_eur" ? `${euro(t.actual)} ${t.op} ${euro(t.value)}` : `${t.actual} ${t.op} ${t.value}`,
+      : t.key === "budget_eur" ? `${euro(t.actual)} ${t.op} ${euro(t.value)}`
+      : t.op === "=" ? (t.met ? T(`planned at ${t.value} °C`, `gepland op ${t.value} °C`)
+                              : T("this greenhouse model cannot use it", "dit kasmodel kan dit niet gebruiken"))
+      : `${t.actual} ${t.op} ${t.value}`,
     met:t.met,
   })), ...(run.goals || []).map((g) => ({name:g.name, text:`${g.actual} ${g.op} ${g.value}`, met:g.met}))];
   $("goal-results").hidden = !items.length;
@@ -1093,7 +1202,7 @@ function renderPlanDetail(root) {
   renderPlanChart(holder, state.run, {tall:true});
   // The same numbers as text, for anyone who prefers to read them.
   const details = el("details", "plan-text");
-  details.append(el("summary", "", T("Show as a list", "Toon als lijst")));
+  details.append(el("summary", "", T("Why each hour", "Waarom per uur")));
   const list = el("ol");
   for (const row of state.run?.plan || []) list.append(el("li", "", `${hh(row.hour)} — ${row.reasoning || ""}`));
   details.append(list);
@@ -1146,13 +1255,20 @@ async function openWeek() {
     for (let i = 0; i <= 2; i++) {
       const value = max * i / 2;
       svg("line", {x1:L, x2:W - 10, y1:y(value), y2:y(value), class:"gridline"}, chart);
-      svgText(chart, L - 6, y(value) + 4, `€${(value / 1000).toFixed(0)}k`, {class:"tick", "text-anchor":"end"});
+      svgText(chart, L - 6, y(value) + 4, value < 1 ? "€0" : `€${(value / 1000).toFixed(0)}k`, {class:"tick", "text-anchor":"end"});
     }
+    const w = Math.min(24, band * .3);
+    svg("line", {x1:L, x2:W - 10, y1:y(0), y2:y(0), class:"baseline"}, chart);
     result.days.forEach((day, i) => {
-      const x0 = L + band * i + band * .18, w = band * .3;
-      svg("rect", {x:x0, y:y(day.normal_cost_eur), width:w, height:y(0) - y(day.normal_cost_eur), rx:3, class:"bar-normal"}, chart);
-      svg("rect", {x:x0 + w + 3, y:y(day.cost_eur), width:w, height:y(0) - y(day.cost_eur), rx:3, class:"bar-plan"}, chart);
-      svgText(chart, x0 + w, H - 8, T(`day ${day.day}`, `dag ${day.day}`), {class:"tick", "text-anchor":"middle"});
+      const mid = L + band * i + band / 2;
+      for (const [value, cls, name, left] of [
+        [day.normal_cost_eur, "col-normal", T("Normal control", "Normale regeling"), mid - w - 1],
+        [day.cost_eur, "col-plan", "KasFlex", mid + 1],
+      ]) {
+        const mark = svg("path", {d:columnPath(left, y(value), w, y(0) - y(value)), class:cls}, chart);
+        svg("title", {}, mark).textContent = `${T("Day", "Dag")} ${day.day} · ${name}: ${euro(value)}`;
+      }
+      svgText(chart, mid, H - 8, T(`day ${day.day}`, `dag ${day.day}`), {class:"tick", "text-anchor":"middle"});
     });
     const legend = el("div", "legend");
     legend.append(el("span", "key normal"), el("span", "", T("Normal control", "Normale regeling")),
@@ -1167,7 +1283,9 @@ async function openWeek() {
       card.append(el("span", "", label), el("strong", "", value));
       summary.append(card);
     }
-    root.append(summary, chart, legend, el("p", "hint", T(
+    const table = tableView([T("Day", "Dag"), T("Normal control", "Normale regeling"), "KasFlex", T("Growth", "Groei")],
+      result.days.map((d) => [String(d.day), euro(d.normal_cost_eur), euro(d.cost_eur), `${d.growth_kg_m2.toFixed(3)} kg/m²`]));
+    root.append(summary, chart, legend, table, el("p", "hint", T(
       "Why not a week plan? The day-ahead market sets prices one day at a time, and weather forecasts lose most of their skill after two or three days. So KasFlex plans tomorrow, and this outlook only estimates what a week of such days adds up to.",
       "Waarom geen weekplan? De day-aheadmarkt zet prijzen per dag vast, en weersverwachtingen worden na twee à drie dagen veel onzekerder. KasFlex plant dus morgen; dit overzicht schat alleen wat een week van zulke dagen oplevert.")));
   } catch (error) {
@@ -1332,6 +1450,10 @@ async function sendChat() {
     });
     pending.className = "bubble ai";
     pending.textContent = reply.answer;
+    if (reply.sources?.length) {
+      pending.append(el("small", "source", T("Source: ", "Bron: ")
+        + [...new Set(reply.sources.map((source) => source.title))].join(", ")));
+    }
     $("chat-model").textContent = reply.model === "kasflex-offline-assistant"
       ? T("offline answers", "offline antwoorden") : reply.model;
   } catch (error) {
@@ -1454,7 +1576,7 @@ $("checker-enabled").addEventListener("change", () => {
   toast(on ? T("Safety check on.", "Veiligheidscheck aan.")
            : T("Check off: this plan cannot be finally approved.", "Check uit: dit plan kan niet definitief worden goedgekeurd."));
 });
-for (const id of ["target-import", "target-light", "target-budget"]) $(id).addEventListener("input", renderGoalList);
+for (const id of ["target-import", "target-light", "target-budget", "target-heat-day", "target-heat-night"]) $(id).addEventListener("input", renderGoalList);
 $("refresh-data").addEventListener("click", () => loadContext({ refresh: true }));
 $("compare-checker").addEventListener("click", compareChecker);
 $("build-plan").addEventListener("click", buildPlan);

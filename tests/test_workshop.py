@@ -471,3 +471,66 @@ def test_an_infeasible_seed_is_repaired_with_the_chp(conditions):
     # Hours the grower blocked stay untouched.
     blocked = _repair_seed(seed, context, tuple(short))
     assert blocked is seed
+
+
+# --- documents for the chat, heating targets -------------------------------------------------
+
+
+def test_documents_are_found_by_their_words_in_dutch_and_english(tmp_path):
+    from kasflex.documents import DocumentStore, builtin_documents, search
+
+    nl = search("Wat mag ik met een tijdsblokgebonden contract?", builtin_documents("nl"))
+    assert nl and "Tijdsblokgebonden" in nl[0]["passage"]
+    en = search("what does a time-block right allow", builtin_documents("en"))
+    assert en and "Time-block" in en[0]["passage"]
+    assert search("why does the CHP run at 18:00", builtin_documents("en")) == []
+
+    store = DocumentStore(tmp_path)
+    saved = store.save("Site notes", "Crew starts at 7.\n\nThe CHP is serviced every first Monday.")
+    hits = search("When is the CHP serviced?", store.all("en"))
+    assert hits[0]["title"] == "Site notes" and "first Monday" in hits[0]["passage"]
+    with pytest.raises(ValueError):
+        store.save("", "text")
+    assert store.delete(saved.id) and not store.delete(saved.id)
+    assert not store.delete("../../etc")
+
+
+def test_chat_quotes_a_document_and_names_it(ui, tmp_path):
+    from kasflex.documents import DocumentStore
+
+    ui.documents = DocumentStore(tmp_path / "docs")
+    ui.save_document({"title": "Site notes", "text": "The CHP is serviced every first Monday."})
+    run = ui.run({"planner": "collaborative", "data_source": "synthetic",
+                  "llm_provider": "ollama", "llm_base_url": "http://127.0.0.1:9"}, {})
+    reply = ui.chat({**_ref(run), "question": "When is the CHP serviced?"})
+    assert "first Monday" in reply["answer"]
+    assert reply["sources"][0]["title"] == "Site notes"
+    listed = ui.list_documents("en")["documents"]
+    assert {d["title"] for d in listed} >= {"Grid contracts", "Site notes"}
+
+
+def test_a_warmer_heating_target_costs_more_heat(ui):
+    base = ui.run({"planner": "collaborative", "data_source": "synthetic"}, {})
+    warm = ui.run({"planner": "collaborative", "data_source": "synthetic"},
+                  {"targets": {"heat_day_c": 22, "heat_night_c": 19}})
+    assert warm["metrics"]["net_cost_eur"] > base["metrics"]["net_cost_eur"]
+    rows = {t["key"]: t for t in warm["targets"]}
+    assert rows["heat_day_c"]["value"] == 22 and rows["heat_day_c"]["met"]
+    reply = answer("Why lower the temperature this week?", warm, language="en")
+    assert "22 °C" in reply and "19 °C" in reply
+
+
+def test_heating_targets_are_kept_in_a_sane_range():
+    from kasflex.ui.workshop_api import clean_targets
+
+    cleaned = clean_targets({"heat_day_c": 80, "heat_night_c": "x"})
+    assert cleaned["heat_day_c"] == 30.0 and cleaned["heat_night_c"] is None
+
+
+def test_charts_never_put_two_scales_on_one_plot():
+    """dataviz rule: price and temperature are small multiples, not a dual axis."""
+    script = (static_dir() / "demo.js").read_text(encoding="utf-8")
+    assert "line-temp" not in script and "tick temp" not in script
+    css = (static_dir() / "demo.css").read_text(encoding="utf-8")
+    for slot in ("--s-buffer", "--s-chp", "--s-boiler", "--s-lamps", "--s-battery", "--s-grid"):
+        assert slot in css

@@ -86,7 +86,12 @@ function translate() {
     "t-flaw-type":["Type", "Soort"], "t-flaw-hours":["Hours (e.g. 16-19 or 8,9,10)", "Uren (bijv. 16-19 of 8,9,10)"],
     "t-flaw-import":["Max. grid import then (kW)", "Max. netafname dan (kW)"], "t-flaw-drop":["Night colder than forecast by (°C)", "Nacht kouder dan verwacht met (°C)"],
     "save-scenario":["Save scenario", "Scenario opslaan"], "cancel-edit":["Cancel", "Annuleren"],
-    "t-memory":["4 · Remembered reasons", "4 · Onthouden redenen"], "forget-all":["Forget all", "Alles vergeten"],
+    "t-memory":["5 · Remembered reasons", "5 · Onthouden redenen"], "forget-all":["Forget all", "Alles vergeten"],
+    "t-docs":["4 · Documents for the chat", "4 · Documenten voor de chat"],
+    "t-docs-hint":["The chat answers from the plan and from these documents, and names the document it used. Paste text from Word or PDF, or load a .txt or .md file.",
+                   "De chat antwoordt uit het plan en uit deze documenten, en noemt het document dat hij gebruikte. Plak tekst uit Word of PDF, of laad een .txt- of .md-bestand."],
+    "t-doc-title":["Title", "Titel"], "t-doc-file":["Load a text file", "Tekstbestand laden"], "t-doc-text":["Text", "Tekst"],
+    "save-doc":["Add document", "Document toevoegen"],
     "t-memory-hint":["What participants said when they disagreed. KasFlex uses these in later plans of the same participant. Clear them between workshop groups.",
                      "Wat deelnemers zeiden toen ze het oneens waren. KasFlex gebruikt dit in latere plannen van dezelfde deelnemer. Wis dit tussen workshopgroepen."],
   };
@@ -102,6 +107,7 @@ async function load() {
   renderActive();
   renderScenarios();
   renderContractOptions();
+  await loadDocuments();
   await loadMemory();
 }
 
@@ -335,6 +341,7 @@ async function saveScenario() {
   } catch (error) { showError(error); }
 }
 
+/** Prices and temperatures as two small charts on the same hour axis. */
 function renderPreview() {
   const root = $("preview");
   root.replaceChildren();
@@ -343,32 +350,82 @@ function renderPreview() {
     prices = parseSeries($("f-prices").value, "p");
     temps = parseSeries($("f-temps").value, "t");
   } catch { return; }
-  if (!prices.length && !temps.length) return;
-  const W = 640, H = 170, L = 40, R = 40, top = 10, bottom = 22, step = (W - L - R) / 24;
-  const chart = document.createElementNS(SVG, "svg");
-  chart.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  chart.setAttribute("class", "svg-chart");
-  const line = (values, cls) => {
-    if (!values.length) return;
+  const node = (tag, attrs, parent) => {
+    const n = document.createElementNS(SVG, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (parent) parent.append(n);
+    return n;
+  };
+  for (const [values, label] of [[prices, T("Power price (ct/kWh)", "Stroomprijs (ct/kWh)")],
+                                 [temps, T("Outside (°C)", "Buiten (°C)")]]) {
+    if (!values.length) continue;
+    const W = 640, H = 120, L = 44, R = 10, top = 22, bottom = 22, step = (W - L - R) / 24;
+    const chart = node("svg", {viewBox:`0 0 ${W} ${H}`, class:"svg-chart"}, null);
     const min = Math.min(...values, 0), max = Math.max(...values, 1);
     const y = (v) => top + (H - top - bottom) * (1 - (v - min) / (max - min));
-    const path = document.createElementNS(SVG, "path");
-    path.setAttribute("d", values.map((v, h) => `${h ? "L" : "M"}${L + step * h + step / 2},${y(v)}`).join(""));
-    path.setAttribute("class", cls);
-    chart.append(path);
-  };
-  line(prices, "line-price");
-  line(temps, "line-temp");
-  for (const hour of [0, 6, 12, 18, 23]) {
-    const text = document.createElementNS(SVG, "text");
-    text.setAttribute("x", L + step * hour + step / 2);
-    text.setAttribute("y", H - 6);
-    text.setAttribute("class", "tick");
-    text.setAttribute("text-anchor", "middle");
-    text.textContent = `${String(hour).padStart(2, "0")}:00`;
-    chart.append(text);
+    for (const v of [min, max]) {
+      node("line", {x1:L, x2:W - R, y1:y(v), y2:y(v), class:"gridline"}, chart);
+      node("text", {x:L - 6, y:y(v) + 4, class:"tick", "text-anchor":"end"}, chart).textContent = v.toFixed(0);
+    }
+    node("text", {x:L, y:14, class:"panel-label"}, chart).textContent = label;
+    node("path", {d:values.map((v, h) => `${h ? "L" : "M"}${L + step * h + step / 2},${y(v)}`).join(""), class:"line-series"}, chart);
+    for (const hour of [0, 6, 12, 18, 23]) {
+      node("text", {x:L + step * hour + step / 2, y:H - 6, class:"tick", "text-anchor":"middle"}, chart)
+        .textContent = `${String(hour).padStart(2, "0")}:00`;
+    }
+    root.append(chart);
   }
-  root.append(chart);
+}
+
+// -- documents ---------------------------------------------------------------------------
+
+async function loadDocuments() {
+  const root = $("doc-list");
+  root.replaceChildren();
+  try {
+    const result = await api("/api/documents", {language:state.lang});
+    for (const doc of result.documents) {
+      const row = el("div", "memory-row");
+      const what = el("span");
+      what.append(el("strong", "", doc.title), el("small", "", `${doc.text.slice(0, 140)}${doc.text.length > 140 ? "…" : ""}`));
+      const right = el("span", "item-actions");
+      if (doc.builtin) right.append(el("span", "badge", T("built-in", "standaard")));
+      else {
+        const remove = el("button", "ghost danger", T("Delete", "Verwijderen"));
+        remove.type = "button";
+        remove.addEventListener("click", async () => {
+          if (!window.confirm(T(`Delete “${doc.title}”?`, `“${doc.title}” verwijderen?`))) return;
+          try { await api("/api/documents/delete", {id:doc.id}); await loadDocuments(); } catch (error) { showError(error); }
+        });
+        right.append(remove);
+      }
+      row.append(el("span", "muted", `${(doc.characters / 1000).toFixed(1)}k`), what, right);
+      root.append(row);
+    }
+  } catch (error) { showError(error); }
+}
+
+async function saveDocument() {
+  clearError();
+  try {
+    await api("/api/documents/save", {title:$("doc-title").value, text:$("doc-text").value});
+    $("doc-title").value = "";
+    $("doc-text").value = "";
+    $("doc-file").value = "";
+    toast(T("Document added.", "Document toegevoegd."));
+    await loadDocuments();
+  } catch (error) { showError(error); }
+}
+
+function loadDocumentFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    $("doc-text").value = String(reader.result || "");
+    if (!$("doc-title").value) $("doc-title").value = file.name.replace(/\.(txt|md)$/i, "");
+  };
+  reader.readAsText(file);
 }
 
 // -- memory -----------------------------------------------------------------------------
@@ -418,6 +475,8 @@ $("close-editor").addEventListener("click", () => $("editor").hidden = true);
 $("cancel-edit").addEventListener("click", () => $("editor").hidden = true);
 $("save-scenario").addEventListener("click", saveScenario);
 $("forget-all").addEventListener("click", forgetAll);
+$("save-doc").addEventListener("click", saveDocument);
+$("doc-file").addEventListener("change", loadDocumentFile);
 $("f-flaw-type").addEventListener("change", updateFlawFields);
 $("f-prices").addEventListener("input", renderPreview);
 $("f-temps").addEventListener("input", renderPreview);

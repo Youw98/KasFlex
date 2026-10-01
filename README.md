@@ -44,8 +44,9 @@ whole-plan regeneration.
    differently** to set the priority, battery reserve and operating preferences
    yourself.
 5. Optionally open **Your own targets and goals**: a maximum grid import (a hard
-   limit the check enforces), a light target, a day budget, and up to five named
-   goals such as "at most 6 equipment switches".
+   limit the check enforces), heating temperatures for day and night (the heat the
+   plan must deliver, so a warmer target costs more), a light target, a day budget,
+   and up to five named goals such as "at most 6 equipment switches".
 6. The plan appears as charts: price, grid import against the contract limit,
    battery and heat buffer, heat source, lamps and CHP, hour by hour (point at an
    hour for the details), plus a cost donut. The grid contract is a badge, not a
@@ -315,7 +316,13 @@ planner and checker (ADR-0015 in [DECISIONS.md](docs/DECISIONS.md)).
 
 The chat uses the configured AI model (Claude, OpenAI, Gemini, a local Ollama model
 or any OpenAI-compatible server). Without one, an offline assistant answers from the
-plan's own numbers. Position and grid exposure have their own screen. A research
+plan's own numbers. Both draw on the documents added on the admin page and name
+the document they used.
+
+The charts follow one set of rules: price and temperature are drawn as small
+multiples rather than on two y-axes; each piece of equipment keeps one colour,
+from a palette validated for colour-vision deficiency, in every chart; and every
+chart has a "Show as table" twin. Position and grid exposure have their own screen. A research
 consent dialog decides whether interaction data is recorded; the demo works fully
 without it.
 
@@ -331,7 +338,10 @@ For the researcher running a workshop:
    visit). Edit, duplicate or create scenarios: the story and debrief in English and
    Dutch, 24 prices and temperatures, the grid contract type, installation changes,
    and the error (type, hours, limit). Edited built-ins can be reset.
-4. **Remembered reasons**: what participants said when they disagreed. Clear them
+4. **Documents for the chat**: paste text (from Word or PDF) or load a .txt/.md
+   file. The chat answers from the plan and these documents and names the one it
+   used. KasFlex ships one itself: the Dutch grid contract types.
+5. **Remembered reasons**: what participants said when they disagreed. Clear them
    between workshop groups.
 
 The admin page has no login: like the rest of the interface it is served on

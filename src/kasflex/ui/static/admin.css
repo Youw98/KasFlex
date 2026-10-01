@@ -34,3 +34,4 @@
 @media(max-width:900px){.version-grid,.form-grid{grid-template-columns:1fr 1fr}.form-grid.two{grid-template-columns:1fr}}
 @media(max-width:600px){.version-grid,.form-grid{grid-template-columns:1fr}.memory-row{grid-template-columns:1fr}}
 #preview{max-width:760px}
+.doc-form{margin-top:14px}.doc-text{margin-top:12px}

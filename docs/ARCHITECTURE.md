@@ -225,6 +225,7 @@ table would measure nothing.
 | `kasflex.reasons` | Turns a grower's short reason for disagreeing into planning effects, and decides when it applies again. |
 | `kasflex.factors` | "Why this plan?": ablation of each input, hours changed and cost effect. |
 | `kasflex.assistant` | Offline chat answers from the plan's own numbers when no language model is configured. |
+| `kasflex.documents` | Documents the chat answers from (built-in grid contract notes plus the researcher's), found by word overlap. |
 | `kasflex.scenarios` | Workshop scenarios: two good, two with a deliberate error, plus custom ones saved as JSON. |
 | `kasflex.workshop` | The study version (no advisor, AI suggests, AI + chat) and the scenario participants get. |
 | `kasflex.consent` | Granular informed consent, and the erasure that withdrawal triggers. |

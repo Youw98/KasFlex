@@ -49,6 +49,7 @@ from kasflex.conversation import (
     propose_compromise,
 )
 from kasflex.deliberation import DIMENSIONS, RESPONSES, DeliberationLog
+from kasflex.documents import DocumentStore
 from kasflex.energy.contracts import describe as describe_contract
 from kasflex.fair import DatasetMetadata, build_bundle, conflict_table, to_csv
 from kasflex.forecast.cost import project_cost
@@ -513,6 +514,7 @@ class UiServer(WorkshopMixin):
         self.profiles = ProfileStore(resolve_output("results/profiles"))
         self.scenarios = _scenario_store()
         self.workshop = WorkshopStore(resolve_output("results/workshop.json"))
+        self.documents = DocumentStore(resolve_output("results/documents"))
 
     # -- what this plan changes, against normal settings --------------------
 
@@ -1649,7 +1651,8 @@ class UiServer(WorkshopMixin):
         # what they know better than the forecast (a frost warning) reshapes it.
         config = self.planning_config(config, compiled_policy)
         forecast = self.adjusted_forecast(day.forecast, compiled_policy)
-        greenhouse = build_greenhouse(config.greenhouse, config)
+        greenhouse = self.planning_greenhouse(build_greenhouse(config.greenhouse, config),
+                                              compiled_policy)
 
         started = time.time()
         try:
@@ -1719,6 +1722,10 @@ class UiServer(WorkshopMixin):
         work = work_metrics(plan_rows, normal_rows)
         goals, targets = evaluate_goals(compiled_policy["goals"], compiled_policy["targets"],
                                         result.metrics, work)
+        for row in targets:
+            if row["key"] in ("heat_day_c", "heat_night_c"):
+                # Only a model with heating setpoints can plan to the grower's temperature.
+                row["met"] = hasattr(greenhouse, "setpoint_day_c")
         scenario_info = None
         if config.data_source == "scenario":
             scenario = self.scenarios.get(config.scenario_id)
@@ -2309,6 +2316,14 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path == "/api/memory":
                 self._json(self.ui.list_remembered(overrides,
                                                    everyone=body.get("everyone") is True))
+            elif self.path == "/api/documents":
+                self._json(self.ui.list_documents(str(body.get("language") or "en")))
+            elif self.path == "/api/documents/save":
+                with self.ui._lock:
+                    self._json(self.ui.save_document(body))
+            elif self.path == "/api/documents/delete":
+                with self.ui._lock:
+                    self._json(self.ui.delete_document(body))
             elif self.path == "/api/memory/forget":
                 with self.ui._lock:
                     self._json(self.ui.forget_remembered(body))

@@ -95,7 +95,7 @@
   "goals.import": "Max. grid import",
   "goals.light": "Extra light at least",
   "goals.budget": "Day budget at most",
-  "goals.hint": "The grid maximum is a hard limit: the check rejects any plan that goes over it. Light and budget are compared after planning.",
+  "goals.hint": "The grid maximum is a hard limit: the check rejects any plan that goes over it. Heating temperatures set the heat the plan must deliver. Light and budget are compared after planning.",
   "goals.name": "Name, e.g. Quiet mornings",
   "goals.metric.switches": "Switches between equipment",
   "goals.metric.chp": "CHP running hours",
@@ -111,5 +111,7 @@
   "chat.open": "Ask KasFlex",
   "chat.title": "Ask KasFlex",
   "chat.placeholder": "Why does the CHP run at 18:00?",
-  "chat.send": "Ask"
+  "chat.send": "Ask",
+  "goals.heatday": "Heating, day",
+  "goals.heatnight": "Heating, night"
 }

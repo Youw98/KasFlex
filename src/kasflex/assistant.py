@@ -17,8 +17,8 @@ _HOUR = re.compile(
     r"\b(?:om|at|rond|around|tussen|between)?\s*(\d{1,2})(?:[:.]00|\s*(?:uur|u|h)\b)")
 
 TOPICS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("temperature", ("temperatur", "warmer", "colder", "kouder", "graden", "degrees",
-                     "setpoint", "stooklijn")),
+    ("temperature", ("temperatu", "warmer", "colder", "kouder", "graden", "degrees",
+                     "setpoint", "stooklijn", "verwarmingsdoel", "heating target", "°c")),
     ("battery", ("battery", "batterij", "accu", "charge", "laden", "ontladen")),
     ("chp", ("chp", "wkk", "warmtekracht", "motor")),
     ("lights", ("light", "licht", "lamp", "belicht", "assimilat")),
@@ -53,8 +53,28 @@ def _hours_text(hours: list[int]) -> str:
 
 
 def answer(question: str, run: dict[str, Any], *, language: str = "en",
-           remembered: list[str] | None = None) -> str:
-    """One answer, two to four sentences, from the plan's numbers."""
+           remembered: list[str] | None = None,
+           passages: list[dict[str, Any]] | None = None) -> str:
+    """One answer, two to four sentences, from the plan's numbers and documents.
+
+    ``passages`` are document passages that match the question (see
+    :mod:`kasflex.documents`). When the question is about something the plan does
+    not cover, the best passage is the answer; otherwise it is added as a source.
+    """
+    reply = _from_plan(question, run, language=language, remembered=remembered)
+    if not passages:
+        return reply
+    nl = language == "nl"
+    best = passages[0]
+    quote = f"{best['passage']}" if len(best["passage"]) < 420 else best["passage"][:400] + "…"
+    if reply.startswith(("Kort:", "In short:")):
+        return (f"Uit “{best['title']}”: {quote}" if nl else f"From “{best['title']}”: {quote}")
+    return reply + (f"\n\nUit “{best['title']}”: {quote}" if nl else
+                    f"\n\nFrom “{best['title']}”: {quote}")
+
+
+def _from_plan(question: str, run: dict[str, Any], *, language: str = "en",
+               remembered: list[str] | None = None) -> str:
     nl = language == "nl"
     text = " " + " ".join(str(question or "").lower().split()) + " "
     plan = run.get("plan") or []
@@ -85,12 +105,30 @@ def answer(question: str, run: dict[str, Any], *, language: str = "en",
 
     if topic == "temperature":
         band = metrics.get("temperature_band_hours", 0)
+        set_points = {t["key"]: t["value"] for t in run.get("targets") or []
+                      if t.get("key") in ("heat_day_c", "heat_night_c") and t.get("met")}
+        if set_points:
+            def shown(key: str, standard: str) -> str:
+                return f"{set_points[key]:g} °C" if key in set_points else standard
+
+            day = shown("heat_day_c", "standaard" if nl else "standard")
+            night = shown("heat_night_c", "standaard" if nl else "standard")
+            return ((f"Het plan verwarmt naar uw doelen: {day} overdag, {night} 's nachts. "
+                     "Elke graad warmer kost meer warmte, dus meer gas of WKK-uren; zet een lager "
+                     "doel en plan opnieuw om het verschil in euro's te zien. De kas blijft "
+                     f"{band:.0f} van de 24 uur binnen de temperatuurband.") if nl else
+                    (f"The plan heats to your targets: {day} by day, {night} at night. "
+                     "Every degree warmer takes more heat, so more gas or CHP hours; set a lower "
+                     "target and rebuild to see the difference in euros. The greenhouse stays "
+                     f"inside its temperature band {band:.0f} of 24 hours."))
         return ("KasFlex stelt de kastemperatuur niet zelf in; die blijft bij uw klimaatcomputer. "
                 f"KasFlex kiest waar de warmte vandaan komt. In de simulatie blijft de kas "
-                f"{band:.0f} van de 24 uur binnen de temperatuurband." if nl else
+                f"{band:.0f} van de 24 uur binnen de temperatuurband. U kunt een "
+                "verwarmingsdoel instellen bij 'Uw eigen grenzen en doelen'." if nl else
                 "KasFlex does not set the greenhouse temperature; your climate computer keeps "
                 "that. KasFlex chooses where the heat comes from. In the simulation the "
-                f"greenhouse stays inside its temperature band {band:.0f} of 24 hours.")
+                f"greenhouse stays inside its temperature band {band:.0f} of 24 hours. You can "
+                "set a heating target under 'Your own targets and goals'.")
     if topic == "battery":
         charge = [r["hour"] for r in plan if r["battery"] == "charge"]
         discharge = [r["hour"] for r in plan if r["battery"] == "discharge"]

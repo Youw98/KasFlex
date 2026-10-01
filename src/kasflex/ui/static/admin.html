@@ -107,8 +107,20 @@
     </section>
 
     <section class="panel">
+      <h2 id="t-docs">4 · Documents for the chat</h2>
+      <p id="t-docs-hint" class="hint">The chat answers from the plan and from these documents, and names the document it used. Paste text from Word or PDF, or load a .txt or .md file.</p>
+      <div id="doc-list" class="memory-list"></div>
+      <div class="form-grid two doc-form">
+        <label class="field"><span id="t-doc-title">Title</span><input id="doc-title" type="text" maxlength="120"></label>
+        <label class="field"><span id="t-doc-file">Load a text file</span><input id="doc-file" type="file" accept=".txt,.md,text/plain,text/markdown"></label>
+      </div>
+      <label class="field doc-text"><span id="t-doc-text">Text</span><textarea id="doc-text" rows="6"></textarea></label>
+      <div class="editor-actions"><button id="save-doc" type="button" class="primary dark">Add document</button></div>
+    </section>
+
+    <section class="panel">
       <div class="panel-head">
-        <h2 id="t-memory">4 · Remembered reasons</h2>
+        <h2 id="t-memory">5 · Remembered reasons</h2>
         <button id="forget-all" type="button" class="ghost danger">Forget all</button>
       </div>
       <p id="t-memory-hint" class="hint">What participants said when they disagreed. KasFlex uses these in later plans of the same participant. Clear them between workshop groups.</p>
