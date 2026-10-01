@@ -197,6 +197,7 @@ table would measure nothing.
 | `kasflex.energy.assets` | Asset models and limits, in explicit units. |
 | `kasflex.energy.dispatch` | Deterministic intent-to-flows, faithful to the plan. |
 | `kasflex.energy.position` | Contracted base position, long/short deviation and spot settlement. |
+| `kasflex.energy.contracts` | Dutch grid contract types (firm, CBC, time-block, duration, non-firm) as hourly import limits. |
 | `kasflex.controllers.*` | Rule-based, naive fixture, learned, LLM, MPC (stage 5). |
 | `kasflex.controllers.scheduler` | Learned planner: forecast plus local-search scheduler. |
 | `kasflex.forecast.*` | Demand model, features, history construction, backtesting. |
@@ -219,11 +220,18 @@ table would measure nothing.
 | `kasflex.fair` | FAIR research export: JSON-LD bundle, codebook, conflict CSV. |
 | `kasflex.uncertainty` | Aleatoric cost bands and epistemic novelty, with an explicit basis. |
 | `kasflex.reliance` | Confidence-first elicitation, outcome scoring, appropriate-reliance metrics. |
-| `kasflex.deliberation` | Four-dimension negotiation records, timings and iterative human responses. |
+| `kasflex.deliberation` | Per-dimension negotiation records (money, crop, work, own goals), timings and iterative human responses. |
+| `kasflex.recommend` | AI goes first: plans tomorrow four ways and recommends one with reasons in numbers. |
+| `kasflex.reasons` | Turns a grower's short reason for disagreeing into planning effects, and decides when it applies again. |
+| `kasflex.factors` | "Why this plan?": ablation of each input, hours changed and cost effect. |
+| `kasflex.assistant` | Offline chat answers from the plan's own numbers when no language model is configured. |
+| `kasflex.scenarios` | Workshop scenarios: two good, two with a deliberate error, plus custom ones saved as JSON. |
+| `kasflex.workshop` | The study version (no advisor, AI suggests, AI + chat) and the scenario participants get. |
 | `kasflex.consent` | Granular informed consent, and the erasure that withdrawal triggers. |
 | `kasflex.actions` | What a plan changes against normal settings, named for a grower. |
 | `kasflex.ui.server` | Local JSON API over the same functions the CLI uses. |
-| `kasflex.ui.static` | Grower decision workspace, dedicated position view and research interface. |
+| `kasflex.ui.workshop_api` | Workshop endpoints: versions, scenarios, recommendation, goals, memory, chat, factors, week outlook. |
+| `kasflex.ui.static` | Grower decision workspace (charts, chat), workshop admin page, position view and research interface. |
 | `kasflex.resources` | Where files live when frozen into an executable. |
 | `kasflex.run` | One scenario, end to end, to one result record. |
 | `kasflex.experiment` | The matrix, unattended. |

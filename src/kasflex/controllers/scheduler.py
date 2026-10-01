@@ -85,6 +85,9 @@ class ScheduleScore:
     peak_import_kw: float = 0.0
     buffer_discharge_kwh: float = 0.0
     crop_distance_mol_m2: float = 0.0
+    switches: int = 0
+    """Hours in which the heat source, the CHP on/off state or the battery action
+    changes from the hour before: what someone on the floor has to watch."""
 
     def objective(
         self,
@@ -92,6 +95,7 @@ class ScheduleScore:
         *,
         prefer_stored_heat: bool = False,
         peak_value_eur_per_kw: float = GRID_PEAK_VALUE_EUR_PER_KW,
+        switch_penalty_eur: float = 0.0,
     ) -> tuple[float, ...]:
         """Return the optimisation objective for a grower-selected priority.
 
@@ -109,7 +113,7 @@ class ScheduleScore:
         # Stored heat has to carry weight inside the cost term. As a trailing
         # tie-breaker behind a continuous cost it would never decide anything,
         # which is exactly how the grower's toggle used to do nothing at all.
-        cost = self.cost_eur
+        cost = self.cost_eur + switch_penalty_eur * self.switches
         if prefer_stored_heat:
             cost -= STORED_HEAT_CREDIT_EUR_PER_KWH * self.buffer_discharge_kwh
         if mode == "grid":
@@ -160,6 +164,8 @@ def score_plan(
     margin_hits = 0
     peak_import = 0.0
     buffer_discharge = 0.0
+    switches = 0
+    previous: tuple[str, bool, str] | None = None
     b, buf = hub.battery, hub.buffer
     soc_span = (b.soc_max_kwh - b.soc_min_kwh) * margin / 2.0
     buf_span = (buf.level_max_kwh - buf.level_min_kwh) * margin / 2.0
@@ -171,6 +177,10 @@ def score_plan(
         peak_import = max(peak_import, interval.grid_import_kw)
         buffer_discharge += interval.buffer_discharge_kw
         run_state.append(interval.chp_running)
+        current = (intent.heat_source, interval.chp_running, intent.battery)
+        if previous is not None and current != previous:
+            switches += 1
+        previous = current
 
         import_limit, export_limit = hub.contract.limits_at(intent.hour)
         if interval.grid_import_kw > import_limit + 1e-6:
@@ -215,6 +225,7 @@ def score_plan(
         peak_import_kw=peak_import,
         buffer_discharge_kwh=buffer_discharge,
         crop_distance_mol_m2=abs(dli - crop.dli_target_mol_m2),
+        switches=switches,
     )
 
 
@@ -313,6 +324,8 @@ class OptimizingScheduler:
         peak_cap_kw: Candidates importing more than this at any hour are never
             accepted. Grid relief sets it to the cost-optimal plan's peak, so that
             choosing it can never raise the peak, whatever the exchange rate.
+        switch_penalty_eur: Euros charged per equipment switch, for a grower who
+            said the plan must be easy to run (for example short of staff).
     """
 
     name: str = "optimizing"
@@ -325,6 +338,7 @@ class OptimizingScheduler:
     prefer_stored_heat: bool = False
     peak_value_eur_per_kw: float = GRID_PEAK_VALUE_EUR_PER_KW
     peak_cap_kw: float | None = None
+    switch_penalty_eur: float = 0.0
     evaluations: int = field(default=0, init=False)
     margin_used: float = field(default=0.0, init=False)
     sweeps_used: int = field(default=0, init=False)
@@ -378,6 +392,7 @@ class OptimizingScheduler:
             self.objective_mode,
             prefer_stored_heat=self.prefer_stored_heat,
             peak_value_eur_per_kw=self.peak_value_eur_per_kw,
+            switch_penalty_eur=self.switch_penalty_eur,
         )
 
     def _score(

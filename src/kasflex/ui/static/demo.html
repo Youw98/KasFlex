@@ -15,11 +15,12 @@
       <span><strong>KasFlex</strong><small data-i18n="brand.subtitle">Grower energy co-pilot</small></span>
     </a>
     <div class="top-controls">
-      <span id="data-pill" class="pill loading">Loading showcase…</span>
+      <span id="data-pill" class="pill loading">Loading…</span>
       <span id="validation-pill" class="pill pending" data-i18n="validation.pending">Model validation pending</span>
       <label class="compact-select">
         <span data-i18n="input.mode">Demo data</span>
         <select id="input-mode" aria-label="Demo data mode">
+          <option value="scenario" data-i18n="input.scenario">Workshop scenario</option>
           <option value="showcase" data-i18n="input.showcase">Showcase (offline)</option>
           <option value="real" data-i18n="input.real">Real historical</option>
         </select>
@@ -31,7 +32,7 @@
           <option value="nl">Nederlands</option>
         </select>
       </label>
-      <label class="compact-select">
+      <label class="compact-select" id="model-field">
         <span data-i18n="model">AI model</span>
         <select id="model-select" aria-label="AI model"></select>
       </label>
@@ -46,12 +47,12 @@
   <main id="workspace">
     <div id="error" class="error" hidden></div>
 
+    <!-- Step 1: the day, the story, and (in the AI versions) KasFlex's suggestion. -->
     <section id="prepare-view" class="view prepare-view">
       <div class="intro">
         <div>
-          <p class="eyebrow" data-i18n="prepare.eyebrow">Tomorrow's decision</p>
           <h1 data-i18n="prepare.title">Make tomorrow's energy plan together.</h1>
-          <p data-i18n="prepare.copy">Market and weather inputs first. Grower judgement second. KasFlex proposes and independently checks the plan.</p>
+          <p id="intro-copy" data-i18n="prepare.copy">KasFlex looks at prices and weather first and makes a suggestion. You decide.</p>
         </div>
         <div class="day-card">
           <span data-i18n="prepare.day">Planning day</span>
@@ -60,102 +61,179 @@
         </div>
       </div>
 
+      <article id="scenario-card" class="scenario-card" hidden>
+        <div class="scenario-head">
+          <span class="tag" data-i18n="scenario.tag">Scenario</span>
+          <label id="scenario-picker" class="scenario-picker"><span class="sr" data-i18n="scenario.choose">Choose a scenario</span><select id="scenario-select"></select></label>
+        </div>
+        <h2 id="scenario-title">—</h2>
+        <p id="scenario-framing">—</p>
+      </article>
+
       <div class="context-strip">
-        <article><span data-i18n="metric.cheap">Cheapest electricity</span><strong id="price-low">—</strong><small id="price-low-hours">—</small></article>
-        <article><span data-i18n="metric.expensive">Most expensive</span><strong id="price-high">—</strong><small id="price-high-hours">—</small></article>
-        <article><span data-i18n="metric.weather">Outside temperature</span><strong id="temp-range">—</strong><small id="sun-hours">—</small></article>
+        <article><span data-i18n="metric.cheap">Cheapest power</span><strong id="price-low">—</strong><small id="price-low-hours">—</small></article>
+        <article><span data-i18n="metric.expensive">Dearest power</span><strong id="price-high">—</strong><small id="price-high-hours">—</small></article>
+        <article><span data-i18n="metric.weather">Outside</span><strong id="temp-range">—</strong><small id="sun-hours">—</small></article>
         <article><span data-i18n="metric.grid">Grid contract</span><strong id="grid-limit">—</strong><small id="grid-window">—</small></article>
       </div>
 
       <div class="prepare-grid">
-        <article class="panel">
+        <article class="panel chart-panel">
           <div class="panel-head">
-            <div><p class="eyebrow" data-i18n="prepare.priority.eyebrow">Grower judgement</p><h2 data-i18n="prepare.priority.title">What matters most tomorrow?</h2></div>
+            <h2 data-i18n="prepare.price.title">Tomorrow at a glance</h2>
+            <button id="refresh-data" class="ghost" type="button" data-i18n="refresh">Refresh</button>
           </div>
-          <div class="priority-grid" role="radiogroup">
-            <label><input type="radio" name="priority" value="balanced" checked><span><strong data-i18n="priority.balanced">Balanced</strong><small data-i18n="priority.balanced.note">Cost, grid and margin together.</small></span></label>
-            <label><input type="radio" name="priority" value="cost"><span><strong data-i18n="priority.cost">Lowest cost</strong><small data-i18n="priority.cost.note">Expected euros first.</small></span></label>
-            <label><input type="radio" name="priority" value="crop"><span><strong data-i18n="priority.crop">Crop first</strong><small data-i18n="priority.crop.note">Climate and tomato margin first.</small></span></label>
-            <label><input type="radio" name="priority" value="grid"><span><strong data-i18n="priority.grid">Grid relief</strong><small data-i18n="priority.grid.note">Lower import peak, when each kW saved is worth its cost.</small></span></label>
-          </div>
-          <div class="policy-row">
-            <label><input id="avoid-chp-night" type="checkbox"><span data-i18n="policy.chp">Avoid CHP overnight</span></label>
-            <label><input id="prefer-buffer" type="checkbox" checked><span data-i18n="policy.buffer">Prefer stored heat</span></label>
-            <label class="reserve"><span data-i18n="policy.reserve">Battery reserve</span><input id="battery-reserve" type="range" min="0" max="70" step="5" value="45"><output id="reserve-value">45%</output></label>
-          </div>
-          <label class="checker-toggle">
-            <span>
-              <strong data-i18n="checker.toggle">Independent safety check</strong>
-              <small data-i18n="checker.toggle.note">Keep this on for the grower plan. Turn it off only to demonstrate what the checker prevents.</small>
-            </span>
-            <input id="checker-enabled" type="checkbox" checked>
-            <span class="switch-ui" aria-hidden="true"></span>
-          </label>
-          <div class="checker-compare-row">
-            <button id="compare-checker" type="button" class="ghost" data-i18n="checker.compare" disabled>Show what the check prevents</button>
-            <span data-i18n="checker.compare.note">Safety demonstration on the same day with a constraint-blind baseline; not your grower plan.</span>
-          </div>
-          <div id="checker-comparison" class="checker-comparison" hidden></div>
-          <label class="brief"><span data-i18n="policy.brief">Anything special tomorrow?</span><textarea id="brief" rows="2" data-i18n-placeholder="policy.brief.placeholder" placeholder="Maintenance, noise, crop work, staffing…"></textarea></label>
+          <div id="price-chart" class="chart" role="img" aria-label="Price and temperature per hour"></div>
+          <div class="legend"><span class="key price"></span><span data-i18n="legend.price">Power price</span><span class="key temp"></span><span data-i18n="legend.temp">Outside temperature</span><span class="key limit"></span><span data-i18n="legend.limit">Grid limit lowered</span></div>
         </article>
 
-        <article class="panel price-panel">
-          <div class="panel-head"><div><p class="eyebrow" data-i18n="prepare.price.eyebrow">Planning input</p><h2 data-i18n="prepare.price.title">Day-ahead price profile</h2></div><button id="refresh-data" class="ghost" data-i18n="refresh">Refresh</button></div>
-          <div id="price-chart" class="price-chart"></div>
-          <div class="axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+        <article id="recommend-panel" class="panel recommend-panel" hidden>
+          <span class="tag ai" data-i18n="recommend.tag">KasFlex suggests</span>
+          <h2 id="recommend-title">—</h2>
+          <ul id="recommend-reasons" class="reasons"></ul>
+          <div id="recommend-options" class="option-bars"></div>
+          <div id="recommend-memory" class="memory-note" hidden></div>
+          <div class="recommend-actions">
+            <button id="accept-recommendation" type="button" class="primary" data-i18n="recommend.accept">Plan with this suggestion</button>
+            <button id="choose-own" type="button" class="ghost" data-i18n="recommend.own">I choose differently</button>
+          </div>
         </article>
       </div>
 
+      <article id="choices-panel" class="panel choices-panel">
+        <h2 data-i18n="prepare.priority.title">What matters most tomorrow?</h2>
+        <div class="priority-grid" role="radiogroup">
+          <label><input type="radio" name="priority" value="balanced" checked><span><strong data-i18n="priority.balanced">Balanced</strong><small data-i18n="priority.balanced.note">Cost, crop and grid together.</small></span></label>
+          <label><input type="radio" name="priority" value="cost"><span><strong data-i18n="priority.cost">Lowest cost</strong><small data-i18n="priority.cost.note">Euros first.</small></span></label>
+          <label><input type="radio" name="priority" value="crop"><span><strong data-i18n="priority.crop">Crop first</strong><small data-i18n="priority.crop.note">Light and climate first.</small></span></label>
+          <label><input type="radio" name="priority" value="grid"><span><strong data-i18n="priority.grid">Grid relief</strong><small data-i18n="priority.grid.note">Lower peak, when a kW saved is worth it.</small></span></label>
+        </div>
+        <div class="policy-row">
+          <label><input id="avoid-chp-night" type="checkbox"><span data-i18n="policy.chp">Avoid CHP overnight</span></label>
+          <label><input id="prefer-buffer" type="checkbox" checked><span data-i18n="policy.buffer">Prefer stored heat</span></label>
+          <label class="reserve"><span data-i18n="policy.reserve">Battery reserve</span><input id="battery-reserve" type="range" min="0" max="70" step="5" value="45"><output id="reserve-value">45%</output></label>
+        </div>
+        <label class="brief"><span data-i18n="policy.brief">Anything special tomorrow?</span><textarea id="brief" rows="2" data-i18n-placeholder="policy.brief.placeholder" placeholder="Maintenance, noise, crop work, staffing…"></textarea></label>
+      </article>
+
+      <details id="goals-panel" class="panel goals-panel">
+        <summary><span data-i18n="goals.title">Your own targets and goals</span><small id="goals-count"></small></summary>
+        <div class="targets">
+          <label><span data-i18n="goals.import">Max. grid import</span><span class="unit-input"><input id="target-import" type="number" min="0" step="0.1" inputmode="decimal"><em>MW</em></span></label>
+          <label><span data-i18n="goals.light">Extra light at least</span><span class="unit-input"><input id="target-light" type="number" min="0" step="0.5" inputmode="decimal"><em>mol/m²</em></span></label>
+          <label><span data-i18n="goals.budget">Day budget at most</span><span class="unit-input"><input id="target-budget" type="number" min="0" step="100" inputmode="numeric"><em>€</em></span></label>
+        </div>
+        <p class="hint" data-i18n="goals.hint">The grid maximum is a hard limit: the check rejects any plan that goes over it. Light and budget are compared after planning.</p>
+        <div id="goal-list" class="goal-list"></div>
+        <div class="goal-form">
+          <input id="goal-name" type="text" maxlength="80" data-i18n-placeholder="goals.name" placeholder="Name, e.g. Quiet mornings">
+          <select id="goal-metric">
+            <option value="switches" data-i18n="goals.metric.switches">Switches between equipment</option>
+            <option value="chp_hours" data-i18n="goals.metric.chp">CHP running hours</option>
+            <option value="cost_eur" data-i18n="goals.metric.cost">Cost (€)</option>
+            <option value="peak_import_kw" data-i18n="goals.metric.peak">Grid peak (kW)</option>
+            <option value="light_mol_m2" data-i18n="goals.metric.light">Light (mol/m²)</option>
+          </select>
+          <select id="goal-op"><option value="<=">≤</option><option value=">=">≥</option></select>
+          <input id="goal-value" type="number" step="any" inputmode="decimal">
+          <button id="add-goal" type="button" class="ghost" data-i18n="goals.add">Add goal</button>
+        </div>
+      </details>
+
+      <details id="safety-panel" class="panel safety-panel">
+        <summary data-i18n="checker.toggle">Independent safety check</summary>
+        <label class="checker-toggle">
+          <span><strong data-i18n="checker.on">Check every plan</strong><small data-i18n="checker.toggle.note">Keep this on. Turn it off only to show what the check prevents.</small></span>
+          <input id="checker-enabled" type="checkbox" checked>
+          <span class="switch-ui" aria-hidden="true"></span>
+        </label>
+        <div class="checker-compare-row">
+          <button id="compare-checker" type="button" class="ghost" data-i18n="checker.compare" disabled>Show what the check prevents</button>
+        </div>
+        <div id="checker-comparison" class="checker-comparison" hidden></div>
+      </details>
+
       <div class="prepare-action">
-        <div><strong data-i18n="prepare.action.title">Ready to make the plan?</strong><small data-i18n="prepare.action.note">The independent checker still decides whether the proposal is safe.</small></div>
+        <strong id="build-note" data-i18n="prepare.action.title">Ready to make the plan?</strong>
         <button id="build-plan" type="button" class="primary" data-i18n="prepare.action.button" disabled>Build tomorrow's plan</button>
       </div>
     </section>
 
+    <!-- Step 2: the plan as charts, and the grower's view on each part of it. -->
     <section id="decision-view" class="view decision-view" hidden>
       <div class="decision-top">
-        <div>
-          <p class="eyebrow" data-i18n="decision.eyebrow">Deliberate before deciding</p>
-          <h1 data-i18n="decision.title">Do you agree with the plan?</h1>
-        </div>
-        <div id="checker-badge" class="checker">—</div>
+        <h1 id="decision-title" data-i18n="decision.title">Do you agree with the plan?</h1>
+        <div class="badges"><span id="grid-badge" class="checker">—</span><span id="checker-badge" class="checker">—</span></div>
       </div>
+
+      <div id="check-problems" class="problems" role="alert" hidden></div>
 
       <div class="headline-metrics">
         <article class="money"><span data-i18n="decision.expected">Expected cost</span><strong id="result-cost">—</strong><small id="result-saving">—</small></article>
-        <article class="crop"><span data-i18n="decision.crop">Simulated tomato growth</span><strong id="result-crop">—</strong><small id="result-crop-note">—</small></article>
-        <article><span data-i18n="decision.badcase">Bad-weather case</span><strong id="result-badcase">—</strong><small id="result-confidence">—</small></article>
-        <article><span data-i18n="decision.position">Energy position</span><strong id="result-position">—</strong><small id="result-settlement">—</small></article>
+        <article><span data-i18n="decision.crop">Tomato growth (simulated)</span><strong id="result-crop">—</strong><small id="result-crop-note">—</small></article>
+        <article><span data-i18n="decision.gridpeak">Highest grid import</span><strong id="result-peak">—</strong><small id="result-peak-note">—</small></article>
+        <article><span data-i18n="decision.work">Work</span><strong id="result-work">—</strong><small id="result-work-note">—</small></article>
       </div>
 
       <div class="decision-body">
-        <section class="dimension-panel">
-          <div class="dimension-head">
-            <strong data-i18n="dimension.prompt">This plan…</strong>
-            <span data-i18n="dimension.help">Respond to each part separately. KasFlex answers the part you disagree with.</span>
-          </div>
-          <div id="dimensions" class="dimensions"></div>
-        </section>
+        <div class="decision-main">
+          <article class="panel plan-chart-panel">
+            <div class="panel-head">
+              <h2 data-i18n="plan.title">Tomorrow, hour by hour</h2>
+              <button id="open-plan" type="button" class="ghost" data-i18n="details.plan">Larger</button>
+            </div>
+            <div id="plan-chart" class="chart plan-chart"></div>
+            <p id="plan-hover" class="hover-readout" aria-live="polite"></p>
+          </article>
 
-        <aside class="plan-panel">
-          <div>
-            <p class="eyebrow" data-i18n="plan.eyebrow">What changes</p>
-            <h2 data-i18n="plan.title">Plan highlights</h2>
-          </div>
-          <div id="changes-list" class="changes-list"></div>
+          <section id="dimension-panel" class="panel dimension-panel">
+            <div class="dimension-head">
+              <h2 data-i18n="dimension.prompt">This plan…</h2>
+              <span data-i18n="dimension.help">Give your view on each part. Disagree? Say why: KasFlex adjusts and remembers.</span>
+            </div>
+            <div id="dimensions" class="dimensions"></div>
+          </section>
+        </div>
+
+        <aside class="side">
+          <article class="panel donut-panel">
+            <h2 data-i18n="cost.title">Where the money goes</h2>
+            <div id="cost-donut" class="donut"></div>
+          </article>
+
+          <article id="goal-results" class="panel goal-results" hidden>
+            <h2 data-i18n="goals.result">Your targets</h2>
+            <ul id="goal-result-list"></ul>
+          </article>
+
+          <article id="memory-panel" class="panel memory-panel" hidden>
+            <h2 data-i18n="memory.title">KasFlex remembers</h2>
+            <ul id="memory-list"></ul>
+          </article>
+
+          <button id="chat-toggle" type="button" class="chat-toggle" hidden><span aria-hidden="true">💬</span> <span data-i18n="chat.open">Ask KasFlex</span></button>
+
           <div class="detail-buttons">
-            <button id="open-position" class="detail-button"><span>↔</span><span data-i18n="details.position">Position & grid</span></button>
-            <button id="open-risk" class="detail-button"><span>±</span><span data-i18n="details.risk">Risk & confidence</span></button>
-            <button id="open-plan" class="detail-button"><span>24</span><span data-i18n="details.plan">24-hour plan</span></button>
-            <button id="open-data" class="detail-button"><span>i</span><span data-i18n="details.data">Data sources</span></button>
+            <button id="open-factors" type="button" class="detail-button"><span>▤</span><span data-i18n="details.factors">Why this plan?</span></button>
+            <button id="open-week" type="button" class="detail-button"><span>7</span><span data-i18n="details.week">Week outlook</span></button>
+            <button id="open-position" type="button" class="detail-button"><span>↔</span><span data-i18n="details.position">Position & grid</span></button>
+            <button id="open-risk" type="button" class="detail-button"><span>±</span><span data-i18n="details.risk">Risk</span></button>
+            <button id="open-data" type="button" class="detail-button"><span>i</span><span data-i18n="details.data">Data sources</span></button>
           </div>
+
           <div class="final-box">
-            <small id="review-progress">0/4</small>
-            <strong data-i18n="final.title">Reach a view on all four dimensions</strong>
-            <p id="decision-copy" data-i18n="final.note">Approval unlocks when each dimension has a response and the checker accepts the current revision.</p>
-            <button id="approve-plan" class="primary" disabled data-i18n="final.approve">Approve final plan</button>
-            <button id="back-to-choices" class="ghost" data-i18n="final.rebuild">Change priorities & rebuild</button>
+            <small id="review-progress">0/3</small>
+            <strong id="final-title" data-i18n="final.title">Give your view on every part</strong>
+            <p id="decision-copy" data-i18n="final.note">Approve once every part has your view and the check accepts the plan.</p>
+            <button id="approve-plan" type="button" class="primary" disabled data-i18n="final.approve">Approve final plan</button>
+            <button id="back-to-choices" type="button" class="ghost" data-i18n="final.rebuild">Change choices & rebuild</button>
           </div>
+
+          <article id="debrief" class="panel debrief" hidden>
+            <h2 data-i18n="debrief.title">How did the day go?</h2>
+            <p id="debrief-message"></p>
+            <p id="debrief-text" class="muted"></p>
+          </article>
         </aside>
       </div>
     </section>
@@ -163,7 +241,6 @@
     <section id="position-view" class="view position-view" hidden>
       <div class="position-page-head">
         <div>
-          <p class="eyebrow" id="position-page-eyebrow">Energy position</p>
           <h1 id="position-page-title">Position, deviation and grid</h1>
           <p id="position-page-copy">See what was contracted, what the plan needs and where the grid position is short or long.</p>
         </div>
@@ -173,18 +250,32 @@
     </section>
   </main>
 
+  <aside id="chat-panel" class="chat-panel" hidden aria-label="Chat">
+    <div class="chat-head">
+      <strong data-i18n="chat.title">Ask KasFlex</strong>
+      <small id="chat-model"></small>
+      <button id="chat-close" type="button" class="ghost" aria-label="Close">×</button>
+    </div>
+    <div id="chat-log" class="chat-log" aria-live="polite"></div>
+    <div class="chat-suggestions" id="chat-suggestions"></div>
+    <form id="chat-form" class="chat-form">
+      <input id="chat-input" type="text" maxlength="500" autocomplete="off" data-i18n-placeholder="chat.placeholder" placeholder="Why does the CHP run at 18:00?">
+      <button id="chat-send" type="submit" class="small-primary" data-i18n="chat.send">Ask</button>
+    </form>
+  </aside>
+
   <dialog id="detail-dialog">
-    <div class="dialog-head"><div><p class="eyebrow" id="dialog-eyebrow"></p><h2 id="dialog-title"></h2></div><button id="close-dialog" class="ghost" aria-label="Close">×</button></div>
+    <div class="dialog-head"><div><h2 id="dialog-title"></h2><p id="dialog-eyebrow" class="muted"></p></div><button id="close-dialog" class="ghost" type="button" aria-label="Close">×</button></div>
     <div id="dialog-body"></div>
   </dialog>
 
   <dialog id="consent-dialog" class="consent-dialog">
-    <div class="dialog-head"><div><p class="eyebrow" data-i18n="consent.eyebrow">Research session</p><h2 data-i18n="consent.title">Choose how this session is recorded</h2></div></div>
+    <div class="dialog-head"><div><h2 data-i18n="consent.title">Choose how this session is recorded</h2></div></div>
     <p data-i18n="consent.copy">The demo works fully without research consent. Identifiable interaction data is recorded only when you explicitly choose to participate.</p>
     <label><span data-i18n="consent.participant">Participant ID</span><input id="participant-id" type="text" placeholder="P001"></label>
     <div class="consent-actions">
-      <button id="consent-anonymous" class="ghost" data-i18n="consent.anonymous">Continue anonymously</button>
-      <button id="consent-study" class="primary" data-i18n="consent.study">Consent & continue</button>
+      <button id="consent-anonymous" class="ghost" type="button" data-i18n="consent.anonymous">Continue anonymously</button>
+      <button id="consent-study" class="primary dark" type="button" data-i18n="consent.study">Consent & continue</button>
     </div>
   </dialog>
 

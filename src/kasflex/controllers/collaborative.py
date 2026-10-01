@@ -50,12 +50,52 @@ def _policy(context: base.PlanningContext) -> dict[str, object]:
     if raw.get("avoid_chp_night") is True:
         forbidden.update(NIGHT_HOURS)
 
+    try:
+        switch_penalty = max(0.0, min(500.0, float(raw.get("switch_penalty_eur", 0) or 0)))
+    except (TypeError, ValueError):
+        switch_penalty = 0.0
+
     return {
         "priority": priority,
         "battery_reserve_pct": reserve_pct,
         "avoid_chp_hours": tuple(sorted(forbidden)),
         "prefer_stored_heat": raw.get("prefer_stored_heat") is True,
+        "switch_penalty_eur": switch_penalty,
     }
+
+
+def _repair_seed(plan: intent.Plan, context: base.PlanningContext,
+                 forbidden: tuple[int, ...]) -> intent.Plan:
+    """Make a seed that cannot meet the heat demand feasible, if the CHP can help.
+
+    The rule-based seed heats with the boiler. On a night colder than the boiler
+    alone can handle, every hour above its capacity is a hard violation, the
+    search has no feasible point to start from, and the grower gets the fallback
+    plan. Running the CHP heat-led through those hours (the boiler tops up) is
+    what a grower would do; it is only a starting point the search then improves.
+    """
+    hub = context.hub
+    blocked = set(forbidden)
+    cold = {c.hour for c in context.forecast
+            if c.heat_demand_kw > hub.boiler.thermal_capacity_kw and c.hour not in blocked}
+    if not cold or scheduler.score_plan(plan, hub, context.forecast).feasible:
+        return plan
+    # Extend each run to the CHP's minimum run time so the repair itself is valid.
+    span = set(cold)
+    for hour in sorted(cold):
+        for extra in range(hub.chp.min_run_hours):
+            if (hour + extra) < 24 and (hour + extra) not in blocked:
+                span.add(hour + extra)
+    repaired = dataclasses.replace(
+        plan,
+        intervals=tuple(
+            dataclasses.replace(iv, heat_source="chp", chp_mode="heat_led")
+            if iv.hour in span else iv
+            for iv in plan.intervals),
+    )
+    if scheduler.score_plan(repaired, hub, context.forecast).feasible:
+        return repaired
+    return plan
 
 
 def _apply_blackout(plan: intent.Plan, forbidden: tuple[int, ...]) -> intent.Plan:
@@ -98,10 +138,12 @@ class CollaborativePlanner:
 
         seed = rule_based.RuleBasedPlanner().plan(context)
         seed = _apply_blackout(seed, policy["avoid_chp_hours"])
+        seed = _repair_seed(seed, context, tuple(policy["avoid_chp_hours"]))
 
         margin = float(policy["battery_reserve_pct"]) / 100.0
         forbidden = tuple(policy["avoid_chp_hours"])
         prefer_stored = bool(policy["prefer_stored_heat"])
+        switch_penalty = float(policy["switch_penalty_eur"])
 
         # Grid relief starts from the cost-improved plan and may only lower its
         # peak, and only where each kW saved is worth what it costs to save it.
@@ -112,6 +154,7 @@ class CollaborativePlanner:
                 objective_mode="cost",
                 forbidden_chp_hours=forbidden,
                 prefer_stored_heat=prefer_stored,
+                switch_penalty_eur=switch_penalty,
             )
             seed = warmup.optimise(seed, context.hub, context.forecast)
             cost_plan_peak = scheduler.score_plan(
@@ -125,6 +168,7 @@ class CollaborativePlanner:
             prefer_stored_heat=prefer_stored,
             peak_value_eur_per_kw=self.peak_value_eur_per_kw,
             peak_cap_kw=cost_plan_peak,
+            switch_penalty_eur=switch_penalty,
         )
         best = optimiser.optimise(seed, context.hub, context.forecast)
         # The search edits the rule-based seed field by field; without this every

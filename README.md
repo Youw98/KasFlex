@@ -34,40 +34,44 @@ whole-plan regeneration.
 1. Download the file for your operating system from
    [Releases](https://github.com/Youw98/KasFlex/releases).
 2. Start KasFlex. The browser opens the grower workspace at `/`.
-3. KasFlex opens in **Showcase (offline)** mode by default: a fixed, deterministic
-   winter day that needs no network connection and is clearly labelled as showcase
-   data. For a data-provenance demonstration, switch **Demo data** to
-   **Real historical**; KasFlex then prepares a cached/downloaded Dutch
-   market/weather day.
-4. Choose what matters to the grower: **Balanced**, **Lowest cost**,
-   **Crop first**, or **Grid relief**, plus battery reserve and operating
-   preferences. Grid relief never raises the peak above the lowest-cost plan, and
-   only pays for a lower peak when each kW saved costs less than
-   `grid_peak_value_eur_per_kw` (default EUR 3.57, Liander's 2026 kWmax tariff).
-5. Keep the **independent safety check** on for the real grower decision. Switch it
-   off only to demonstrate which hard violations the checker prevents.
-6. Use **Show what the check prevents** for a clearly labelled safety demonstration
-   on the same day. It compares a constraint-blind baseline with and without
-   independent verification, including hard breaches, cost and tomato growth. This
-   demonstration is separate from the grower's actual plan.
-7. Click **Build tomorrow's plan**.
-8. Respond separately to **saves money**, **protects the crop**, **respects the
-   grid**, and **fits how I work**.
-9. Disagree with one dimension to see KasFlex produce a targeted alternative and
-   the trade-off. Approval unlocks only after all four dimensions have been reviewed
-   and the current revision passes the checker.
+3. KasFlex opens on a **workshop scenario**: a fixed day with a short story
+   ("It's Monday morning in January…"), no network needed. **Demo data** also
+   offers **Showcase (offline)**, a fixed synthetic winter day, and **Real
+   historical**, a cached or downloaded Dutch market and weather day.
+4. **KasFlex goes first.** It plans tomorrow four ways (balanced, lowest cost,
+   crop first, grid relief), compares them with normal control, and suggests one
+   with its reasons in numbers. Click **Plan with this suggestion**, or **I choose
+   differently** to set the priority, battery reserve and operating preferences
+   yourself.
+5. Optionally open **Your own targets and goals**: a maximum grid import (a hard
+   limit the check enforces), a light target, a day budget, and up to five named
+   goals such as "at most 6 equipment switches".
+6. The plan appears as charts: price, grid import against the contract limit,
+   battery and heat buffer, heat source, lamps and CHP, hour by hour (point at an
+   hour for the details), plus a cost donut. The grid contract is a badge, not a
+   question: a plan over the limit is never approved.
+7. Respond to **saves money**, **protects the crop**, **fits how I work** (equipment
+   switches, CHP hours and night hours, hours that differ from normal) and, if you
+   set any, **meets my goals**. **Disagree** needs a short reason ("CHP maintenance
+   8–14", "max 1.5 MW from 16 to 20", "we always have few staff"). KasFlex turns it
+   into a plan change, shows the trade-off, and remembers it; a reason phrased as a
+   rule comes back in later plans.
+8. **Why this plan?** shows which inputs the plan leans on (a what-if graph);
+   **Week outlook** estimates a week of such days; in the chat version **Ask
+   KasFlex** answers questions about the plan, with or without an AI model.
+9. Approval unlocks once every part has your view and the plan passes the check.
+   In a scenario, KasFlex then tells you how the day really went, and whether there
+   was a trap.
 
-![KasFlex grower workspace: tomorrow's market and weather, grower priorities, and the independent safety check](docs/ui-grower-prepare.png)
+![KasFlex grower workspace: the scenario story, tomorrow's prices and weather, and KasFlex's suggestion](docs/ui-grower-prepare.png)
 
-_Step 1: tomorrow's prices, weather and grid contract, then the grower's priority
-and preferences. The header shows the data mode, the model-validation status, the
-language (English/Dutch) and the AI model that explains the plan._
+_Step 1: the scenario story, tomorrow's prices, temperature and grid contract, and
+KasFlex's suggestion compared with the other options and normal control._
 
-![KasFlex decision screen: expected cost, simulated crop growth, bad-weather case, energy position and the four dimensions](docs/ui-grower-decision.png)
+![KasFlex decision screen: cost, crop, grid peak and work; the 24-hour plan as charts; the cost donut; and the grower's view on each part](docs/ui-grower-decision.png)
 
-_Step 2: the checked plan. The grower answers money, crop, grid and practical fit
-separately; **Why?** explains each one, and the side panel opens the plan highlights,
-position & grid, risk & confidence, the 24-hour plan and the data sources._
+_Step 2: the checked plan as charts, with the grower's view on money, crop, work and
+own goals. A disagreement needs a reason; KasFlex adjusts the plan and remembers._
 
 The default showcase is intentionally synthetic and deterministic so a team
 presentation cannot fail because of Wi-Fi or an external API. It is labelled as
@@ -121,7 +125,10 @@ kasflex ui
 real/synthetic inputs
         │
         ▼
- grower priorities + limits
+ AI suggestion (4 options compared)
+        │
+        ▼
+ grower priorities, targets, goals
         │
         ▼
  collaborative planner
@@ -133,10 +140,10 @@ real/synthetic inputs
  deterministic checker
         │
         ▼
- dimension-level negotiation
+ dimension-level negotiation (a reason is required to disagree)
         │
         ▼
- targeted alternative / keep plan
+ targeted alternative / keep plan  →  reason remembered
         │
         ▼
  re-check + final plan
@@ -147,12 +154,15 @@ real/synthetic inputs
 
 In practice:
 
-- the grower chooses the day's priority and operating preferences;
+- KasFlex compares four ways to plan tomorrow and suggests one, with reasons;
+- the grower accepts it or chooses the priority, targets and own goals;
 - the collaborative planner proposes when to use lighting, battery, CHP, boiler,
   heat storage, and other flexible assets;
-- a deterministic checker independently verifies limits;
-- the grower responds separately on money, crop, grid and practical fit;
-- a disagreement produces a specific alternative with a visible trade-off;
+- a deterministic checker independently verifies limits, including the grid
+  contract (firm, CBC, time-block, duration or non-firm) as an hourly hard limit;
+- the grower responds separately on money, crop, practical fit and own goals;
+- a disagreement needs a short reason, which KasFlex turns into a specific
+  alternative with a visible trade-off and remembers for later plans;
 - every changed plan is checked again before it can become the final plan;
 - the run records provenance, model identity, timing and deliberation data when
   research consent allows it.
@@ -280,23 +290,52 @@ the plan was accepted.
 
 ## Interfaces
 
-`kasflex ui` serves four pages on `http://127.0.0.1:8765`.
+`kasflex ui` serves five pages on `http://127.0.0.1:8765`.
 
 ### Grower workspace — `/`
 
 The default page, shown above. It focuses on the decision:
 
-- What is KasFlex proposing, and why?
-- What changes compared with normal operation, and what does it cost?
-- Are the constraints satisfied?
-- Do I agree, part by part?
+- What does KasFlex suggest for tomorrow, and why (in numbers)?
+- What does the plan do, hour by hour (charts, not a table)?
+- Does it stay within the grid contract and my own limits?
+- Do I agree, part by part, and if not, why?
 
-The grower can compare verification on and off before making a plan, and can object
-to money, crop, grid or practical fit separately without discarding accepted parts.
-Position and grid exposure have their own screen, with contracted volume, planned
-use, deviation, settlement and the short/long direction for every hour. A research
+What the grower sees depends on the study version set on the admin page:
+
+| Version | Suggestion first | Agree/disagree with reason | Why-this-plan graph | Chat |
+|---|---|---|---|---|
+| 1 · No advisor | – | – | – | – |
+| 2 · AI suggests | ✓ | ✓ | ✓ | – |
+| 3 · AI + chat | ✓ | ✓ | ✓ | ✓ |
+
+In version 1 the grower sets priority and targets, and KasFlex calculates and checks
+the plan without suggesting, arguing or explaining. All versions use the same
+planner and checker (ADR-0015 in [DECISIONS.md](docs/DECISIONS.md)).
+
+The chat uses the configured AI model (Claude, OpenAI, Gemini, a local Ollama model
+or any OpenAI-compatible server). Without one, an offline assistant answers from the
+plan's own numbers. Position and grid exposure have their own screen. A research
 consent dialog decides whether interaction data is recorded; the demo works fully
 without it.
+
+### Workshop admin — `/admin`
+
+For the researcher running a workshop:
+
+1. **Study version**: no advisor, AI suggests, or AI + chat.
+2. **Scenario for participants**, and whether to lock it so participants cannot
+   switch day or data.
+3. **Scenarios**: four built in, two good and two with a deliberate error the
+   planner cannot see (a grid operator's curtailment notice; a CHP maintenance
+   visit). Edit, duplicate or create scenarios: the story and debrief in English and
+   Dutch, 24 prices and temperatures, the grid contract type, installation changes,
+   and the error (type, hours, limit). Edited built-ins can be reset.
+4. **Remembered reasons**: what participants said when they disagreed. Clear them
+   between workshop groups.
+
+The admin page has no login: like the rest of the interface it is served on
+localhost only.
 
 ### Research workspace — `/advanced`
 
@@ -499,6 +538,8 @@ For the full workflow, see [docs/USAGE.md](docs/USAGE.md).
 | Grid relief trade-off | Done: a lower peak is bought only when each kW costs less than `grid_peak_value_eur_per_kw` (default €3.57, Liander 2026 kWmax) | Set your own network operator's tariff |
 | Real data | Works; `kasflex doctor --network` reports what is missing | An ENTSO-E token, and network access to ENTSO-E and Open-Meteo |
 | MPC reference planner | Interface only | A mixed-integer formulation; see `src/kasflex/controllers/mpc.py` |
+| Reasons in free text | Rules recognise maintenance hours, staff, frost, light, buffer, grid limits (Dutch and English); other text is kept but changes nothing | An AI model could read more, but its reading would need the same checker-backed effects |
+| Week plan | Deliberately not: KasFlex plans one day ahead, the week outlook is an estimate (ADR-0013) | – |
 
 ---
 

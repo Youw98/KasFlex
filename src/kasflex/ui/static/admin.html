@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>KasFlex — Workshop admin</title>
+  <link rel="stylesheet" href="/demo.css">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="KasFlex grower page">
+      <img src="/mark.svg" alt="" width="36" height="36">
+      <span><strong>KasFlex</strong><small id="t-subtitle">Workshop admin</small></span>
+    </a>
+    <div class="top-controls">
+      <a class="ghost link-button" href="/" id="t-open-grower">Open grower page ↗</a>
+      <label class="compact-select">
+        <span id="t-language">Language</span>
+        <select id="language-select" aria-label="Language">
+          <option value="en">English</option>
+          <option value="nl">Nederlands</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <main id="workspace" class="admin">
+    <div id="error" class="error" hidden></div>
+    <h1 id="t-title">Workshop set-up</h1>
+    <p id="t-intro" class="lead">Choose what participants see, which day they plan, and manage the scenarios.</p>
+
+    <section class="panel">
+      <h2 id="t-version">1 · Study version</h2>
+      <div id="versions" class="version-grid" role="radiogroup"></div>
+    </section>
+
+    <section class="panel">
+      <h2 id="t-active">2 · Scenario for participants</h2>
+      <div class="active-row">
+        <label class="field"><span id="t-scenario">Scenario</span><select id="active-scenario"></select></label>
+        <label class="check"><input id="lock-scenario" type="checkbox"><span id="t-lock">Lock it: participants cannot switch day or data</span></label>
+        <button id="save-active" type="button" class="primary dark">Save</button>
+      </div>
+      <p id="active-note" class="hint"></p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 id="t-scenarios">3 · Scenarios</h2>
+        <button id="new-scenario" type="button" class="ghost">+ New scenario</button>
+      </div>
+      <div id="scenario-list" class="scenario-list"></div>
+    </section>
+
+    <section id="editor" class="panel editor" hidden>
+      <div class="panel-head"><h2 id="editor-title">Edit scenario</h2><button id="close-editor" type="button" class="ghost">×</button></div>
+      <div class="form-grid">
+        <label class="field"><span>ID</span><input id="f-id" type="text" maxlength="41" pattern="[a-z0-9][a-z0-9_\-]{1,40}"></label>
+        <label class="field"><span id="t-kind">Kind</span><select id="f-kind"><option value="good">good</option><option value="flawed">flawed</option></select></label>
+        <label class="field"><span id="t-date">Date</span><input id="f-date" type="date"></label>
+        <label class="field"><span id="t-contract">Grid contract</span><select id="f-contract"></select></label>
+        <label class="check"><input id="f-winter" type="checkbox"><span id="t-winter">Winter</span></label>
+        <label class="field"><span id="t-seed">Weather seed</span><input id="f-seed" type="number" step="1" min="0"></label>
+        <label class="field"><span id="t-sun">Sunlight × (0–3)</span><input id="f-sun" type="number" step="0.1" min="0" max="3"></label>
+      </div>
+
+      <h3 id="t-texts">Texts</h3>
+      <div class="form-grid two">
+        <label class="field"><span>Title (EN)</span><input id="f-title-en" type="text"></label>
+        <label class="field"><span>Titel (NL)</span><input id="f-title-nl" type="text"></label>
+        <label class="field"><span id="t-framing-en">Story for participants (EN)</span><textarea id="f-framing-en" rows="4"></textarea></label>
+        <label class="field"><span id="t-framing-nl">Verhaal voor deelnemers (NL)</span><textarea id="f-framing-nl" rows="4"></textarea></label>
+        <label class="field"><span id="t-debrief-en">Debrief after approval (EN)</span><textarea id="f-debrief-en" rows="3"></textarea></label>
+        <label class="field"><span id="t-debrief-nl">Nabespreking na goedkeuren (NL)</span><textarea id="f-debrief-nl" rows="3"></textarea></label>
+      </div>
+
+      <h3 id="t-day">Prices and temperatures</h3>
+      <p id="t-day-hint" class="hint">24 values each, separated by commas or spaces. Leave empty to use a simulated day.</p>
+      <div class="form-grid two">
+        <label class="field"><span id="t-prices">Power price per hour (ct/kWh)</span><textarea id="f-prices" rows="3"></textarea></label>
+        <label class="field"><span id="t-temps">Outside temperature per hour (°C)</span><textarea id="f-temps" rows="3"></textarea></label>
+      </div>
+      <div id="preview" class="chart"></div>
+
+      <h3 id="t-hub">Installation (empty = standard)</h3>
+      <div class="form-grid">
+        <label class="field"><span id="t-boiler">Boiler (kW)</span><input id="f-boiler_kw" type="number" min="0" step="100"></label>
+        <label class="field"><span id="t-buffer">Heat buffer (kWh)</span><input id="f-buffer_kwh" type="number" min="0" step="1000"></label>
+        <label class="field"><span id="t-battery">Battery (kWh)</span><input id="f-battery_kwh" type="number" min="0" step="100"></label>
+        <label class="field"><span id="t-import">Grid import limit (kW)</span><input id="f-import_limit_kw" type="number" min="0" step="100"></label>
+      </div>
+
+      <h3 id="t-flaw">Deliberate error (flawed scenarios)</h3>
+      <p id="t-flaw-hint" class="hint">The story tells participants a fact that the planner never sees. After approval, KasFlex checks the plan against that fact.</p>
+      <div class="form-grid">
+        <label class="field"><span id="t-flaw-type">Type</span><select id="f-flaw-type"></select></label>
+        <label class="field flaw-hours"><span id="t-flaw-hours">Hours (e.g. 16-19 or 8,9,10)</span><input id="f-flaw-hours" type="text"></label>
+        <label class="field flaw-import"><span id="t-flaw-import">Max. grid import then (kW)</span><input id="f-flaw-import" type="number" min="0" step="100"></label>
+        <label class="field flaw-drop"><span id="t-flaw-drop">Night colder than forecast by (°C)</span><input id="f-flaw-drop" type="number" min="0" max="20" step="0.5"></label>
+      </div>
+
+      <div class="editor-actions">
+        <button id="save-scenario" type="button" class="primary dark">Save scenario</button>
+        <button id="cancel-edit" type="button" class="ghost">Cancel</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 id="t-memory">4 · Remembered reasons</h2>
+        <button id="forget-all" type="button" class="ghost danger">Forget all</button>
+      </div>
+      <p id="t-memory-hint" class="hint">What participants said when they disagreed. KasFlex uses these in later plans of the same participant. Clear them between workshop groups.</p>
+      <div id="memory-list" class="memory-list"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="/admin.js"></script>
+</body>
+</html>

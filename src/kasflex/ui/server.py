@@ -49,6 +49,7 @@ from kasflex.conversation import (
     propose_compromise,
 )
 from kasflex.deliberation import DIMENSIONS, RESPONSES, DeliberationLog
+from kasflex.energy.contracts import describe as describe_contract
 from kasflex.fair import DatasetMetadata, build_bundle, conflict_table, to_csv
 from kasflex.forecast.cost import project_cost
 from kasflex.intent import IntentSchemaError, IntervalIntent, Plan
@@ -62,9 +63,22 @@ from kasflex.llm_providers import (
 from kasflex.memory import STRENGTHS, GrowerMemory
 from kasflex.oversight import AuditLog
 from kasflex.profiles import ProfileStore
+from kasflex.reasons import apply_effects
+from kasflex.reasons import interpret as interpret_reason
 from kasflex.reliance import RelianceLog
 from kasflex.resources import resolve_output, static_dir
+from kasflex.scenarios import HUB_FIELDS, ScenarioStore, scenario_day
 from kasflex.ui.reviews import ReviewConflict, ReviewStore
+from kasflex.ui.workshop_api import (
+    WorkshopMixin,
+    clean_goals,
+    clean_import_caps,
+    clean_targets,
+    evaluate_goals,
+    participant_key,
+    scenario_check,
+    work_metrics,
+)
 from kasflex.uncertainty import (
     ASSUMED_IRRADIANCE_RMSE_W_M2,
     ASSUMED_TEMP_RMSE_C,
@@ -75,6 +89,7 @@ from kasflex.uncertainty import (
 )
 from kasflex.uncertainty import describe as describe_uncertainty
 from kasflex.uncertainty import estimate as uncertainty_estimate
+from kasflex.workshop import WorkshopStore
 
 STATIC_DIR = static_dir()
 
@@ -119,9 +134,16 @@ ADJUSTABLE: tuple[dict[str, Any], ...] = (
              "string changes. Deliberately not settable from a browser, so that "
              "nobody can switch the consent regime off from the page."},
     {"path": "data_source", "label": "Data mode", "kind": "choice",
-     "choices": ["demo", "cache", "synthetic"],
+     "choices": ["demo", "cache", "synthetic", "scenario"],
      "help": ("Demo replays real historical Dutch market/weather inputs; "
-              "cache uses your downloaded day; synthetic is for deliberate tests.")},
+              "cache uses your downloaded day; synthetic is for deliberate tests; "
+              "scenario is a fixed workshop day.")},
+    {"path": "scenario_id", "label": "Workshop scenario", "kind": "text",
+     "help": "Which fixed workshop day to plan when the data mode is scenario."},
+    {"path": "grid_contract_type", "label": "Grid contract type", "kind": "choice",
+     "choices": ["firm", "cbc", "time_block", "duration", "non_firm"],
+     "help": ("When the contracted grid capacity is available: firm (always), CBC "
+              "(less in congestion hours), time-block, duration (85%) or non-firm.")},
     {"path": "llm_provider", "label": "AI service", "kind": "choice",
      "choices": sorted(PROVIDERS),
      "help": "Which model explains plans and answers questions. Ollama runs locally."},
@@ -327,6 +349,22 @@ def _apply_overrides(config: ScenarioConfig, overrides: dict[str, Any]) -> Scena
     if "hub.battery.max_charge_kw" in overrides:
         payload["hub"]["battery"]["max_discharge_kw"] = overrides["hub.battery.max_charge_kw"]
 
+    # A workshop scenario fixes its own day, season, grid contract and installation
+    # changes (for example a boiler out of order), so every participant plans the
+    # same situation whatever else the page sends.
+    if payload.get("data_source") == "scenario" and payload.get("scenario_id"):
+        try:
+            scenario = _scenario_store().get(str(payload["scenario_id"]))
+        except KeyError as exc:
+            raise ApiError(f"Unknown workshop scenario {payload['scenario_id']!r}.", 404) from exc
+        payload["date"] = scenario.date
+        payload["winter"] = scenario.winter
+        if "grid_contract_type" not in overrides:
+            payload["grid_contract_type"] = scenario.grid_contract_type
+        for name, value in scenario.hub.items():
+            section, key = HUB_FIELDS[name][0]
+            payload["hub"][section][key] = value
+
     try:
         return ScenarioConfig.from_dict(payload, where="interface")
     except ConfigError as exc:
@@ -357,6 +395,13 @@ def _day_for(config: ScenarioConfig):
         forecast, actual = data.conditions()
         return SimpleNamespace(forecast=forecast, actual=actual,
                                actuals_available=data.actuals_available, sources=data.sources)
+    if config.data_source == "scenario":
+        try:
+            scenario = _scenario_store().get(config.scenario_id)
+        except KeyError as exc:
+            raise ApiError(f"Unknown workshop scenario {config.scenario_id!r}.", 404) from exc
+        return scenario_day(scenario, floor_area_m2=config.hub.floor_area_m2,
+                            gas_price_eur_kwh=config.gas_price_eur_kwh)
     if config.data_source != "synthetic":
         raise ApiError("Choose Demo or Downloaded real data in Configuration.")
     day = synthetic_day(
@@ -372,6 +417,16 @@ def _day_for(config: ScenarioConfig):
         actual=tuple(dataclasses.replace(c, gas_price_eur_kwh=config.gas_price_eur_kwh)
                      for c in day.actual),
     )
+
+
+def _is_cold(forecast) -> bool:
+    """A night at or below freezing, when cold-weather reasons come back into play."""
+    night = [c.outdoor_temp_c for c in forecast if c.hour in (0, 1, 2, 3, 4, 5, 22, 23)]
+    return bool(night) and min(night) <= 0.5
+
+
+def _scenario_store() -> ScenarioStore:
+    return ScenarioStore(resolve_output("results/scenarios"))
 
 
 def _normal_settings(config: ScenarioConfig, greenhouse, conditions):
@@ -430,7 +485,7 @@ def _plan_payload(plan: Plan, conditions) -> list[dict[str, Any]]:
 
 
 @dataclass
-class UiServer:
+class UiServer(WorkshopMixin):
     """Holds the scenario the interface is editing and serves the API."""
 
     config_path: str = "configs/scenario_westland_winter.yaml"
@@ -443,6 +498,8 @@ class UiServer:
     deliberation: DeliberationLog = field(init=False)
     consent: ConsentLog = field(init=False)
     profiles: ProfileStore = field(init=False)
+    scenarios: ScenarioStore = field(init=False)
+    workshop: WorkshopStore = field(init=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -454,6 +511,8 @@ class UiServer:
         self.deliberation = DeliberationLog(resolve_output("results/deliberation.sqlite3"))
         self.consent = ConsentLog(resolve_output("results/consent.sqlite3"))
         self.profiles = ProfileStore(resolve_output("results/profiles"))
+        self.scenarios = _scenario_store()
+        self.workshop = WorkshopStore(resolve_output("results/workshop.json"))
 
     # -- what this plan changes, against normal settings --------------------
 
@@ -489,8 +548,16 @@ class UiServer:
 
     # -- grower collaboration ------------------------------------------------
 
-    def _compile_policy(self, supplied: dict[str, Any] | None) -> dict[str, Any]:
-        """Validate the explicit daily choices and merge compatible remembered rules."""
+    def _compile_policy(self, supplied: dict[str, Any] | None, *,
+                        overrides: dict[str, Any] | None = None,
+                        cold: bool | None = None) -> dict[str, Any]:
+        """Validate the daily choices and merge what the grower said before.
+
+        Remembered disagreement reasons come back here. A standing one (``always``)
+        is applied every day; a cold-weather one only on a cold day; a one-off fact
+        (``once``, such as a maintenance visit) is never applied automatically, it is
+        only shown again as a reminder.
+        """
         raw = supplied if isinstance(supplied, dict) else {}
         priority = str(raw.get("priority", "balanced")).lower()
         if priority not in {"balanced", "cost", "grid", "crop"}:
@@ -504,10 +571,19 @@ class UiServer:
         avoid_hours: set[int] = set()
         if raw.get("avoid_chp_night") is True:
             avoid_hours.update((22, 23, 0, 1, 2, 3, 4, 5))
+        for value in raw.get("avoid_chp_hours") or []:
+            try:
+                hour = int(value)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= hour <= 23:
+                avoid_hours.add(hour)
 
         remembered_ids: list[str] = []
         negative = ("no ", "don't", "do not", "avoid", "never", "geen ", "niet ", "vermijd")
         for pref in self.memory.preferences():
+            if pref.scope.get("kind") == "disagreement":
+                continue
             text = pref.rule.lower()
             assets = {str(v).lower() for v in (pref.scope.get("assets") or [])}
             mentions_chp = "chp" in assets or "chp" in text or "wkk" in text
@@ -531,15 +607,39 @@ class UiServer:
                 avoid_hours.update(parsed)
                 remembered_ids.append(pref.pref_id)
 
-        return {
+        try:
+            switch_penalty = max(0.0, min(500.0, float(raw.get("switch_penalty_eur", 0) or 0)))
+        except (TypeError, ValueError):
+            switch_penalty = 0.0
+        night_temp = raw.get("night_temp_c")
+        try:
+            night_temp = None if night_temp in (None, "") else float(night_temp)
+        except (TypeError, ValueError):
+            night_temp = None
+
+        policy: dict[str, Any] = {
             "priority": priority,
             "battery_reserve_pct": reserve,
             "avoid_chp_night": raw.get("avoid_chp_night") is True,
             "avoid_chp_hours": sorted(avoid_hours),
             "prefer_stored_heat": raw.get("prefer_stored_heat") is True,
+            "switch_penalty_eur": switch_penalty,
+            "night_temp_c": night_temp,
+            "import_caps": clean_import_caps(raw.get("import_caps")),
+            "targets": clean_targets(raw.get("targets")),
+            "goals": clean_goals(raw.get("goals")),
             "brief": str(raw.get("brief", ""))[:1000],
             "remembered_preference_ids": remembered_ids,
         }
+        if raw.get("use_memory") is False:
+            return policy
+        for pref in self.remembered(participant_key(overrides)):
+            applies = pref.scope.get("applies", "once")
+            if applies == "always" or (applies == "cold" and cold):
+                policy = apply_effects(policy, pref.scope.get("effects") or {})
+                remembered_ids.append(pref.pref_id)
+        policy["remembered_preference_ids"] = remembered_ids
+        return policy
 
     def day_context(self, overrides: dict[str, Any]) -> dict[str, Any]:
         """Return the market/weather story a grower should see before planning."""
@@ -600,7 +700,16 @@ class UiServer:
                 "temperature_series": temps,
                 "irradiance_series": irradiance,
             },
+            # The debrief and the flaw stay server-side until the plan is approved:
+            # a participant must find the trap from the story, not from the payload.
+            "scenario": ({key: value for key, value in self.scenarios.get(
+                config.scenario_id).to_dict(i18n.normalise(config.language)).items()
+                if key not in ("debrief", "debrief_text", "flaw")}
+                if config.data_source == "scenario" else None),
             "grid": {
+                "contract": describe_contract(config.grid_contract_type,
+                                              i18n.normalise(config.language)),
+                "hourly_import_kw": [config.hub.contract.limits_at(h)[0] for h in range(24)],
                 "import_limit_kw": config.hub.contract.import_limit_kw,
                 "export_limit_kw": config.hub.contract.export_limit_kw,
                 "congestion_windows": {
@@ -950,6 +1059,27 @@ class UiServer:
             "avoids CHP overnight and prefers stored heat first. Use this practical variant?"
         )
 
+    @staticmethod
+    def _counter_from_reason(reason: str, reading: dict[str, Any], current: dict[str, Any],
+                             alternative: dict[str, Any], language: str) -> str:
+        nl = language == "nl"
+        before = current.get("metrics") or {}
+        after = alternative.get("metrics") or {}
+        old = float(before.get("net_cost_eur", 0) or 0)
+        new = float(after.get("net_cost_eur", 0) or 0)
+        checked = alternative.get("accepted") and alternative.get("checker_enabled")
+        verdict = (("De controle keurt dit plan goed." if checked else
+                    "Let op: de controle keurt dit plan niet goed.") if nl else
+                   ("The check accepts this plan." if checked else
+                    "Note: the check does not accept this plan."))
+        if nl:
+            return (f"U zei: “{reason}”. {reading['summary']}. Het nieuwe plan kost "
+                    f"€{new:,.0f} ({new - old:+,.0f}). {verdict} Ik onthoud wat u zei voor een "
+                    f"volgende keer. Wilt u dit plan gebruiken?")
+        return (f"You said: “{reason}”. {reading['summary']}. The new plan costs "
+                f"€{new:,.0f} ({new - old:+,.0f}). {verdict} I will remember what you said for "
+                f"next time. Use this plan?")
+
     def deliberate(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Respond to one grower opinion without silently replacing the whole plan."""
 
@@ -964,6 +1094,7 @@ class UiServer:
         overrides = dict(current.get("overrides") or {})
         language = i18n.normalise(str(overrides.get("language") or self.base.language))
         alternative = None
+        remembered_id = ""
 
         if response == "agree":
             counter = (
@@ -979,8 +1110,20 @@ class UiServer:
                      "hours before you decide."
             )
         else:
+            # A disagreement without a reason teaches nothing: the grower knows something
+            # the plan does not, and the reason is how KasFlex gets to know it too.
+            reason = " ".join(str(payload.get("reason") or "").split())[:300]
+            if len(reason) < 3:
+                raise ApiError(
+                    "Zeg in een paar woorden waarom u het oneens bent, dan kan KasFlex het "
+                    "meenemen." if language == "nl" else
+                    "Say in a few words why you disagree, so KasFlex can take it into account.",
+                    422)
+            reading = interpret_reason(reason, dimension, language)
             policy = dict(current.get("policy") or {})
-            if dimension == "money":
+            if reading["effects"]:
+                policy = apply_effects(policy, reading["effects"])
+            elif dimension == "money":
                 policy["priority"] = "cost"
             elif dimension == "crop":
                 policy["priority"] = "crop"
@@ -989,6 +1132,13 @@ class UiServer:
                 )
             elif dimension == "grid":
                 policy["priority"] = "grid"
+            elif dimension == "goal":
+                unmet = next((g for g in current.get("goals") or [] if not g.get("met")), None)
+                metric = (unmet or {}).get("metric", "")
+                policy["priority"] = {"cost_eur": "cost", "peak_import_kw": "grid",
+                                      "light_mol_m2": "crop"}.get(metric, "balanced")
+                if metric == "switches":
+                    policy["switch_penalty_eur"] = 60.0
             else:
                 policy["priority"] = "balanced"
                 policy["avoid_chp_night"] = True
@@ -1002,7 +1152,21 @@ class UiServer:
                 "language": language,
             }
             alternative = self.run(alt_overrides, policy)
-            counter = self._counter_response(dimension, current, alternative, language)
+            if reading["effects"]:
+                counter = self._counter_from_reason(reason, reading, current, alternative,
+                                                    language)
+            else:
+                counter = (self._counter_response(dimension, current, alternative, language)
+                           + " " + reading["summary"])
+            remembered = self.memory.add_preference(
+                reading["summary"], reason, strength="preference", source="disagreement",
+                origin_run_id=str(current.get("run_id", "")),
+                origin_revision=int(current.get("revision", 0) or 0),
+                scope={"kind": "disagreement", "dimension": dimension,
+                       "effects": reading["effects"], "applies": reading["applies"],
+                       "participant": participant_key(overrides)},
+            )
+            remembered_id = remembered.pref_id
 
         counter_model = "collaborative-deterministic-v1"
         if response == "disagree":
@@ -1063,6 +1227,7 @@ class UiServer:
             "counter_response": counter,
             "counter_model": counter_model,
             "alternative": alternative,
+            "remembered_id": remembered_id,
             "recorded": recorded,
         }
 
@@ -1475,10 +1640,15 @@ class UiServer:
         from kasflex.run import run_scenario
 
         config = _apply_overrides(self.base, overrides)
-        compiled_policy = self._compile_policy(policy)
+        day = _day_for(config)
+        compiled_policy = self._compile_policy(policy, overrides=overrides,
+                                               cold=_is_cold(day.forecast))
         if compiled_policy["brief"]:
             config = dataclasses.replace(config, brief=compiled_policy["brief"])
-        day = _day_for(config)
+        # The grower's own targets tighten the hub that both planner and checker see;
+        # what they know better than the forecast (a frost warning) reshapes it.
+        config = self.planning_config(config, compiled_policy)
+        forecast = self.adjusted_forecast(day.forecast, compiled_policy)
         greenhouse = build_greenhouse(config.greenhouse, config)
 
         started = time.time()
@@ -1492,7 +1662,7 @@ class UiServer:
                 scenario=f"{config.name}/ui",
                 date=config.date,
                 hub=config.hub,
-                forecast=day.forecast,
+                forecast=forecast,
                 actual=day.actual,
                 planner=planner,
                 greenhouse=greenhouse,
@@ -1512,7 +1682,7 @@ class UiServer:
         except NotImplementedError as exc:
             raise ApiError(str(exc), status=501) from exc
 
-        conditions, _ = _conditions_for(config, greenhouse, day.forecast)
+        conditions, _ = _conditions_for(config, greenhouse, forecast)
 
         from kasflex.energy.dispatch import dispatch_plan  # noqa: PLC0415
         from kasflex.energy.position import (  # noqa: PLC0415
@@ -1533,6 +1703,31 @@ class UiServer:
         ).to_dict()
 
         hard = result.realised_hard_violations
+        plan_rows = _plan_payload(result.plan, conditions)
+        for row, interval in zip(plan_rows, dispatch.intervals, strict=False):
+            row.update({
+                "battery_soc_kwh": round(interval.battery_soc_kwh, 1),
+                "buffer_level_kwh": round(interval.buffer_level_kwh, 1),
+                "grid_import_kw": round(interval.grid_import_kw, 1),
+                "grid_export_kw": round(interval.grid_export_kw, 1),
+                "chp_running": interval.chp_running,
+                "heat_shortfall_kw": round(interval.heat_shortfall_kw, 1),
+                "import_limit_kw": config.hub.contract.limits_at(row["hour"])[0],
+            })
+        against_normal = self._against_normal(config, result, conditions, greenhouse)
+        normal_rows = (against_normal.get("normal_settings") or {}).get("plan")
+        work = work_metrics(plan_rows, normal_rows)
+        goals, targets = evaluate_goals(compiled_policy["goals"], compiled_policy["targets"],
+                                        result.metrics, work)
+        scenario_info = None
+        if config.data_source == "scenario":
+            scenario = self.scenarios.get(config.scenario_id)
+            planned = float((project_cost(result.plan, config.hub, forecast, greenhouse)
+                             .get("totals") or {}).get("net_cost_eur", 0) or 0)
+            scenario_info = {"id": scenario.id, "kind": scenario.kind,
+                             "title": scenario.text("title", config.language),
+                             "check": scenario_check(scenario, plan_rows, result.metrics,
+                                                     planned, i18n.normalise(config.language))}
         response = {
             "date": result.date,
             "planner": result.planner,
@@ -1556,8 +1751,29 @@ class UiServer:
                 "model": config.llm_model,
                 "sampling": {"temperature": None, "mode": "provider_default"},
             },
-            **self._against_normal(config, result, conditions, greenhouse),
-            "plan": _plan_payload(result.plan, conditions),
+            **against_normal,
+            "plan": plan_rows,
+            "work": work,
+            "goals": goals,
+            "targets": targets,
+            "grid": {
+                "contract_type": config.grid_contract_type,
+                "import_limit_kw": config.hub.contract.import_limit_kw,
+                "export_limit_kw": config.hub.contract.export_limit_kw,
+                "peak_import_kw": result.metrics.get("peak_import_kw", 0),
+                "within_contract": all(
+                    row["grid_import_kw"] <= row["import_limit_kw"] + 1e-6
+                    for row in plan_rows),
+            },
+            "storage": {"battery_kwh": config.hub.battery.capacity_kwh,
+                        "buffer_kwh": config.hub.buffer.capacity_kwh},
+            "scenario": scenario_info,
+            "version": config.condition or self.workshop.get().version,
+            "remembered_applied": [
+                {"said": p.reason, "summary": p.rule}
+                for p in self.memory.preferences()
+                if p.pref_id in set(compiled_policy["remembered_preference_ids"])
+                and p.scope.get("kind") == "disagreement"],
             "elapsed_s": round(time.time() - started, 2),
             "overrides": overrides,
             "data_source": config.data_source,
@@ -1889,7 +2105,7 @@ class _Handler(BaseHTTPRequestHandler):
               "/grower": "demo.html",
               "/legacy-grower": "grower.html",
               "/advanced": "index.html", "/research": "index.html",
-              "/setup": "setup.html"}
+              "/setup": "setup.html", "/admin": "admin.html"}
 
     def _static(self, path: str) -> None:
         name = self._PAGES.get(path.rstrip("/") or "/") or path.lstrip("/")
@@ -1942,6 +2158,9 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/deliberations"):
                 query = dict(parse_qsl(urlsplit(self.path).query))
                 self._json(self.ui.list_deliberations(query.get("session_id", "")))
+            elif self.path.startswith("/api/workshop"):
+                query = dict(parse_qsl(urlsplit(self.path).query))
+                self._json(self.ui.workshop_status(query.get("lang", "en")))
             elif self.path == "/api/profiles":
                 self._json(self.ui.list_profiles())
             elif self.path.startswith("/api/profiles/export/"):
@@ -2069,6 +2288,30 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path == "/api/outcomes":
                 with self.ui._lock:
                     self._json(self.ui.record_outcome(body))
+            elif self.path == "/api/workshop":
+                with self.ui._lock:
+                    self._json(self.ui.set_workshop(body))
+            elif self.path == "/api/scenarios":
+                with self.ui._lock:
+                    self._json(self.ui.save_scenario(body))
+            elif self.path == "/api/scenarios/delete":
+                with self.ui._lock:
+                    self._json(self.ui.delete_scenario(body))
+            elif self.path == "/api/recommend":
+                self._json(self.ui.recommendation(body))
+            elif self.path == "/api/explain-factors":
+                self._json(self.ui.factor_explanation(body))
+            elif self.path == "/api/chat":
+                with self.ui._lock:
+                    self._json(self.ui.chat(body))
+            elif self.path == "/api/week-outlook":
+                self._json(self.ui.week_outlook(body))
+            elif self.path == "/api/memory":
+                self._json(self.ui.list_remembered(overrides,
+                                                   everyone=body.get("everyone") is True))
+            elif self.path == "/api/memory/forget":
+                with self.ui._lock:
+                    self._json(self.ui.forget_remembered(body))
             elif self.path == "/api/profiles":
                 with self.ui._lock:
                     self._json(self.ui.save_profile(body))

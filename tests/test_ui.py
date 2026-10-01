@@ -18,15 +18,23 @@ import urllib.request
 
 import pytest
 
+from kasflex.memory import GrowerMemory
 from kasflex.resources import static_dir
 from kasflex.ui.server import ADJUSTABLE, ApiError, UiServer, serve
+from kasflex.workshop import WorkshopStore
 
 CONFIG = "configs/scenario_westland_winter.yaml"
 
 
 @pytest.fixture(scope="module")
-def ui() -> UiServer:
-    return UiServer(config_path=CONFIG)
+def ui(tmp_path_factory) -> UiServer:
+    server = UiServer(config_path=CONFIG)
+    # Disagreements are remembered and applied to later plans: a test's reasons must
+    # never end up in the memory a grower's real session reads.
+    home = tmp_path_factory.mktemp("ui-state")
+    server.memory = GrowerMemory(home / "memory.sqlite")
+    server.workshop = WorkshopStore(home / "workshop.json")
+    return server
 
 
 @pytest.fixture(scope="module")
@@ -162,6 +170,7 @@ def test_dimension_disagreement_returns_specific_alternative(
             "plan_hash": result["plan_hash"],
             "dimension": dimension,
             "response": "disagree",
+            "reason": "I see this differently",
             "session_id": f"test-{dimension}",
             "time_to_first_response_s": 3.5,
         }
@@ -342,6 +351,7 @@ def test_crop_disagreement_returns_a_crop_specific_alternative(ui):
         "plan_hash": run["plan_hash"],
         "dimension": "crop",
         "response": "disagree",
+        "reason": "I see this differently",
     })
     assert reply["dimension"] == "crop"
     assert reply["response"] == "disagree"
