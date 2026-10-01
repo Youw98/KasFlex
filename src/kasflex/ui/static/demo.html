@@ -27,13 +27,14 @@
     </div>
   </header>
 
-  <div id="sim-notice" class="simulation" role="note">
+  <div id="sim-notice" class="simulation" role="region" aria-label="Simulation notice">
     <strong data-i18n="simulation.title">Simulation.</strong>
     <span data-i18n="simulation.note">No equipment connected. Greenhouse outcomes are Not validated for operational use.</span>
   </div>
 
   <main id="workspace">
-    <div id="error" class="error" hidden></div>
+    <div id="error" class="error" role="alert" hidden></div>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
     <!-- Step 1: the day, the story, and (in the AI versions) KasFlex's suggestion. -->
     <section id="prepare-view" class="view prepare-view">
@@ -64,7 +65,7 @@
             <h2 data-i18n="prepare.price.title">Tomorrow at a glance</h2>
             <button id="refresh-data" class="ghost" type="button" data-i18n="refresh">Refresh</button>
           </div>
-          <div id="price-chart" class="chart" role="img" aria-label="Price and temperature per hour"></div>
+          <div id="price-chart" class="chart"></div>
           <p id="price-hover" class="hover-readout" aria-live="polite"></p>
         </article>
 
@@ -109,16 +110,16 @@
         </div>
         <div id="goal-list" class="goal-list"></div>
         <div class="goal-form">
-          <input id="goal-name" type="text" maxlength="80" data-i18n-placeholder="goals.name" placeholder="Name, e.g. Quiet mornings">
-          <select id="goal-metric">
+          <input id="goal-name" type="text" maxlength="80" aria-label="Goal name" data-i18n-placeholder="goals.name" placeholder="Name, e.g. Quiet mornings">
+          <select id="goal-metric" aria-label="Measure">
             <option value="switches" data-i18n="goals.metric.switches">Switches between equipment</option>
             <option value="chp_hours" data-i18n="goals.metric.chp">CHP running hours</option>
             <option value="cost_eur" data-i18n="goals.metric.cost">Cost (€)</option>
             <option value="peak_import_kw" data-i18n="goals.metric.peak">Grid peak (kW)</option>
             <option value="light_mol_m2" data-i18n="goals.metric.light">Light (mol/m²)</option>
           </select>
-          <select id="goal-op"><option value="<=">≤</option><option value=">=">≥</option></select>
-          <input id="goal-value" type="number" step="any" inputmode="decimal">
+          <select id="goal-op" aria-label="At most or at least"><option value="<=">≤</option><option value=">=">≥</option></select>
+          <input id="goal-value" type="number" step="any" inputmode="decimal" aria-label="Value">
           <button id="add-goal" type="button" class="ghost" data-i18n="goals.add">Add goal</button>
         </div>
       </details>
@@ -300,7 +301,6 @@
     </div>
   </dialog>
 
-  <div id="toast" class="toast" hidden></div>
   <script src="/demo.js"></script>
 </body>
 </html>

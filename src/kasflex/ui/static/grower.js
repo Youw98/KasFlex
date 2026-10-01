@@ -1156,10 +1156,16 @@ function askConsent(status) {
 
     const send = async (agreed) => {
       try {
-        await api("/api/consent", {
+        const keyName = `kasflex.consent.key.${status.participant_id}`;
+        let stored = "";
+        try { stored = localStorage.getItem(keyName) || ""; } catch { /* private mode */ }
+        const granted = await api("/api/consent", {
           participant_id: status.participant_id, version: status.version,
-          scopes: agreed ? scopes : {},
+          scopes: agreed ? scopes : {}, withdraw_key: stored,
         });
+        try {
+          if (granted.withdraw_key) localStorage.setItem(keyName, granted.withdraw_key);
+        } catch { /* private mode */ }
       } catch (error) { showError(error); }
       sheet.close();
       resolve();
@@ -1203,7 +1209,11 @@ function renderConsentControls() {
         className: "danger", textContent: t("consent.withdraw"),
         onclick: async () => {
           try {
-            await api("/api/consent/withdraw", { participant_id: status.participant_id });
+            let key = "";
+            try { key = localStorage.getItem(`kasflex.consent.key.${status.participant_id}`) || ""; }
+            catch { /* private mode */ }
+            await api("/api/consent/withdraw", { participant_id: status.participant_id,
+                                                withdraw_key: key });
             root.replaceChildren(el("p", { textContent: t("consent.withdrawn") }));
             state.consent = await api("/api/consent");
           } catch (error) { showError(error); }

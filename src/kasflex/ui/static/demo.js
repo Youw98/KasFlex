@@ -74,6 +74,11 @@ async function api(path, body) {
   return payload;
 }
 
+/** Smooth scrolling, unless the person asked their system for less motion. */
+function motion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+}
+
 function tr(key, fallback="") { return state.strings[key] || fallback || key; }
 function T(en, nl) { return state.lang === "nl" ? nl : en; }
 function el(tag, className="", text="") {
@@ -482,7 +487,9 @@ async function loadRecommendation() {
 
 function fact(icon, value, label, cls="") {
   const chip = el("span", `fact ${cls}`.trim());
-  chip.append(el("i", "", icon), el("strong", "", value));
+  const glyph = el("i", "", icon);
+  glyph.setAttribute("aria-hidden", "true");
+  chip.append(glyph, el("strong", "", value), el("span", "sr", ` (${label})`));
   chip.title = label;
   return chip;
 }
@@ -550,7 +557,7 @@ function renderRecommendation(advice) {
 function chooseOwn() {
   state.chooseOwn = true;
   applyVersion();
-  $("choices-panel").scrollIntoView({behavior:"smooth", block:"start"});
+  $("choices-panel").scrollIntoView({behavior:motion(), block:"start"});
 }
 
 // -- goals -----------------------------------------------------------------------
@@ -645,7 +652,7 @@ async function buildPlan() {
     $("debrief").hidden = true;
     renderDecision(state.run);
     applyVersion();
-    window.scrollTo({top:0, behavior:"smooth"});
+    window.scrollTo({top:0, behavior:motion()});
   } catch (error) {
     showError(error, T("Building plan", "Plan maken"));
   } finally {
@@ -973,6 +980,8 @@ function dimensionVisual(dimension) {
     const hours = Math.round(Number(run.metrics?.temperature_band_hours || 0));
     const strip = el("div", "hour-strip");
     strip.title = T(`${hours} of 24 h in the temperature band`, `${hours} van 24 u binnen de temperatuurband`);
+    strip.setAttribute("role", "img");
+    strip.setAttribute("aria-label", strip.title);
     for (let h = 0; h < 24; h++) strip.append(el("i", h < hours ? "on" : ""));
     const row = el("div", "bar-row");
     row.append(el("span", "bar-label", T("🌡 Temp.", "🌡 Temp.")), strip, el("b", "", `${hours}/24`));
@@ -993,6 +1002,8 @@ function dimensionVisual(dimension) {
     const normal = run.normal_settings?.plan || [];
     const strip = el("div", "hour-strip changed");
     strip.title = T(`${work.hours_changed_vs_normal} of 24 h differ from normal`, `${work.hours_changed_vs_normal} van 24 u anders dan normaal`);
+    strip.setAttribute("role", "img");
+    strip.setAttribute("aria-label", strip.title);
     (run.plan || []).forEach((row, h) => {
       const other = normal[h] || {};
       const differs = ["heat_source", "lighting_level", "battery", "chp_mode"].some((f) => row[f] !== other[f]);
@@ -1052,6 +1063,7 @@ function renderDimensions() {
       const button = el("button", "choice" + (shown === response ? " picked" : ""),
                         tr(`response.${response}`, response));
       button.type = "button";
+      button.setAttribute("aria-pressed", String(shown === response));
       button.disabled = Boolean(saved.final) || Boolean(saved.busy);
       button.addEventListener("click", () => {
         if (response === "disagree") { state.openReason = dimension; renderDimensions(); card.querySelector("textarea")?.focus(); }
@@ -1222,7 +1234,8 @@ function updateApproval() {
     dot.title = dimensionTitle(dimension);
     return dot;
   }));
-  dots.setAttribute("aria-label", `${done}/${dims.length}`);
+  dots.setAttribute("role", "img");
+  dots.setAttribute("aria-label", T(`${done} of ${dims.length} parts reviewed`, `${done} van ${dims.length} onderdelen beoordeeld`));
   $("approve-plan").disabled = state.approved
     || !(done === dims.length && state.run?.checker_enabled && state.run?.accepted);
 }
@@ -1393,13 +1406,13 @@ function openPositionPage() {
   $("decision-view").hidden = true;
   $("position-view").hidden = false;
   renderPositionPage();
-  window.scrollTo({top:0, behavior:"smooth"});
+  window.scrollTo({top:0, behavior:motion()});
 }
 
 function closePositionPage() {
   $("position-view").hidden = true;
   $("decision-view").hidden = false;
-  window.scrollTo({top:0, behavior:"smooth"});
+  window.scrollTo({top:0, behavior:motion()});
 }
 
 function renderRiskDetail(root) {
@@ -1570,7 +1583,7 @@ function showDebrief(run) {
   $("debrief").className = "panel debrief " + (check.ok ? "good" : "bad");
   $("debrief-message").textContent = check.message || "";
   $("debrief-text").textContent = check.debrief || "";
-  $("debrief").scrollIntoView({behavior:"smooth", block:"center"});
+  $("debrief").scrollIntoView({behavior:motion(), block:"center"});
 }
 
 function backToChoices() {
@@ -1585,12 +1598,16 @@ async function consentStudy() {
   const button = $("consent-study"); button.disabled = true;
   try {
     const status = await api("/api/consent");
-    await api("/api/consent", {
+    const keyName = `kasflex.consent.key.${participant}`;
+    const granted = await api("/api/consent", {
       participant_id:participant,
       version:status.version,
       scopes:{research:true, quotes:true, outcomes:true},
       overrides:{participant_id:participant},
+      withdraw_key:readStore(keyName) || "",
     });
+    // The key lets this browser withdraw or change this participant's consent later.
+    if (granted.withdraw_key) writeStore(keyName, granted.withdraw_key);
     state.participantId = participant;
     state.studyConsented = true;
     writeStore("kasflex.demo.participant", participant);

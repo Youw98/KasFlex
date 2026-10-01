@@ -627,3 +627,131 @@ def test_grower_page_has_a_locked_settings_menu_and_no_open_model_switch():
     assert 'id="model-select"' not in html
     topbar = html.split("</header>")[0]
     assert 'id="input-mode"' not in topbar, "data mode belongs behind the lock"
+
+
+# --- audit regressions (docs/audits/2026-10-01) -------------------------------------------
+
+
+@pytest.fixture
+def live(tmp_path, monkeypatch):
+    import threading
+
+    import yaml
+
+    from kasflex.ui.server import serve
+
+    scenario = yaml.safe_load(open(CONFIG, encoding="utf-8"))
+    scenario["consent_version"] = "audit-v1"
+    path = tmp_path / "study.yaml"
+    path.write_text(yaml.safe_dump(scenario), encoding="utf-8")
+    monkeypatch.setenv("KASFLEX_HOME", str(tmp_path))
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-real")
+    server = serve(config_path=str(path), port=0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    server.root = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        yield server
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def _call(server, path, body=None, token=""):
+    import urllib.error
+    import urllib.request
+
+    headers = {"Content-Type": "application/json"} if body is not None else {}
+    if token:
+        headers["X-KasFlex-Admin"] = token
+    data = json.dumps(body).encode() if body is not None else None
+    try:
+        with urllib.request.urlopen(urllib.request.Request(server.root + path, data, headers),
+                                    timeout=30) as response:
+            return response.status, json.loads(response.read() or b"{}"), response.headers
+    except urllib.error.HTTPError as exc:
+        return exc.code, json.loads(exc.read() or b"{}"), exc.headers
+
+
+def _token(server):
+    return _call(server, "/api/admin/login", {"password": "admin99"})[1]["token"]
+
+
+def test_audit_f1_research_data_needs_the_password(live):
+    """Other participants' words and the research bundle are not for participants."""
+    for path in ("/api/preferences", "/api/export/fair", "/api/deliberations",
+                 "/api/reliance", "/api/elicitations", "/api/conflicts",
+                 "/api/conversation/x", "/api/reviews", "/api/reviews/x"):
+        assert _call(live, path)[0] == 401, path
+    token = _token(live)
+    assert _call(live, "/api/preferences", token=token)[0] == 200
+    assert _call(live, "/api/deliberations", token=token)[0] == 200
+
+
+def test_audit_f2_a_request_cannot_redirect_the_ai_and_its_key(live):
+    """The stored key goes wherever llm_base_url points: only the password may set it."""
+    for field, value in (("llm_base_url", "http://127.0.0.1:9/steal"),
+                         ("llm_provider", "openai"), ("llm_model", "x"),
+                         ("hub.contract.import_limit_kw", 100)):
+        status, _, _ = _call(live, "/api/run", {"overrides": {field: value}, "policy": {}})
+        assert status == 401, field
+    assert _call(live, "/api/models/test",
+                 {"provider": "openai", "model": "x", "base_url": "http://127.0.0.1:9/"})[0] == 401
+    # What the grower page itself sends still works without the password.
+    status, run, _ = _call(live, "/api/run", {"overrides": {
+        "planner": "collaborative", "data_source": "synthetic", "condition": "collab",
+        "checker.enabled": True, "language": "nl"}, "policy": {}})
+    assert status == 200 and run["accepted"] is not None
+
+
+def test_audit_f3_only_the_participant_can_withdraw_or_change_their_consent(live):
+    granted = _call(live, "/api/consent", {"participant_id": "P002", "version": "audit-v1",
+                                           "scopes": {"research": True}})[1]
+    key = granted["withdraw_key"]
+    assert key
+    # Someone else, guessing the pseudonym: refused.
+    assert _call(live, "/api/consent/withdraw", {"participant_id": "P002"})[0] == 401
+    assert _call(live, "/api/consent/withdraw",
+                 {"participant_id": "P002", "withdraw_key": "guess"})[0] == 401
+    assert _call(live, "/api/consent", {"participant_id": "P002", "version": "audit-v1",
+                                        "scopes": {"research": True, "quotes": True}})[0] == 409
+    # The participant, with their key: allowed; re-consenting keeps the same key.
+    again = _call(live, "/api/consent", {"participant_id": "P002", "version": "audit-v1",
+                                         "scopes": {"research": True}, "withdraw_key": key})
+    assert again[0] == 200 and again[1]["withdraw_key"] == ""
+    status, result, _ = _call(live, "/api/consent/withdraw",
+                              {"participant_id": "P002", "withdraw_key": key})
+    assert status == 200 and result["active"] is False
+    # The researcher can always help.
+    _call(live, "/api/consent", {"participant_id": "P003", "version": "audit-v1",
+                                 "scopes": {"research": True}})
+    assert _call(live, "/api/consent/withdraw", {"participant_id": "P003"},
+                 token=_token(live))[0] == 200
+
+
+def test_audit_f4_guessing_the_password_is_slowed_then_stopped(live):
+    for _ in range(5):
+        assert _call(live, "/api/admin/login", {"password": "wrong"})[0] == 401
+    status, body, _ = _call(live, "/api/admin/login", {"password": "admin99"})
+    assert status == 429 and "Too many" in body["error"]
+
+
+def test_audit_f5_errors_and_headers_do_not_describe_the_installation(live):
+    _, _, headers = _call(live, "/api/settings")
+    assert "Python" not in headers.get("Server", "")
+    status, body, _ = _call(live, "/api/run", {"overrides": {"seed": "not-a-number"},
+                                               "policy": "not-a-dict"})
+    assert status in (400, 422, 500)
+    assert "traceback" not in body and "File \"" not in json.dumps(body)
+
+
+def test_audit_a11y_controls_have_names_and_live_regions():
+    html = (static_dir() / "demo.html").read_text(encoding="utf-8")
+    for needle in ('id="goal-metric" aria-label=', 'id="goal-op" aria-label=',
+                   'id="goal-value" type="number" step="any" inputmode="decimal" aria-label=',
+                   'id="toast" class="toast" role="status"',
+                   'id="error" class="error" role="alert"'):
+        assert needle in html, needle
+    script = (static_dir() / "demo.js").read_text(encoding="utf-8")
+    assert 'setAttribute("aria-pressed"' in script and "prefers-reduced-motion" in script

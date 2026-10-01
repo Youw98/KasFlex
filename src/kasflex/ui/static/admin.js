@@ -47,7 +47,7 @@ function showLogin(message="") {
   state.token = "";
   writeSession("kasflex.admin.token", "");
   $("workspace").hidden = true;
-  $("admin-login").hidden = false;
+  $("login-main").hidden = false;
   $("admin-login-error").hidden = !message;
   $("admin-login-error").textContent = message;
   $("admin-password").value = "";
@@ -66,7 +66,7 @@ async function unlock(event) {
 }
 async function start() {
   try { await api("/api/site-settings"); } catch { return; }
-  $("admin-login").hidden = true;
+  $("login-main").hidden = true;
   $("workspace").hidden = false;
   await load();
 }

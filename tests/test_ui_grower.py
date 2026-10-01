@@ -69,20 +69,36 @@ def study_server(tmp_path, monkeypatch):
         thread.join(timeout=2)
 
 
+def admin_headers(server) -> dict:
+    """These tests act as the researcher: research data and set-up need the password.
+    Tests of what a participant may do without it are in test_workshop.py."""
+    token = getattr(server, "admin_token", None)
+    if token is None:
+        request = urllib.request.Request(
+            server.root + "/api/admin/login", json.dumps({"password": "admin99"}).encode(),
+            {"Content-Type": "application/json"})
+        with urllib.request.urlopen(request, timeout=10) as response:
+            token = json.loads(response.read().decode())["token"]
+        server.admin_token = token  # type: ignore[attr-defined]
+    return {"X-KasFlex-Admin": token}
+
+
 def get(server, path: str):
-    with urllib.request.urlopen(server.root + path, timeout=10) as response:
+    request = urllib.request.Request(server.root + path, headers=admin_headers(server))
+    with urllib.request.urlopen(request, timeout=10) as response:
         return json.loads(response.read().decode())
 
 
 def get_raw(server, path: str) -> tuple[str, str]:
-    with urllib.request.urlopen(server.root + path, timeout=10) as response:
+    request = urllib.request.Request(server.root + path, headers=admin_headers(server))
+    with urllib.request.urlopen(request, timeout=10) as response:
         return response.read().decode(), response.headers.get("Content-Type", "")
 
 
 def post(server, path: str, payload: dict):
     request = urllib.request.Request(
         server.root + path, json.dumps(payload).encode(),
-        {"Content-Type": "application/json"})
+        {"Content-Type": "application/json", **admin_headers(server)})
     with urllib.request.urlopen(request, timeout=10) as response:
         return json.loads(response.read().decode())
 

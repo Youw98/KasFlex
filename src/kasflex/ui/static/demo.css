@@ -333,3 +333,8 @@ dialog::backdrop{background:#10201988;backdrop-filter:blur(4px)}
 #test-ai-result.ok{color:#006300;font-weight:700}#test-ai-result.bad{color:var(--red)}
 .settings-footer{display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
 @media(max-width:680px){.intro{grid-template-columns:1fr}.stat-icons{grid-template-columns:repeat(3,1fr)}}
+
+/* accessibility */
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+@media (forced-colors: active){.bar-track i,.meter i,.hour-strip i.on,.dot.done{forced-color-adjust:none}}
+.chip-x{min-width:24px;min-height:24px}

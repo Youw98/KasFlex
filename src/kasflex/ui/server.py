@@ -8,9 +8,11 @@ installation" (R27) -- a framework would work against that.
 
 .. warning::
 
-   **Localhost only, single user, no authentication.** This is a research tool that
-   runs a simulation on the machine it is started on. It binds to 127.0.0.1 and
-   should not be exposed to a network. If this ever needs to be multi-user or
+   **Localhost only, single user.** This is a research tool that runs a simulation
+   on the machine it is started on. It binds to 127.0.0.1 and should not be exposed
+   to a network. Settings, research data and API keys sit behind the settings
+   password (:mod:`kasflex.admin_auth`); that stops participants at a workshop
+   laptop, not someone with access to the computer itself. If this ever needs to be multi-user or
    hosted, it needs a real framework and a real auth story; do not simply change
    the bind address.
 
@@ -37,7 +39,7 @@ from kasflex import i18n
 from kasflex.actions import derive_actions
 from kasflex.actions import summarise as summarise_actions
 from kasflex.admin_auth import HEADER as ADMIN_HEADER
-from kasflex.admin_auth import SITE_FIELDS, AdminGate, SiteSettings
+from kasflex.admin_auth import SITE_FIELDS, AdminGate, ConsentKeys, SiteSettings
 from kasflex.api_connections import ApiConnections
 from kasflex.checker.rules import SafetyChecker
 from kasflex.config import ConfigError, ScenarioConfig
@@ -96,6 +98,7 @@ from kasflex.uncertainty import estimate as uncertainty_estimate
 from kasflex.workshop import WorkshopStore
 
 STATIC_DIR = static_dir()
+SITE_FIELDS_SET = frozenset(SITE_FIELDS)
 
 def _favicon() -> bytes:
     """The mark, served as the tab icon.
@@ -507,12 +510,14 @@ class UiServer(WorkshopMixin):
     documents: DocumentStore = field(init=False)
     file_base: ScenarioConfig = field(init=False, repr=False)
     gate: AdminGate = field(init=False, repr=False)
+    consent_keys: ConsentKeys = field(init=False, repr=False)
     site: SiteSettings = field(init=False, repr=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.file_base = ScenarioConfig.from_yaml(self.config_path)
         self.gate = AdminGate()
+        self.consent_keys = ConsentKeys(resolve_output("results/consent-keys.json"))
         self.site = SiteSettings(resolve_output("results/site-settings.json"))
         self.base = self._with_site_settings(self.site.get())
         self.connections = ApiConnections(resolve_output(".env"))
@@ -1373,7 +1378,10 @@ class UiServer(WorkshopMixin):
                                          note=str(payload.get("note", "")))
         except ValueError as exc:
             raise ApiError(str(exc)) from exc
-        return consent.to_dict()
+        # Shown once, to the browser that consented first: it keeps it to withdraw
+        # or change consent later. A participant who already has a key keeps it.
+        key = "" if self.consent_keys.has(participant) else self.consent_keys.issue(participant)
+        return {**consent.to_dict(), "withdraw_key": key}
 
     def withdraw_consent(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Withdraw, and erase the participant's data unless asked not to."""
@@ -2083,6 +2091,7 @@ class UiServer(WorkshopMixin):
 
 class _Handler(BaseHTTPRequestHandler):
     server_version = "kasflex"
+    sys_version = ""  # do not advertise the Python version
     ui: UiServer
     allowed_hosts: frozenset[str] = frozenset({"127.0.0.1", "localhost", "[::1]"})
     max_body_bytes = 2_000_000
@@ -2124,8 +2133,14 @@ class _Handler(BaseHTTPRequestHandler):
     _ADMIN_POSTS = frozenset({
         "/api/connections", "/api/site-settings", "/api/workshop", "/api/scenarios",
         "/api/scenarios/delete", "/api/documents/save", "/api/documents/delete",
-        "/api/memory/forget",
+        "/api/memory/forget", "/api/models/test", "/api/experiment", "/api/compare",
+        "/api/profiles/delete",
     })
+    #: Research data and other participants' words: readable with the password only.
+    _ADMIN_GETS = (
+        "/api/preferences", "/api/conflicts", "/api/conversation", "/api/reliance",
+        "/api/elicitations", "/api/deliberations", "/api/export/fair", "/api/reviews",
+    )
 
     def _require_admin(self) -> None:
         if not self.ui.gate.check(self.headers.get(ADMIN_HEADER)):
@@ -2191,6 +2206,9 @@ class _Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         try:
             self._guard_request()
+            if any(self.path == p or self.path.startswith(p + "/") or self.path.startswith(p + "?")
+                   for p in self._ADMIN_GETS):
+                self._require_admin()
             if self.path == "/api/connections":
                 self._json(self.ui.connections.status())
             elif self.path == "/api/reviews":
@@ -2260,8 +2278,11 @@ class _Handler(BaseHTTPRequestHandler):
         except ApiError as exc:
             self._json({"error": str(exc)}, exc.status)
         except Exception as exc:  # noqa: BLE001
-            self._json({"error": f"{type(exc).__name__}: {exc}",
-                        "traceback": traceback.format_exc()[-1500:]}, 500)
+            # The detail goes to the terminal, not to the page: a stack trace tells a
+            # visitor more about the installation than they need to know.
+            traceback.print_exc()
+            self._json({"error": f"Something went wrong ({type(exc).__name__}). "
+                                 "The details are in the terminal running KasFlex."}, 500)
 
     def do_POST(self) -> None:  # noqa: N802
         try:
@@ -2274,7 +2295,24 @@ class _Handler(BaseHTTPRequestHandler):
             if self.path in self._ADMIN_POSTS or (
                     self.path == "/api/memory" and body.get("everyone") is True):
                 self._require_admin()
+            # Site settings travel as overrides too: the AI service, model and server
+            # address, the grid contract and the installation. Only the settings
+            # password may change them, or a request could point the AI at another
+            # server and the stored API key would be sent there with it.
+            if isinstance(overrides, dict) and set(overrides) & SITE_FIELDS_SET:
+                self._require_admin()
+            if self.path == "/api/consent/withdraw" and not self.ui.gate.check(
+                    self.headers.get(ADMIN_HEADER)):
+                # A participant withdraws their own consent with the key they were
+                # given when they consented; nobody else can erase their data.
+                if not self.ui.consent_keys.check(
+                        str(body.get("participant_id") or overrides.get("participant_id") or ""),
+                        str(body.get("withdraw_key") or "")):
+                    raise ApiError("Withdrawing needs this participant's withdrawal key "
+                                   "or the settings password.", 401)
             if self.path == "/api/admin/login":
+                if self.ui.gate.locked_out():
+                    raise ApiError("Too many wrong passwords. Try again in a few minutes.", 429)
                 token = self.ui.gate.login(str(body.get("password") or ""))
                 if token is None:
                     time.sleep(0.4)  # a little friction for guessing
@@ -2365,6 +2403,15 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path == "/api/geocode":
                 self._json(self.ui.geocode(body))
             elif self.path == "/api/consent":
+                participant = str(body.get("participant_id")
+                                  or overrides.get("participant_id") or "")
+                if (participant and self.ui.consent.current(participant) is not None
+                        and not self.ui.gate.check(self.headers.get(ADMIN_HEADER))
+                        and not self.ui.consent_keys.check(participant,
+                                                           str(body.get("withdraw_key") or ""))):
+                    # Someone else's consent is theirs to change, not a guessed pseudonym's.
+                    raise ApiError("This participant has already consented. Changing it needs "
+                                   "their key or the settings password.", 409)
                 with self.ui._lock:
                     self._json(self.ui.grant_consent(body))
             elif self.path == "/api/consent/withdraw":
@@ -2427,8 +2474,11 @@ class _Handler(BaseHTTPRequestHandler):
         except ApiError as exc:
             self._json({"error": str(exc)}, exc.status)
         except Exception as exc:  # noqa: BLE001
-            self._json({"error": f"{type(exc).__name__}: {exc}",
-                        "traceback": traceback.format_exc()[-1500:]}, 500)
+            # The detail goes to the terminal, not to the page: a stack trace tells a
+            # visitor more about the installation than they need to know.
+            traceback.print_exc()
+            self._json({"error": f"Something went wrong ({type(exc).__name__}). "
+                                 "The details are in the terminal running KasFlex."}, 500)
 
 
 def serve(

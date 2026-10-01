@@ -21,16 +21,53 @@ const state = { fields: [], values: {}, defaults: {}, consent: null };
 
 const STUDY_PATHS = ["participant_id", "condition", "consent_version"];
 
-async function api(path, body) {
+function adminToken() {
+  try { return sessionStorage.getItem("kasflex.admin.token") || ""; } catch { return ""; }
+}
+
+/** Research data and study set-up need the settings password: ask once, then retry. */
+async function ensureAdmin() {
+  if (adminToken()) return true;
+  const password = window.prompt("Admin password");
+  if (!password) return false;
+  const response = await fetch("/api/admin/login", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) return false;
+  const { token } = await response.json();
+  try { sessionStorage.setItem("kasflex.admin.token", token); } catch { /* private mode */ }
+  return true;
+}
+
+async function api(path, body, retried = false) {
+  const headers = body === undefined ? {} : { "Content-Type": "application/json" };
+  if (adminToken()) headers["X-KasFlex-Admin"] = adminToken();
   const options = body === undefined
-    ? {}
-    : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+    ? { headers }
+    : { method: "POST", headers, body: JSON.stringify(body) };
   const response = await fetch(path, options);
   const text = await response.text();
   let payload = {};
   try { payload = text ? JSON.parse(text) : {}; } catch { /* non-JSON */ }
+  if (response.status === 401 && !retried) {
+    try { sessionStorage.removeItem("kasflex.admin.token"); } catch { /* private mode */ }
+    if (await ensureAdmin()) return api(path, body, true);
+  }
   if (!response.ok) throw new Error(payload.error || `Request failed (${response.status})`);
   return payload;
+}
+
+/** A download that needs the password header, so it cannot be a plain link. */
+async function download(path, filename) {
+  if (!(await ensureAdmin())) return;
+  const response = await fetch(path, { headers: { "X-KasFlex-Admin": adminToken() } });
+  if (!response.ok) { showError(new Error(`Download failed (${response.status})`)); return; }
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url; link.download = filename;
+  document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function showError(error) {
@@ -482,3 +519,7 @@ async function boot() {
 }
 
 boot();
+
+$("export-bundle").addEventListener("click", () => download("/api/export/fair", "kasflex-study.json"));
+$("export-conflicts").addEventListener("click",
+  () => download("/api/export/fair?format=csv", "kasflex-conflicts.csv"));

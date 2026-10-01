@@ -26,12 +26,12 @@
     </div>
   </header>
 
-  <form id="admin-login" class="panel admin-login" hidden>
-    <h1>🔒</h1>
+  <main id="login-main" hidden><form id="admin-login" class="panel admin-login" aria-label="Unlock">
+    <h1><span aria-hidden="true">🔒</span> <span class="sr">KasFlex settings</span></h1>
     <label><span id="t-password">Password</span><input id="admin-password" type="password" autocomplete="current-password"></label>
     <button id="admin-unlock" type="button" class="primary dark">Unlock</button>
-    <p id="admin-login-error" class="error" hidden></p>
-  </form>
+    <p id="admin-login-error" class="error" role="alert" hidden></p>
+  </form></main>
 
   <main id="workspace" class="admin" hidden>
     <div id="error" class="error" hidden></div>

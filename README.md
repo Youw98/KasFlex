@@ -338,8 +338,11 @@ unless `KASFLEX_ADMIN_PASSWORD` is set). Inside:
   price and the value of a lower peak.
 
 Saved settings apply to every session until changed. The same password guards the
-workshop admin page, API keys, documents and clearing remembered reasons; the
-password is checked on the server, not only in the page. It stops a participant
+workshop admin page, API keys, documents, clearing remembered reasons, and all
+research data (exports, deliberations, other participants' reasons); the password
+is checked on the server, not only in the page. A participant withdraws their own
+consent with a key their browser received when they consented. See the audit in
+[docs/audits/2026-10-01](docs/audits/2026-10-01/REPORT.md). It stops a participant
 from changing the set-up, not someone with access to the computer itself.
 
 ### Workshop admin — `/admin`
