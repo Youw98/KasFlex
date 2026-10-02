@@ -295,7 +295,8 @@
   <dialog id="consent-dialog" class="consent-dialog">
     <div class="dialog-head"><div><h2 data-i18n="consent.title">Choose how this session is recorded</h2></div></div>
     <p data-i18n="consent.copy">The demo works fully without research consent. Identifiable interaction data is recorded only when you explicitly choose to participate.</p>
-    <label><span data-i18n="consent.participant">Participant ID</span><input id="participant-id" type="text" placeholder="P001"></label>
+    <p id="consent-ai" class="hint"></p>
+    <label><span data-i18n="consent.participant">Participant ID</span><input id="participant-id" type="text" placeholder="P001" autocomplete="off"></label>
     <div class="consent-actions">
       <button id="consent-anonymous" class="ghost" type="button" data-i18n="consent.anonymous">Continue anonymously</button>
       <button id="consent-study" class="primary dark" type="button" data-i18n="consent.study">Consent & continue</button>

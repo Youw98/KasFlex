@@ -44,6 +44,9 @@ you in the release notes unless you would rather not be named.
 - It refuses requests from other websites (Host, Origin and Fetch-Metadata checks)
   and sends a strict Content-Security-Policy.
 - Settings, research data and exports need the settings password. Repeated wrong
-  passwords lock the login for five minutes.
+  passwords pause logins from that browser tab for five minutes, with a shared cap
+  for all tabs together.
+- With participant codes required, the server refuses any participant id the
+  researcher did not hand out.
 - A participant's consent can only be withdrawn with their own withdrawal key or
   the settings password, and withdrawal erases their research data.

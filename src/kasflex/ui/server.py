@@ -98,7 +98,7 @@ from kasflex.uncertainty import (
 )
 from kasflex.uncertainty import describe as describe_uncertainty
 from kasflex.uncertainty import estimate as uncertainty_estimate
-from kasflex.workshop import WorkshopStore
+from kasflex.workshop import ParticipantCodes, WorkshopStore
 
 STATIC_DIR = static_dir()
 SITE_FIELDS_SET = frozenset(SITE_FIELDS)
@@ -542,6 +542,7 @@ class UiServer(WorkshopMixin):
     file_base: ScenarioConfig = field(init=False, repr=False)
     gate: AdminGate = field(init=False, repr=False)
     consent_keys: ConsentKeys = field(init=False, repr=False)
+    codes: ParticipantCodes = field(init=False, repr=False)
     site: SiteSettings = field(init=False, repr=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
@@ -550,6 +551,7 @@ class UiServer(WorkshopMixin):
         _private_directory(resolve_output("results/.private").parent)
         self.gate = AdminGate()
         self.consent_keys = ConsentKeys(resolve_output("results/consent-keys.json"))
+        self.codes = ParticipantCodes(resolve_output("results/participant-codes.json"))
         self.site = SiteSettings(resolve_output("results/site-settings.json"))
         self.base = self._with_site_settings(self.site.get())
         self.connections = ApiConnections(resolve_output(".env"))
@@ -946,7 +948,7 @@ class UiServer(WorkshopMixin):
             return {**explainer.ask(context, str(payload.get("question", "")),
                                     hour=int(hour) if hour is not None else None,
                                     record=record),
-                    "recorded": record}
+                    "recorded": record, "ai_generated": True}  # AI Act art. 50(2)
         except ValueError as exc:
             raise ApiError(str(exc)) from exc
         except LlmError as exc:
@@ -2187,7 +2189,7 @@ class _Handler(BaseHTTPRequestHandler):
         "/api/connections", "/api/site-settings", "/api/workshop", "/api/scenarios",
         "/api/scenarios/delete", "/api/documents/save", "/api/documents/delete",
         "/api/memory/forget", "/api/models/test", "/api/experiment", "/api/compare",
-        "/api/profiles/delete",
+        "/api/profiles/delete", "/api/participant-codes",
     })
     #: Research data and other participants' words: readable with the password only.
     _ADMIN_GETS = (
@@ -2226,6 +2228,27 @@ class _Handler(BaseHTTPRequestHandler):
         else:
             overrides.update(data_source="synthetic", date=SHOWCASE_DATE, seed=SHOWCASE_SEED)
         overrides["condition"] = workshop.version
+
+    def _enforce_issued_ids(self, body: dict[str, Any]) -> None:
+        """With issued codes required, refuse a participant id nobody handed out.
+
+        Otherwise a participant can type another person's id and plan, chat or
+        consent under it. A code that matches is stored in its printed form, so
+        "p-7kq4mx" and "P-7KQ4MX" are the same person.
+        """
+        if not self.ui.workshop.get().issued_ids_only:
+            return
+        if self.ui.gate.check(self.headers.get(ADMIN_HEADER)):
+            return
+        overrides = body.get("overrides")
+        holders = [body] + ([overrides] if isinstance(overrides, dict) else [])
+        for holder in holders:
+            given = str(holder.get("participant_id") or "").strip()
+            if not given:
+                continue
+            if not self.ui.codes.has(given):
+                raise ApiError("Use the participant code you were given.", 403)
+            holder["participant_id"] = given.upper()
 
     def _guard_request(self, *, write: bool = False) -> None:
         """Reject DNS-rebinding and cross-site browser requests to the local app."""
@@ -2397,6 +2420,7 @@ class _Handler(BaseHTTPRequestHandler):
             if isinstance(overrides, dict) and set(overrides) & SITE_FIELDS_SET:
                 self._require_admin()
             self._enforce_workshop_lock(body)
+            self._enforce_issued_ids(body)
             if self.path == "/api/consent/withdraw" and not self.ui.gate.check(
                     self.headers.get(ADMIN_HEADER)):
                 # A participant withdraws their own consent with the key they were
@@ -2407,9 +2431,11 @@ class _Handler(BaseHTTPRequestHandler):
                     raise ApiError("Withdrawing needs this participant's withdrawal key "
                                    "or the settings password.", 401)
             if self.path == "/api/admin/login":
-                if self.ui.gate.locked_out():
+                # Wrong passwords pause this tab's logins, not everyone's.
+                who = str(self.headers.get(VISITOR_HEADER) or "")[:40]
+                if self.ui.gate.locked_out(who):
                     raise ApiError("Too many wrong passwords. Try again in a few minutes.", 429)
-                token = self.ui.gate.login(str(body.get("password") or ""))
+                token = self.ui.gate.login(str(body.get("password") or ""), who)
                 if token is None:
                     time.sleep(0.4)  # a little friction for guessing
                     raise ApiError("Wrong password.", 401)
@@ -2418,6 +2444,21 @@ class _Handler(BaseHTTPRequestHandler):
             if self.path == "/api/admin/logout":
                 self.ui.gate.logout(self.headers.get(ADMIN_HEADER))
                 self._json({"locked": True})
+                return
+            if self.path == "/api/participant-codes":
+                with self.ui._lock:
+                    if body.get("clear") is True:
+                        # Without codes, "only these codes" would shut everyone out.
+                        codes = self.ui.codes.clear()
+                        self.ui.workshop.set(issued_ids_only=False)
+                    elif body.get("make"):
+                        try:
+                            codes = self.ui.codes.make(int(body["make"]))
+                        except (TypeError, ValueError) as exc:
+                            raise ApiError("Say how many codes to make.") from exc
+                    else:
+                        codes = self.ui.codes.all()
+                self._json({"codes": codes})
                 return
             if self.path == "/api/site-settings":
                 with self.ui._lock:

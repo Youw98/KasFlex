@@ -12,6 +12,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import re
+from pathlib import Path
 
 import pytest
 
@@ -1008,3 +1009,92 @@ def test_review_r6_research_data_is_private_to_this_account(tmp_path, monkeypatc
     UiServer(config_path=CONFIG)
     mode = stat.S_IMODE((tmp_path / "results").stat().st_mode)
     assert mode == 0o700, oct(mode)
+
+
+# --- review follow-up: open items closed ------------------------------------------------
+
+
+def _login(server, password, tab):
+    return _raw(server, "/api/admin/login", json.dumps({"password": password}).encode(),
+                {"X-KasFlex-Visitor": tab})
+
+
+def test_review_r7_wrong_passwords_pause_only_that_tab(live):
+    """One participant guessing must not lock the researcher out (finding 13)."""
+    from kasflex.admin_auth import MAX_FAILURES_TOTAL
+
+    guesser, researcher = "aaaaaaaa-guesser-tab", "bbbbbbbb-researcher-tab"
+    for _ in range(5):
+        assert _login(live, "wrong", guesser)[0] == 401
+    assert _login(live, "admin99", guesser)[0] == 429
+    status, reply = _login(live, "admin99", researcher)
+    assert status == 200 and reply["token"]
+    # A script inventing tab ids still meets a limit for everyone together.
+    for n in range(MAX_FAILURES_TOTAL):
+        _login(live, "wrong", f"script-tab-{n:04d}")
+    assert _login(live, "admin99", "cccccccc-fresh-tab")[0] == 429
+
+
+def test_review_r8_only_issued_codes_are_accepted_when_asked(live):
+    """A participant cannot type someone else's id once codes are required (finding 10)."""
+    token = _token(live)
+    assert _call(live, "/api/participant-codes", {"make": 3})[0] == 401
+    # Turning it on without codes would shut everyone out.
+    assert _call(live, "/api/workshop", {"issued_ids_only": True}, token)[0] == 409
+    status, made, _ = _call(live, "/api/participant-codes", {"make": 3}, token)
+    codes = made["codes"]
+    assert status == 200 and len(codes) == 3 and len(set(codes)) == 3
+    assert all(re.fullmatch(r"P-[A-HJ-NP-Z2-9]{6}", code) for code in codes)
+    assert _call(live, "/api/workshop", {"issued_ids_only": True}, token)[1]["issued_ids_only"]
+    assert "codes" not in _call(live, "/api/workshop")[1]  # never shown to participants
+
+    status, consent, _ = _call(live, "/api/consent")
+    grant = {"version": consent["version"], "scopes": {"research": True}}
+    refused = _call(live, "/api/consent", {**grant, "participant_id": "P001",
+                                           "overrides": {"participant_id": "P001"}})
+    assert refused[0] == 403 and "code" in refused[1]["error"]
+    assert _call(live, "/api/memory", {"overrides": {"participant_id": "P001"}})[0] == 403
+    typed = codes[0].lower()
+    status, granted, _ = _call(live, "/api/consent", {**grant, "participant_id": typed,
+                                                      "overrides": {"participant_id": typed}})
+    assert status == 200 and granted["withdraw_key"]
+    assert _call(live, "/api/memory", {"overrides": {"participant_id": codes[0]}})[0] == 200
+    assert _call(live, "/api/memory", {"overrides": {}})[0] == 200  # anonymous still works
+    # The researcher can still look up anyone.
+    assert _call(live, "/api/memory", {"overrides": {"participant_id": "P001"}}, token)[0] == 200
+    _call(live, "/api/participant-codes", {"clear": True}, token)
+    assert _call(live, "/api/participant-codes", {}, token)[1]["codes"] == []
+    assert _call(live, "/api/workshop")[1]["issued_ids_only"] is False
+    assert _call(live, "/api/memory", {"overrides": {"participant_id": "P001"}})[0] == 200
+
+
+def test_review_r8_codes_are_random_and_capped(tmp_path):
+    from kasflex.workshop import MAX_CODES, ParticipantCodes
+
+    store = ParticipantCodes(tmp_path / "codes.json")
+    first = store.make(50)
+    assert len(set(first)) == 50 and store.has(first[7].lower())
+    assert len(store.make(10_000)) == MAX_CODES
+    assert not store.has("P001")
+
+
+def test_review_r9_participants_learn_who_receives_chat_text_before_agreeing():
+    """GDPR art. 13 recipients, in the consent dialog itself (finding 11)."""
+    html = (static_dir() / "demo.html").read_text(encoding="utf-8")
+    dialog = html.split('id="consent-dialog"')[1].split("</dialog>")[0]
+    assert 'id="consent-ai"' in dialog
+    js = (static_dir() / "demo.js").read_text(encoding="utf-8")
+    assert '$("consent-ai").textContent' in js
+    notice = Path("docs/privacy/PARTICIPANT_INFORMATION.md").read_text(encoding="utf-8")
+    for needed in ("data-processing agreement", "verwerkersovereenkomst",
+                   "Autoriteit Persoonsgegevens", "withdraw", "consent_version"):
+        assert needed in notice, needed
+
+
+def test_review_r10_ai_text_is_marked_for_machines_too(ui, tmp_path):
+    """AI Act art. 50(2): generated text marked in a machine-readable way."""
+    run = ui.run(_scenario(BUILTIN[0].id), {})
+    reply = ui.chat({**_ref(run), "question": "Why does the CHP run tonight?"})
+    assert reply["ai_generated"] is True
+    js = (static_dir() / "demo.js").read_text(encoding="utf-8")
+    assert "dataset.aiGenerated" in js

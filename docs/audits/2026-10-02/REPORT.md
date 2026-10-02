@@ -16,8 +16,8 @@ KasFlex is a local research tool. It never switches equipment itself.
 | | Count |
 |---|---|
 | Confirmed and fixed | 5 (3 medium, 2 low) |
-| Hardening, done | 4, plus 1 accepted |
-| Needs validation (outside the code) | 3 |
+| Hardening, done | 7 |
+| Needs a decision outside the code | 2 (the code side is done) |
 | Rejected after checking | 8 |
 
 No high or critical findings. The approval gate, the settings password and the
@@ -58,21 +58,24 @@ own:
 | 07 | There was no way to report a vulnerability. | **Done:** [SECURITY.md](../../../SECURITY.md) (also good practice under the EU Cyber Resilience Act). |
 | 08 | Research stores were readable by other accounts on a shared Linux or Mac computer. | **Done:** `results/` is now private to the user (0700). `.env` was already 0600. |
 | 09 | The `data` extra allowed urllib3 and idna versions with known advisories. | **Done:** now requires urllib3 ≥ 2.8.0 and idna ≥ 3.15. |
-| 13 | Five wrong passwords lock the login for everyone for 5 minutes. | **Accepted.** A short delay is better than unlimited guessing. Restarting KasFlex clears it. |
+| 13 | Five wrong passwords locked the login for everyone for 5 minutes. | **Done (follow-up):** the pause applies only to the tab that guessed, so the researcher can still log in. All tabs together are capped at 30 wrong passwords per 5 minutes. |
+| 10 | Participants typed their own id, so they could type someone else's. | **Done (follow-up):** the admin page makes random codes to print (`P-7KQ4MX`). With **Only accept these codes** on, the server refuses any other id. |
+| 22 | AI answers were not marked in a machine-readable way (AI Act art. 50(2)). | **Done (follow-up):** chat and explanation replies carry `ai_generated: true`, and chat bubbles get a matching attribute. |
 
-## Needs validation
+## Needs a decision outside the code
 
-These cannot be settled in code.
+The code side of both is done; what remains is paperwork only the institution can do.
 
-- **10 · Participant ids are typed by participants.** Hand out ids (cards) if
-  runs must be attributed reliably. The withdrawal key still protects consent.
-- **11 · Cloud AI and GDPR.** With Claude, OpenAI or Gemini, questions and the plan
-  go to that provider. The institution needs a data-processing agreement with the
-  provider and should name it in the participant information. Ollama keeps
-  everything on the computer.
-- **12 · AI Act research exemption (art. 2(6)).** A legal check should confirm
-  whether the workshops count as "solely scientific research". The disclosure stays
-  either way.
+- **11 · Cloud AI and GDPR.** The consent dialog now names where chat text goes
+  before anyone agrees, and asks people not to type personal details. Left to do: a
+  data-processing agreement with the AI provider (none needed with Ollama), and an
+  approved information sheet. A ready template in English and Dutch, with a
+  pre-study checklist: [PARTICIPANT_INFORMATION.md](../../privacy/PARTICIPANT_INFORMATION.md).
+- **12 · AI Act research exemption (art. 2(6)).** Whether workshops with growers
+  count as "solely scientific research" is a legal judgement. It does not change the
+  app: KasFlex already meets art. 50(1) and (2). Verified on 2 Oct 2026: art. 50
+  applies from 2 Aug 2026. The Digital Omnibus postponed only the Annex III
+  high-risk rules (to 2 Dec 2027), not art. 50.
 
 ## Rejected (checked, not exploitable)
 
@@ -98,9 +101,9 @@ These cannot be settled in code.
 | Browser storage | ✓ | localStorage and sessionStorage in all pages. |
 | AI transparency (AI Act art. 50) | ✓ | Chat, suggestion, legacy explanations. |
 | GDPR transparency | ✓ | Where data goes. The DPA question is open (11). |
-| Accessibility | ✓ | axe-core on 9 page states (prepare, settings locked and open, decision, counter-proposal, chat, factors, admin, admin login): **0 violations**. |
+| Accessibility | ✓ | axe-core on 9 page states (prepare, settings locked and open, decision, counter-proposal, chat, factors, admin, admin login), plus the consent dialog and the participant codes panel: **0 violations**. |
 | Supply chain | ✓ | pip-audit, workflow permissions and pinning, secret scan. |
-| Reliability | ✓ | Full test suite: 736 passed, 1 skipped. ruff is clean. |
+| Reliability | ✓ | Full test suite: 741 passed, 1 skipped. ruff is clean. |
 | Performance | ✓ | Local single-user tool; plan and context requests answer within a second or two on the showcase day. No issues. |
 
 ## What is already good

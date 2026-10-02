@@ -22,6 +22,11 @@ const adminToken = () => { try { return sessionStorage.getItem("kasflex.admin.to
 const api = async (path, body, retried = false) => {
   const headers = { "Content-Type": "application/json" };
   if (adminToken()) headers["X-KasFlex-Admin"] = adminToken();
+  try {
+    let id = sessionStorage.getItem("kasflex.visitor");
+    if (!id) { id = crypto.randomUUID(); sessionStorage.setItem("kasflex.visitor", id); }
+    headers["X-KasFlex-Visitor"] = id;  // wrong passwords pause only this tab
+  } catch { /* private mode */ }
   const res = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
     headers,

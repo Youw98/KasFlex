@@ -375,6 +375,13 @@ For the researcher running a workshop:
    between workshop groups. On a shared laptop, tick **keep each anonymous tab's
    reasons apart** so people without a participant id do not see each other's
    reasons. A participant id and withdrawal key are kept only for the open tab.
+6. **Participant codes**: make random codes to print and hand out, and tick
+   **Only accept these codes** so nobody can type someone else's id.
+
+Before a study with real participants, go through the checklist in
+[docs/privacy/PARTICIPANT_INFORMATION.md](docs/privacy/PARTICIPANT_INFORMATION.md):
+an information sheet (template in English and Dutch), a data-processing agreement
+if the chat uses a cloud AI, participant codes and your own password.
 
 The admin page asks for the settings password before it shows anything.
 

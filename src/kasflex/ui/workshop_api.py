@@ -256,6 +256,7 @@ class WorkshopMixin:
             "scenario_id": state.scenario_id,
             "lock_scenario": state.lock_scenario,
             "separate_visitors": state.separate_visitors,
+            "issued_ids_only": state.issued_ids_only,
             "chat_destination": self.chat_destination(),
             "scenarios": scenarios,
             "contract_types": [describe(k, language) for k in CONTRACT_TYPES],
@@ -272,12 +273,15 @@ class WorkshopMixin:
                 self.scenarios.get(str(scenario_id))
             except KeyError as exc:
                 raise ApiError("That scenario does not exist.", 404) from exc
+        if payload.get("issued_ids_only") is True and not self.codes.all():
+            raise ApiError("Make participant codes first, or nobody could take part.", 409)
         try:
             self.workshop.set(
                 version=payload.get("version"),
                 scenario_id=None if scenario_id is None else str(scenario_id),
                 lock_scenario=payload.get("lock_scenario"),
                 separate_visitors=payload.get("separate_visitors"),
+                issued_ids_only=payload.get("issued_ids_only"),
             )
         except ValueError as exc:
             raise ApiError(str(exc)) from exc
@@ -473,7 +477,11 @@ class WorkshopMixin:
             if record:
                 self.memory.add_turn(current["run_id"], "grower", question)
                 self.memory.add_turn(current["run_id"], "assistant", text, model=model)
+        # Machine-readable marking of generated text (EU AI Act art. 50(2)). The
+        # offline assistant fills templates with the plan's numbers; marked too,
+        # since the page presents both as the assistant's answer.
         return {"question": question, "answer": text, "model": model, "recorded": record,
+                "ai_generated": True,
                 "sources": [{"title": hit["title"], "passage": hit["passage"]}
                             for hit in passages]}
 

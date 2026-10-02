@@ -60,9 +60,19 @@ function adminToken() {
   try { return sessionStorage.getItem("kasflex.admin.token") || ""; } catch { return ""; }
 }
 
+/* A random id for this tab, so wrong passwords pause only this tab's logins. */
+function tabId() {
+  try {
+    let id = sessionStorage.getItem("kasflex.visitor");
+    if (!id) { id = crypto.randomUUID(); sessionStorage.setItem("kasflex.visitor", id); }
+    return id;
+  } catch { return ""; }
+}
+
 async function api(path, body, retried = false) {
   const headers = body === undefined ? {} : { "Content-Type": "application/json" };
   if (adminToken()) headers["X-KasFlex-Admin"] = adminToken();
+  if (tabId()) headers["X-KasFlex-Visitor"] = tabId();
   const options = body === undefined
     ? { headers }
     : { method: "POST", headers, body: JSON.stringify(body) };

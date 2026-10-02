@@ -145,15 +145,17 @@
  },
  {
   "id": "KF-2026-10-02-10",
-  "title": "Participant ids are typed by the participant",
-  "state": "needs_validation",
+  "title": "Participant ids were typed by the participant",
+  "state": "hardening",
   "category": "privacy",
   "fingerprint": "self-asserted-participant",
   "location": {
    "file": "src/kasflex/ui/static/demo.js",
    "screen": "Consent dialog"
   },
-  "missing_fact": "Whether studies hand out ids (cards, sign-in) and supervise the session. If participants choose their own, one can type another's id; the withdrawal key still protects consent, but runs could be attributed to the wrong person."
+  "priority": "medium",
+  "fix": "Follow-up: the admin page makes random participant codes (P-XXXXXX, no look-alike characters) to print and hand out. With 'Only accept these codes' on, the server refuses any other participant id (403) in every request, stores the code in its printed form, and refuses to switch the option on while no codes exist. Codes are visible with the settings password only.",
+  "test": "tests/test_workshop.py::test_review_r8_only_issued_codes_are_accepted_when_asked; tests/test_workshop.py::test_review_r8_codes_are_random_and_capped"
  },
  {
   "id": "KF-2026-10-02-11",
@@ -164,7 +166,8 @@
   "location": {
    "document": "Study privacy notice / data-processing agreement"
   },
-  "missing_fact": "Whether the research institution has a data-processing agreement with the chosen AI provider and names it in the participant information. The app now shows where questions go; the agreement and notice are the institution's call. Ollama keeps everything local."
+  "missing_fact": "The data-processing agreement with a cloud AI provider can only be signed by the institution, and the information sheet approved by its privacy officer or ethics committee. Done in code: the consent dialog now names where chat text goes before anyone agrees and asks not to type personal details; docs/privacy/PARTICIPANT_INFORMATION.md is an English/Dutch template with a pre-study checklist. Ollama needs no agreement.",
+  "test": "tests/test_workshop.py::test_review_r9_participants_learn_who_receives_chat_text_before_agreeing"
  },
  {
   "id": "KF-2026-10-02-12",
@@ -175,11 +178,11 @@
   "location": {
    "document": "EU AI Act art. 2(6)"
   },
-  "missing_fact": "Art. 2(6) exempts AI developed and put into service solely for scientific research. A legal check should confirm whether workshops with growers fall under it. The disclosure is kept either way: it costs one line and matches the study's aim."
+  "missing_fact": "Whether art. 2(6) (AI developed and put into service solely for scientific research) covers workshops with growers is a legal judgement. Verified 2 Oct 2026: art. 50 applies from 2 Aug 2026 and the Digital Omnibus did not postpone it (only Annex III high-risk, to 2 Dec 2027). KasFlex meets art. 50(1) and now also marks AI text machine-readably (art. 50(2)), so the answer does not change what the app must do."
  },
  {
   "id": "KF-2026-10-02-13",
-  "title": "Five wrong passwords lock the settings login for everyone for five minutes",
+  "title": "Five wrong passwords locked the settings login for everyone for five minutes",
   "state": "hardening",
   "priority": "low",
   "category": "security",
@@ -188,7 +191,8 @@
    "file": "src/kasflex/admin_auth.py",
    "endpoint": "POST /api/admin/login"
   },
-  "fix": "Accepted as is: a participant can delay the researcher by five minutes, which is preferable to unlimited guessing of a short password. Documented here; the researcher can restart KasFlex to clear it."
+  "fix": "Follow-up: the pause is now per browser tab (each page sends a random tab id), so a participant guessing locks only their own tab and the researcher can still log in. A script that invents tab ids meets a shared limit of 30 wrong passwords per 5 minutes, which still caps guessing. Logged-in tokens are never affected.",
+  "test": "tests/test_workshop.py::test_review_r7_wrong_passwords_pause_only_that_tab"
  },
  {
   "id": "KF-2026-10-02-14",
@@ -278,5 +282,19 @@
    "file": "src/kasflex/documents.py"
   },
   "reason": "DOCTYPE/entities are refused; covered by existing tests."
+ },
+ {
+  "id": "KF-2026-10-02-22",
+  "title": "AI-generated answers were not marked in a machine-readable way",
+  "state": "hardening",
+  "priority": "low",
+  "category": "legal",
+  "fingerprint": "ai-act-art50-2-marking",
+  "location": {
+   "file": "src/kasflex/ui/workshop_api.py",
+   "endpoint": "POST /api/chat, /api/explain"
+  },
+  "fix": "Replies carry ai_generated: true and chat bubbles a data-ai-generated attribute. Art. 50(2) applies to text from generative systems; systems on the market before 2 Aug 2026 have until 2 Dec 2026.",
+  "test": "tests/test_workshop.py::test_review_r10_ai_text_is_marked_for_machines_too"
  }
 ]

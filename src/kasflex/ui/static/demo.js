@@ -205,11 +205,18 @@ function applyVersion() {
 
 /* Say where a typed question goes before anyone types one (GDPR: who receives it). */
 function renderChatDestination(destination) {
-  $("chat-destination").textContent = destination?.name && !destination.local
+  const outside = destination?.name && !destination.local;
+  $("chat-destination").textContent = outside
     ? T(`Your questions and this plan go to ${destination.name}.`,
         `Uw vragen en dit plan gaan naar ${destination.name}.`)
     : T("Answers are made on this computer; nothing is sent out.",
         "Antwoorden worden op deze computer gemaakt; er gaat niets naar buiten.");
+  // Said before anyone agrees, not only once they open the chat (GDPR art. 13: recipients).
+  $("consent-ai").textContent = outside
+    ? T(`The AI chat sends your questions and the plan to ${destination.name}. Do not type names or other personal details.`,
+        `De AI-chat stuurt uw vragen en het plan naar ${destination.name}. Typ geen namen of andere persoonlijke gegevens.`)
+    : T("The AI chat runs on this computer; your questions are not sent out.",
+        "De AI-chat draait op deze computer; uw vragen gaan niet naar buiten.");
 }
 
 async function loadWorkshop() {
@@ -221,6 +228,8 @@ async function loadWorkshop() {
   const ws = state.workshop;
   state.version = ws.version || "collab";
   renderChatDestination(ws.chat_destination);
+  // With issued codes, show what a code looks like so nobody types their name.
+  $("participant-id").placeholder = ws.issued_ids_only ? "P-7KQ4MX" : "P001";
   const select = $("scenario-select");
   select.replaceChildren();
   for (const scenario of ws.scenarios || []) {
@@ -1586,6 +1595,7 @@ async function sendChat() {
     });
     pending.className = "bubble ai";
     pending.textContent = reply.answer;
+    pending.dataset.aiGenerated = String(Boolean(reply.ai_generated));
     if (reply.sources?.length) {
       pending.append(el("small", "source", T("Source: ", "Bron: ")
         + [...new Set(reply.sources.map((source) => source.title))].join(", ")));

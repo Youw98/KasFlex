@@ -22,9 +22,19 @@ function el(tag, className="", text="") {
   return node;
 }
 
+/* A random id for this tab, so wrong passwords pause only this tab's logins. */
+function tabId() {
+  try {
+    let id = sessionStorage.getItem("kasflex.visitor");
+    if (!id) { id = crypto.randomUUID(); sessionStorage.setItem("kasflex.visitor", id); }
+    return id;
+  } catch { return ""; }
+}
+
 async function api(path, body) {
   const headers = body === undefined ? {} : {"Content-Type": "application/json"};
   if (state.token) headers["X-KasFlex-Admin"] = state.token;
+  if (tabId()) headers["X-KasFlex-Visitor"] = tabId();
   const response = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
     headers,
@@ -136,6 +146,14 @@ function translate() {
     "save-doc":["Add document", "Document toevoegen"],
     "t-memory-hint":["What participants said when they disagreed. KasFlex uses these in later plans of the same participant. Clear them between workshop groups.",
                      "Wat deelnemers zeiden toen ze het oneens waren. KasFlex gebruikt dit in latere plannen van dezelfde deelnemer. Wis dit tussen workshopgroepen."],
+    "t-codes":["6 · Participant codes", "6 · Deelnemerscodes"],
+    "t-codes-hint":["Hand each participant one code. With the lock on, nobody can type someone else's id.",
+                    "Geef elke deelnemer één code. Met het slot aan kan niemand de code van een ander intypen."],
+    "t-issued-only":["Only accept these codes", "Alleen deze codes accepteren"],
+    "t-codes-count":["How many", "Hoeveel"],
+    "make-codes":["Make codes", "Codes maken"],
+    "print-codes":["Print", "Afdrukken"],
+    "clear-codes":["Remove all", "Alles verwijderen"],
     "t-separate":["Shared laptop: keep each anonymous tab's reasons apart", "Gedeelde laptop: redenen per anoniem tabblad apart houden"],
   };
   for (const [id, pair] of Object.entries(texts)) if ($(id)) $(id).textContent = T(...pair);
@@ -152,6 +170,16 @@ async function load() {
   renderContractOptions();
   await loadDocuments();
   await loadMemory();
+  await codes({});
+}
+
+async function codes(request) {
+  try {
+    const result = await api("/api/participant-codes", request);
+    $("code-list").replaceChildren(...result.codes.map((code) => el("li", "", code)));
+    $("print-codes").disabled = !result.codes.length;
+    return result.codes;
+  } catch (error) { showError(error); return []; }
 }
 
 function renderVersions() {
@@ -185,6 +213,7 @@ function renderActive() {
   select.value = state.status.scenario_id || "";
   $("lock-scenario").checked = Boolean(state.status.lock_scenario);
   $("separate-visitors").checked = Boolean(state.status.separate_visitors);
+  $("issued-only").checked = Boolean(state.status.issued_ids_only);
   const active = state.status.scenarios.find((s) => s.id === state.status.scenario_id);
   $("active-note").textContent = active
     ? T(`Participants open “${active.title_text}”${state.status.lock_scenario ? " and cannot switch." : "; they can still switch."}`,
@@ -570,6 +599,20 @@ $("close-editor").addEventListener("click", () => $("editor").hidden = true);
 $("cancel-edit").addEventListener("click", () => $("editor").hidden = true);
 $("save-scenario").addEventListener("click", saveScenario);
 $("forget-all").addEventListener("click", forgetAll);
+$("make-codes").addEventListener("click", async () => {
+  const made = await codes({make:Number($("codes-count").value) || 0});
+  if (made.length) toast(T(`${made.length} codes.`, `${made.length} codes.`));
+});
+$("print-codes").addEventListener("click", () => window.print());
+$("clear-codes").addEventListener("click", async () => {
+  if (!window.confirm(T("Remove every participant code?", "Alle deelnemerscodes verwijderen?"))) return;
+  await codes({clear:true});
+  if (state.status.issued_ids_only) toast(T("Codes removed; any id is accepted again.", "Codes verwijderd; elke code wordt weer geaccepteerd."));
+  await load();
+});
+$("issued-only").addEventListener("change", (event) => save({
+  issued_ids_only:event.target.checked,
+}, T("Saved.", "Opgeslagen.")));
 $("separate-visitors").addEventListener("change", (event) => save({
   separate_visitors:event.target.checked,
 }, T("Saved.", "Opgeslagen.")));
