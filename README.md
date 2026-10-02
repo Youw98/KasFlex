@@ -296,6 +296,8 @@ docs/                    usage, guide, architecture, decisions, MCP
 └── images/              screenshots and the architecture diagram
 ```
 
+<sub>Earlier material, such as the first grower screen and early design notes, is kept in [legacy/](legacy/) for reference; it is not served, packaged or tested.</sub>
+
 ### Security and privacy
 
 - Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
