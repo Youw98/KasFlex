@@ -255,7 +255,9 @@ and smoke-tests the Windows, macOS and Linux apps and publishes a release
 
 ```text
 src/kasflex/
-├── ui/server.py         HTTP server, every /api route, password and origin checks
+├── ui/server.py         the API: planning, checking, data; serve()
+├── ui/http.py           request handler: Host, Origin and password checks, routing
+├── ui/deliberation_api.py, ui/research_api.py   negotiation and research endpoints
 ├── ui/workshop_api.py   admin page API: study version, scenarios, codes
 ├── ui/static/           plain HTML, CSS and JavaScript (no build step); demo.* is the grower page
 ├── checker/             deterministic plan checker

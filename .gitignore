@@ -23,4 +23,4 @@ traces/*.jsonl
 .claude/
 
 # axe-core for the browser tests (npm install --no-save axe-core@4)
-node_modules/
+node_modules
