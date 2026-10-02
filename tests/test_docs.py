@@ -20,6 +20,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
+RESEARCH = DOCS / "research"
 SRC = ROOT / "src" / "kasflex"
 
 
@@ -89,7 +90,7 @@ def test_every_cli_command_appears_in_the_usage_guide():
 
 def test_requirement_tally_matches_the_table():
     """The tally said 24 done while the table listed 32. Nobody recounts by hand."""
-    plan = read(DOCS / "MVP_PLAN.md")
+    plan = read(RESEARCH / "MVP_PLAN.md")
     rows = [line for line in plan.splitlines() if re.match(r"^\| (R\d+|—) \|", line)]
     assert len(rows) > 30, f"only found {len(rows)} requirement rows; has the table moved?"
 
@@ -104,7 +105,7 @@ def test_requirement_tally_matches_the_table():
     )
 
     stated = re.search(r"✅ (\d+) · 🔶 (\d+) · ⬜ (\d+)", plan)
-    assert stated, "the requirement tally line is missing from docs/MVP_PLAN.md"
+    assert stated, "the requirement tally line is missing from docs/research/MVP_PLAN.md"
     assert [int(g) for g in stated.groups()] == [
         counted["done"], counted["part"], counted["todo"]
     ], (
@@ -122,7 +123,7 @@ def test_the_docs_do_not_hard_code_a_test_count():
     reads the same either way. So the rule is simply not to claim one.
     """
     offenders: list[str] = []
-    for path in [ROOT / "README.md", *sorted(DOCS.glob("*.md"))]:
+    for path in [ROOT / "README.md", *sorted(DOCS.glob("*.md")), *sorted(RESEARCH.glob("*.md"))]:
         for match in re.finditer(r"\b\d+ tests\b", read(path)):
             offenders.append(f"{path.name}: {match.group(0)!r}")
     assert not offenders, (
@@ -141,7 +142,7 @@ def test_the_docs_do_not_hard_code_a_test_count():
         ("README.md", "Simulation only"),
         ("README.md", "validated for operational use"),
         ("README.md", "apparatus, not findings"),
-        ("docs/MVP_PLAN.md", "apparatus"),
+        ("docs/research/MVP_PLAN.md", "apparatus"),
         ("docs/USAGE.md", "not validated"),
     ],
 )
@@ -163,14 +164,14 @@ def test_the_honesty_notices_survive(path, needle):
 
 def test_every_parameter_row_has_explicit_provenance():
     """Reviewer-facing defaults must be sourced or labelled as assumptions."""
-    text = read(DOCS / "PARAMETERS.md")
+    text = read(RESEARCH / "PARAMETERS.md")
     assert "**ASSUMPTION**" in text
     rows = [
         line for line in text.splitlines()
         if line.startswith("| ") and not line.startswith("|---")
         and "Parameter | Default value" not in line
     ]
-    assert rows, "docs/PARAMETERS.md has no parameter rows"
+    assert rows, "docs/research/PARAMETERS.md has no parameter rows"
 
     offenders = []
     for row in rows:
@@ -187,7 +188,7 @@ def test_every_parameter_row_has_explicit_provenance():
 
 
 def test_parameter_table_covers_the_demo_critical_numbers():
-    text = read(DOCS / "PARAMETERS.md").lower()
+    text = read(RESEARCH / "PARAMETERS.md").lower()
     required = (
         "battery capacity",
         "battery charge efficiency",
@@ -200,4 +201,4 @@ def test_parameter_table_covers_the_demo_critical_numbers():
         "supplemental-light target",
     )
     missing = [name for name in required if name not in text]
-    assert not missing, f"critical parameters missing from docs/PARAMETERS.md: {missing}"
+    assert not missing, f"critical parameters missing from docs/research/PARAMETERS.md: {missing}"

@@ -28,7 +28,7 @@ realised weather from the Open-Meteo historical weather archive; KNMI remains an
 independent Dutch measurement source for validation and cross-checking.
 
 This separation is structural: planner context exposes forecast series, not realised
-weather. See [DECISIONS.md](DECISIONS.md) ADR-0005.
+weather. See [DECISIONS.md](../DECISIONS.md) ADR-0005.
 
 The Open-Meteo historical forecast archive does not cover the 2019–2020 AGC
 validation period. KasFlex therefore keeps measured-model validation and modern
@@ -43,7 +43,7 @@ confirmed on **Reference**. See [CALIBRATION.md](CALIBRATION.md).
 
 `kasflex fetch` and `kasflex daily` populate the cache from ENTSO-E (day-ahead
 prices) and Open-Meteo (forecast and archived weather). See
-[deploy/README.md](../deploy/README.md) for scheduling.
+[deploy/README.md](../../deploy/README.md) for scheduling.
 
 Two format details in the ENTSO-E response are easy to get wrong and produce a
 price curve that is plausible but incorrect:

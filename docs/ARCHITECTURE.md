@@ -98,9 +98,9 @@ Green is KasFlex. Blue is someone else's validated code or data. Orange is the
 person. Grey dashed is phase 2.
 
 The block above renders on GitHub. The same diagram is also checked in as
-[`architecture.svg`](architecture.svg) and [`architecture.png`](architecture.png)
+[`architecture.svg`](images/architecture.svg) and [`architecture.png`](images/architecture.png)
 for use in slides and papers; regenerate both from
-[`architecture.mmd`](architecture.mmd) with `make diagram`.
+[`architecture.mmd`](images/architecture.mmd) with `make diagram`.
 
 ## Where this comes from
 

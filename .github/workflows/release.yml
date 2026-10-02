@@ -175,5 +175,5 @@ jobs:
 
             **Simulation only.** KasFlex now includes replay validation against
             official AGC2 greenhouse data, but the greenhouse model is not calibrated
-            for operational control. See `docs/VALIDATION.md` for measured errors,
+            for operational control. See `docs/research/VALIDATION.md` for measured errors,
             provenance and limitations.

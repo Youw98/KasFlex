@@ -1,4 +1,4 @@
-PARAMETERS = "docs/PARAMETERS.md"
+PARAMETERS = "docs/research/PARAMETERS.md"
 
 
 def _parameters() -> str:

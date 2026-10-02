@@ -23,7 +23,7 @@ Strip away the architecture and KasFlex exists to fill in four cells:
 Every design decision in this repository is answerable to that table. The most
 common way to fail here is not to build the wrong thing — it is to build something
 that *looks* right and quietly produces zeros in both columns. Three of the
-decisions in [DECISIONS.md](DECISIONS.md) (ADR-0006, ADR-0008, ADR-0010) exist only
+decisions in [DECISIONS.md](../DECISIONS.md) (ADR-0006, ADR-0008, ADR-0010) exist only
 to stop that happening.
 
 **As of today, on synthetic data with a fixture planner, the table fills in:**
@@ -88,7 +88,7 @@ hour_of_day)` is needed. Both are small; neither needs a fork.
 
 Everything KasFlex contributes sits in the space between those components:
 market prices, the energy hub, the intent abstraction, the safety checker, human
-approval, and the experiment harness. See [ARCHITECTURE.md](ARCHITECTURE.md).
+approval, and the experiment harness. See [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 The one structural departure from the Alliander proposal's Figure 1 is that
 **safety is not a sidecar**. There, the safety and validation layer sits beside the
@@ -117,11 +117,11 @@ experiment matrix, CLI, FAIR metadata. Tested end to end, offline.
 The worker exists and drives the real model today; what is missing is the
 validation itself. The tool that runs the comparison and writes the
 deviation table is now wired up (`kasflex validate`,
-`src/kasflex/validation.py`, [`docs/VALIDATION.md`](VALIDATION.md)). It
+`src/kasflex/validation.py`, [`docs/research/VALIDATION.md`](VALIDATION.md)). It
 refuses to invent numbers when the dataset is absent: it prints exactly
 what to fetch, from where, and stops. Once the AGC files land on disk,
 the deviation table appears between machine markers in
-`docs/VALIDATION.md` with one command.
+`docs/research/VALIDATION.md` with one command.
 
 - Download AGC 2nd edition (D1). Read Hemming et al., *Sensors* 2020, **first**.
 - Configure GL-Gym to the AGC compartment: floor area, lamp power, heating capacity,
@@ -131,7 +131,7 @@ the deviation table appears between machine markers in
 - **Publish the deviation, whatever it is.** Acceptance criterion 1 asks for the
   deviation to be quantified, not for it to be small.
 
-*Complete when:* model error is quantified and written into `docs/VALIDATION.md`.
+*Complete when:* model error is quantified and written into `docs/research/VALIDATION.md`.
 *Risk:* the AGC dataset is large and heterogeneous; budget time for reconciling its
 actuator logs with GL-Gym's six control channels. Its energy data is the reason D1
 is the right dataset and D4/D5 are not.
@@ -192,7 +192,7 @@ not a bug — acceptance criterion 5 asks for exactly one such case to be report
 ### Stage 4b — Learned forecaster and optimising scheduler ✅ built
 
 Added at the project owner's request, overriding the requirements document's
-exclusion of model training (see [DECISIONS.md](DECISIONS.md) ADR-0011).
+exclusion of model training (see [DECISIONS.md](../DECISIONS.md) ADR-0011).
 
 - `kasflex.forecast`: feature builder, ridge regression fitted in closed form with
   numpy, seasonal-naive baseline, rolling-origin backtest with skill scores.

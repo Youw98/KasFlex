@@ -212,7 +212,7 @@ the constraint, the hour, the actual value and the feasible bound.
 ## Validate the greenhouse model against measured data
 
 ```bash
-kasflex validate --write-doc docs/VALIDATION.md
+kasflex validate --write-doc docs/research/VALIDATION.md
 ```
 
 Compares KasFlex's greenhouse model to the [Autonomous Greenhouse Challenge
@@ -220,7 +220,7 @@ Compares KasFlex's greenhouse model to the [Autonomous Greenhouse Challenge
 measured series. When the dataset is not on disk the command explains where
 to get it, how to lay it out, and stops with exit code 2 — nothing is
 downloaded silently. Once the dataset is present, `--write-doc` updates the
-deviation table in [`docs/VALIDATION.md`](VALIDATION.md) in place, between
+deviation table in [`docs/research/VALIDATION.md`](research/VALIDATION.md) in place, between
 machine markers, so history carries the measurement. Every KasFlex result
 is stamped `greenhouse_validated: false` until this table exists.
 
@@ -276,7 +276,7 @@ once by hand and look at the output before scheduling anything.**
 
 ```bash
 kasflex datasets
-kasflex datasets --markdown     # the table in docs/DATA.md
+kasflex datasets --markdown     # the table in docs/research/DATA.md
 ```
 
 ## Turn on the real greenhouse model

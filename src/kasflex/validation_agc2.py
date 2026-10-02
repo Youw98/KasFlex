@@ -39,7 +39,7 @@ AGC2_LAMP_POWER_W_M2 = AGC2_HPS_W_M2 + sum(watts for _col, watts in AGC2_LED_CHA
 #: GreenLight construction parameters for an AGC2 compartment, fitted on the even
 #: ISO weeks of the AICU compartment, tested on the odd weeks, and confirmed on the
 #: Reference compartment, all from the checksum-verified 4TU archive. The method,
-#: candidates and held-out errors are in docs/CALIBRATION.md; the harness is
+#: candidates and held-out errors are in docs/research/CALIBRATION.md; the harness is
 #: workers/greenlight/calibrate_agc2.py. The score weighs daily heat, daily CO2
 #: and hourly indoor temperature.
 #:

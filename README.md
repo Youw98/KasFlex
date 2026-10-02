@@ -20,7 +20,7 @@ how growers work with an AI advisor in workshops.
 > climate, heat demand, crop response and asset behaviour are simulated and **not
 > validated for operational use**.
 
-![KasFlex grower workspace: the scenario story, tomorrow's prices and weather, and KasFlex's suggestion](docs/ui-grower-prepare.png)
+![KasFlex grower workspace: the scenario story, tomorrow's prices and weather, and KasFlex's suggestion](docs/images/ui-grower-prepare.png)
 
 ---
 
@@ -48,7 +48,7 @@ No API key or network is needed for the default workshop scenarios.
 ### API keys
 
 All optional. Save them under ⚙ → APIs, or put them in `.env` (copy
-[.env.example](.env.example)). Details: [docs/API_SETUP.md](docs/API_SETUP.md).
+[.env.example](.env.example)). Details: [docs/USAGE.md](docs/USAGE.md#api-keys).
 
 | What for | Key | Where to get it |
 |---|---|---|
@@ -74,7 +74,7 @@ All optional. Save them under ⚙ → APIs, or put them in `.env` (copy
 5. Approval unlocks once every part has an answer and the plan passes the check. In a
    scenario, KasFlex then tells how the day really went, and whether there was a trap.
 
-![KasFlex decision screen: cost, crop, grid peak and work; the 24-hour plan as charts; the cost donut; and the grower's view on each part](docs/ui-grower-decision.png)
+![KasFlex decision screen: cost, crop, grid peak and work; the 24-hour plan as charts; the cost donut; and the grower's view on each part](docs/images/ui-grower-decision.png)
 
 ---
 
@@ -203,8 +203,8 @@ measured AGC2 data from the official 4TU archive: fitted on one compartment, tes
 on 80 held-out days and confirmed on a second compartment. On the held-out days heat
 is off by about 14 kWh per day, CO₂ by 1.2 kg and indoor temperature by 1.4 K, and
 heat is close from December to April, but May heat is still about 2.5 times too high. Model-derived greenhouse numbers are therefore
-**apparatus, not findings**. See [docs/VALIDATION.md](docs/VALIDATION.md) and
-[docs/CALIBRATION.md](docs/CALIBRATION.md).
+**apparatus, not findings**. See [docs/research/VALIDATION.md](docs/research/VALIDATION.md) and
+[docs/research/CALIBRATION.md](docs/research/CALIBRATION.md).
 
 ### Safeguards
 
@@ -284,7 +284,16 @@ src/kasflex/
 ├── data/                price and weather acquisition, cache, provenance
 └── adapters/            greenhouse model and grid seams
 workers/greenlight/      isolated GreenLight-Gym2 worker (AGPL)
-tests/                   offline test suite
+tests/                   offline test suite (tests/browser/ runs with make test-browser)
+configs/                 the default scenario configuration
+results/                 the two committed AGC2 calibration and validation records; local research data otherwise
+deploy/                  cron and systemd files for the unattended daily job
+packaging/               PyInstaller spec and launcher for the downloadable apps
+docs/                    usage, guide, architecture, decisions, MCP
+├── research/            validation, calibration, data, parameters, FAIR, usability test, MVP plan
+├── privacy/             participant information sheet and checklist
+├── audits/              security and privacy audit reports
+└── images/              screenshots and the architecture diagram
 ```
 
 ### Security and privacy
@@ -301,11 +310,11 @@ tests/                   offline test suite
 
 | Topic | Status |
 |---|---|
-| Greenhouse model accuracy | Calibrated on heat, CO₂ and indoor temperature, confirmed on the Reference compartment. May heat is still about 2.5× too high and Reference January about 45% too low (docs/CALIBRATION.md) |
+| Greenhouse model accuracy | Calibrated on heat, CO₂ and indoor temperature, confirmed on the Reference compartment. May heat is still about 2.5× too high and Reference January about 45% too low (docs/research/CALIBRATION.md) |
 | MPC reference planner | Interface only (`controllers/mpc.py`) |
 | Free-text reasons | Rules recognise maintenance hours, staff, frost, light, buffer and grid limits (Dutch and English). With an AI model set, text the rules miss is read by the model, limited to the same effects, range-checked, labelled "KasFlex (AI)" and checked like any plan (`reasons.read_with_model`). Offline, such text is kept but changes nothing |
 | Week plan | Deliberately not: one day ahead, the week view is an estimate (ADR-0013) |
-| Parameter citations | [docs/PROVENANCE.md](docs/PROVENANCE.md) names the sources for battery, CHP, buffer and crop values, but the full references are not yet in the repository |
+| Parameter citations | [docs/research/PROVENANCE.md](docs/research/PROVENANCE.md) names the sources for battery, CHP, buffer and crop values, but the full references are not yet in the repository |
 
 ---
 
@@ -317,16 +326,15 @@ tests/                   offline test suite
 | [Guide](docs/GUIDE.md) | how KasFlex works, in plain words and in depth |
 | [Architecture](docs/ARCHITECTURE.md) | components, boundaries and module map |
 | [Decisions](docs/DECISIONS.md) | architecture decision records |
-| [Data](docs/DATA.md) · [Provenance](docs/PROVENANCE.md) | datasets, acquisition and sources |
-| [Parameters](docs/PARAMETERS.md) | every shipped parameter, sourced or marked **ASSUMPTION** |
-| [Validation](docs/VALIDATION.md) · [Calibration](docs/CALIBRATION.md) | measured-data validation and fitting |
-| [Usability test](docs/USABILITY_TEST.md) | a ten-minute grower usability test |
+| [Data](docs/research/DATA.md) · [Provenance](docs/research/PROVENANCE.md) | datasets, acquisition and sources |
+| [Parameters](docs/research/PARAMETERS.md) | every shipped parameter, sourced or marked **ASSUMPTION** |
+| [Validation](docs/research/VALIDATION.md) · [Calibration](docs/research/CALIBRATION.md) | measured-data validation and fitting |
+| [Usability test](docs/research/USABILITY_TEST.md) | a ten-minute grower usability test |
 | [Participant information](docs/privacy/PARTICIPANT_INFORMATION.md) | privacy checklist and information sheet template |
-| [API setup](docs/API_SETUP.md) | ENTSO-E and Open-Meteo connections |
-| [MVP plan](docs/MVP_PLAN.md) | requirements and status |
-| [FAIR](docs/FAIR.md) · [WUR licence check](docs/WUR_LICENCE_CHECK.md) | research-data principles and licences |
+| [API keys](docs/USAGE.md#api-keys) | ENTSO-E, Open-Meteo and AI keys |
+| [MVP plan](docs/research/MVP_PLAN.md) | requirements and status |
+| [FAIR](docs/research/FAIR.md) · [WUR licence check](docs/research/WUR_LICENCE_CHECK.md) | research-data principles and licences |
 | [MCP](docs/MCP.md) | optional agent integration |
-| [docs/history/](docs/history/) | earlier design notes and roadmap, kept for reference |
 
 ## How to cite
 
@@ -337,4 +345,4 @@ GitHub's "Cite this repository" button uses it.
 
 KasFlex core is licensed under [Apache-2.0](LICENSE). The isolated GreenLight worker
 runs GreenLight-Gym2, which is AGPL-3.0, in its own environment. Third-party datasets and services keep their
-own terms; see [docs/DATA.md](docs/DATA.md).
+own terms; see [docs/research/DATA.md](docs/research/DATA.md).

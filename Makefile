@@ -8,7 +8,7 @@ help:
 	@echo "audit               known advisories in the installed dependencies"
 	@echo "lint                ruff"
 	@echo "reproduce           regenerate every result from a clean state"
-	@echo "diagram             re-render docs/architecture.{svg,png} from the .mmd"
+	@echo "diagram             re-render docs/images/architecture.{svg,png} from the .mmd"
 
 install:
 	pip install -e ".[dev]"
@@ -41,8 +41,8 @@ reproduce: clean
 		--output results/runs.jsonl
 
 diagram:
-	npx -y @mermaid-js/mermaid-cli -i docs/architecture.mmd -o docs/architecture.svg -b transparent
-	npx -y @mermaid-js/mermaid-cli -i docs/architecture.mmd -o docs/architecture.png -b white -w 1500
+	npx -y @mermaid-js/mermaid-cli -i docs/images/architecture.mmd -o docs/images/architecture.svg -b transparent
+	npx -y @mermaid-js/mermaid-cli -i docs/images/architecture.mmd -o docs/images/architecture.png -b white -w 1500
 
 clean:
 	rm -rf results/ .pytest_cache/ .ruff_cache/ .coverage

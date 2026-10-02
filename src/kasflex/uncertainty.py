@@ -37,7 +37,7 @@ from typing import Any
 #: un-measured band errs towards "less certain than reality" rather than flattering
 #: the planner. Replace them with a measured error as soon as a cache exists --
 #: :func:`measured_forecast_error` does this automatically -- or with a cited
-#: figure recorded in docs/PARAMETERS.md.
+#: figure recorded in docs/research/PARAMETERS.md.
 ASSUMED_TEMP_RMSE_C = 2.0
 ASSUMED_IRRADIANCE_RMSE_W_M2 = 60.0
 
