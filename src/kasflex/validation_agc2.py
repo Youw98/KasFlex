@@ -46,17 +46,18 @@ AGC2_LAMP_POWER_W_M2 = AGC2_HPS_W_M2 + sum(watts for _col, watts in AGC2_LED_CHA
 #: * ``etaLampCool`` 0: gl-gym defaults to actively cooled LEDs that carry 63% of
 #:   lamp input out of the greenhouse. AGC2 lit with 81 W/m2 HPS plus uncooled
 #:   LEDs, so all lamp power ends up as heat inside. Physical, not fitted.
-#: * ``aCov`` 180 m2 per 144 m2 floor, between roof glass only (156) and gl-gym's
-#:   free-standing house (216.6): a compartment shares some walls with neighbours.
+#: * ``aCov`` 216.6 and ``tauThScrFir`` 0.5 are back at or above gl-gym's
+#:   defaults, and ``kThScr`` 1e-3 is twice gl-gym's 5e-4. The earlier fit pushed
+#:   the cover and screen tight to make up for two errors in the replay that are
+#:   now fixed: a soil that started cold every day, and pipe heat counted while the
+#:   heating was off (see ``floor_temperature`` and the worker's ``CIRCUIT_ON``).
 #: * ``aRoof`` 17.4 m2 per 144 m2 (12%); gl-gym's 52.2 (36%) is three times the
 #:   vent area of a Venlo roof. ``cLeakage`` 2e-5; gl-gym's default is 3e-5.
-#: * ``tauRfNir`` 0.85, ``kThScr`` 1.25e-4 and ``tauThScrFir`` 0.05 sit at the edge
-#:   of the values tried: clear glass, and a tighter, more opaque screen than
-#:   gl-gym's. Edge values mean these compensate for something the model lacks;
-#:   read them as a fit, not as measured properties.
+#: * ``aCov``, ``tauRfNir`` 0.85 and ``tauThScrFir`` sit at the edge of the values
+#:   tried. Read them as a fit, not as measured properties.
 AGC2_CALIBRATION = {
-    "etaLampCool": 0.0, "aCov": 180.0, "aRoof": 17.4, "cLeakage": 2e-5,
-    "tauRfNir": 0.85, "kThScr": 1.25e-4, "tauThScrFir": 0.05,
+    "etaLampCool": 0.0, "aCov": 216.6, "aRoof": 17.4, "cLeakage": 2e-5,
+    "tauRfNir": 0.85, "kThScr": 1e-3, "tauThScrFir": 0.5,
 }
 STEFAN_BOLTZMANN = 5.670374419e-8
 EXCEL_EPOCH = datetime(1899, 12, 30)

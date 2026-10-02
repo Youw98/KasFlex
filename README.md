@@ -201,9 +201,9 @@ Using real inputs does not make a simulated greenhouse result a measured one.
 
 The greenhouse model (GreenLight-Gym2, in an isolated worker) is calibrated on
 measured AGC2 data from the official 4TU archive: fitted on one compartment, tested
-on 80 held-out days and confirmed on a second compartment. Heat error fell from 93
-to 22 kWh per day, CO₂ error from 3.6 to 1.4 kg per day, and indoor temperature is
-within about 1.5 K, but spring heat is still about three times too high. Model-derived greenhouse numbers are therefore
+on 80 held-out days and confirmed on a second compartment. On the held-out days heat
+is off by about 14 kWh per day, CO₂ by 1.2 kg and indoor temperature by 1.4 K, and
+heat is close from December to April, but May heat is still about 2.5 times too high. Model-derived greenhouse numbers are therefore
 **apparatus, not findings**. See [docs/VALIDATION.md](docs/VALIDATION.md) and
 [docs/CALIBRATION.md](docs/CALIBRATION.md).
 
@@ -302,7 +302,7 @@ tests/                   offline test suite
 
 | Topic | Status |
 |---|---|
-| Greenhouse model accuracy | Calibrated on heat, CO₂ and indoor temperature, confirmed on the Reference compartment; spring heat still about 3× too high, and not from the parameters or the cold start (docs/CALIBRATION.md). Next: compare simulated and measured pipe temperature on spring nights |
+| Greenhouse model accuracy | Calibrated on heat, CO₂ and indoor temperature, confirmed on the Reference compartment. May heat is still about 2.5× too high and Reference January about 45% too low (docs/CALIBRATION.md) |
 | MPC reference planner | Interface only (`controllers/mpc.py`) |
 | Free-text reasons | Rules recognise maintenance hours, staff, frost, light, buffer and grid limits (Dutch and English). With an AI model set, text the rules miss is read by the model, limited to the same effects, range-checked, labelled "KasFlex (AI)" and checked like any plan (`reasons.read_with_model`). Offline, such text is kept but changes nothing |
 | Week plan | Deliberately not: one day ahead, the week view is an estimate (ADR-0013) |

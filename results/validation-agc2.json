@@ -7,7 +7,7 @@
       "date": "2019-12-16",
       "measured": 76.152,
       "quantity": "heating_kwh",
-      "simulated": 12.038419340083026,
+      "simulated": 12.689922611605779,
       "unit": "kWh"
     },
     {
@@ -21,14 +21,14 @@
       "date": "2019-12-16",
       "measured": 0.525825792,
       "quantity": "co2_kg",
-      "simulated": 1.8594863407872073,
+      "simulated": 1.8981981757455906,
       "unit": "kg"
     },
     {
       "date": "2019-12-17",
       "measured": 30.208,
       "quantity": "heating_kwh",
-      "simulated": 30.791669942939606,
+      "simulated": 6.503695984487311,
       "unit": "kWh"
     },
     {
@@ -42,14 +42,14 @@
       "date": "2019-12-17",
       "measured": 0.528319968,
       "quantity": "co2_kg",
-      "simulated": 1.3206450464903723,
+      "simulated": 1.3593411503471018,
       "unit": "kg"
     },
     {
       "date": "2019-12-18",
       "measured": 30.48,
       "quantity": "heating_kwh",
-      "simulated": 41.17013073448988,
+      "simulated": 30.90077811877543,
       "unit": "kWh"
     },
     {
@@ -63,14 +63,14 @@
       "date": "2019-12-18",
       "measured": 1.09944,
       "quantity": "co2_kg",
-      "simulated": 2.303191284844599,
+      "simulated": 2.2868036333431303,
       "unit": "kg"
     },
     {
       "date": "2019-12-19",
       "measured": 3.184,
       "quantity": "heating_kwh",
-      "simulated": 8.499432214406974,
+      "simulated": 1.3038306972685363,
       "unit": "kWh"
     },
     {
@@ -84,14 +84,14 @@
       "date": "2019-12-19",
       "measured": 1.90368,
       "quantity": "co2_kg",
-      "simulated": 3.1629987114127607,
+      "simulated": 3.224163288709972,
       "unit": "kg"
     },
     {
       "date": "2019-12-20",
       "measured": 15.271999999999998,
       "quantity": "heating_kwh",
-      "simulated": 19.08300558614432,
+      "simulated": 10.772804510977188,
       "unit": "kWh"
     },
     {
@@ -105,14 +105,14 @@
       "date": "2019-12-20",
       "measured": 2.980240032,
       "quantity": "co2_kg",
-      "simulated": 3.6726307212967773,
+      "simulated": 3.9163072911668455,
       "unit": "kg"
     },
     {
       "date": "2019-12-21",
       "measured": 65.872,
       "quantity": "heating_kwh",
-      "simulated": 74.45962638525167,
+      "simulated": 67.52928236496471,
       "unit": "kWh"
     },
     {
@@ -126,14 +126,14 @@
       "date": "2019-12-21",
       "measured": 1.509760032,
       "quantity": "co2_kg",
-      "simulated": 2.251346125537662,
+      "simulated": 2.268316696688424,
       "unit": "kg"
     },
     {
       "date": "2019-12-22",
       "measured": 48.848,
       "quantity": "heating_kwh",
-      "simulated": 57.91546132425874,
+      "simulated": 45.09907925393894,
       "unit": "kWh"
     },
     {
@@ -147,14 +147,14 @@
       "date": "2019-12-22",
       "measured": 2.158639968,
       "quantity": "co2_kg",
-      "simulated": 1.9893795235629346,
+      "simulated": 1.9926465683066092,
       "unit": "kg"
     },
     {
       "date": "2019-12-30",
       "measured": 70.904,
       "quantity": "heating_kwh",
-      "simulated": 86.63342487723945,
+      "simulated": 77.82938278535168,
       "unit": "kWh"
     },
     {
@@ -168,14 +168,14 @@
       "date": "2019-12-30",
       "measured": 4.48512,
       "quantity": "co2_kg",
-      "simulated": 5.2138820279064655,
+      "simulated": 5.228450980309927,
       "unit": "kg"
     },
     {
       "date": "2019-12-31",
       "measured": 62.976,
       "quantity": "heating_kwh",
-      "simulated": 60.567111632841886,
+      "simulated": 44.36545123382109,
       "unit": "kWh"
     },
     {
@@ -189,14 +189,14 @@
       "date": "2019-12-31",
       "measured": 3.683920032,
       "quantity": "co2_kg",
-      "simulated": 4.120675498359726,
+      "simulated": 4.08384972658538,
       "unit": "kg"
     },
     {
       "date": "2020-01-01",
       "measured": 85.42399999999999,
       "quantity": "heating_kwh",
-      "simulated": 70.45491542305128,
+      "simulated": 55.82593133596002,
       "unit": "kWh"
     },
     {
@@ -210,14 +210,14 @@
       "date": "2020-01-01",
       "measured": 3.806800032,
       "quantity": "co2_kg",
-      "simulated": 3.1370235987248694,
+      "simulated": 3.1283487116863373,
       "unit": "kg"
     },
     {
       "date": "2020-01-02",
       "measured": 94.88,
       "quantity": "heating_kwh",
-      "simulated": 76.4994315104954,
+      "simulated": 60.94546908897054,
       "unit": "kWh"
     },
     {
@@ -231,14 +231,14 @@
       "date": "2020-01-02",
       "measured": 3.873439968,
       "quantity": "co2_kg",
-      "simulated": 3.10539028766631,
+      "simulated": 3.154049924795639,
       "unit": "kg"
     },
     {
       "date": "2020-01-03",
       "measured": 76.75200000000001,
       "quantity": "heating_kwh",
-      "simulated": 69.21284175244018,
+      "simulated": 55.82911494621704,
       "unit": "kWh"
     },
     {
@@ -252,14 +252,14 @@
       "date": "2020-01-03",
       "measured": 5.0923999680000005,
       "quantity": "co2_kg",
-      "simulated": 3.9344021486945677,
+      "simulated": 3.9899178631474106,
       "unit": "kg"
     },
     {
       "date": "2020-01-04",
       "measured": 55.51200000000001,
       "quantity": "heating_kwh",
-      "simulated": 79.04299419959014,
+      "simulated": 65.53079201722085,
       "unit": "kWh"
     },
     {
@@ -273,14 +273,14 @@
       "date": "2020-01-04",
       "measured": 5.8915999679999995,
       "quantity": "co2_kg",
-      "simulated": 4.504138382098819,
+      "simulated": 4.696873153993504,
       "unit": "kg"
     },
     {
       "date": "2020-01-05",
       "measured": 52.06399999999999,
       "quantity": "heating_kwh",
-      "simulated": 55.09502114324593,
+      "simulated": 46.336074991532406,
       "unit": "kWh"
     },
     {
@@ -294,14 +294,14 @@
       "date": "2020-01-05",
       "measured": 4.947040032,
       "quantity": "co2_kg",
-      "simulated": 3.686876279475172,
+      "simulated": 4.486550099606167,
       "unit": "kg"
     },
     {
       "date": "2020-01-13",
       "measured": 40.888,
       "quantity": "heating_kwh",
-      "simulated": 50.33220127061871,
+      "simulated": 43.56771372530537,
       "unit": "kWh"
     },
     {
@@ -315,14 +315,14 @@
       "date": "2020-01-13",
       "measured": 5.265679968000001,
       "quantity": "co2_kg",
-      "simulated": 4.1856242621356445,
+      "simulated": 4.909067517195136,
       "unit": "kg"
     },
     {
       "date": "2020-01-14",
       "measured": 34.328,
       "quantity": "heating_kwh",
-      "simulated": 39.819568183088855,
+      "simulated": 35.7253373157065,
       "unit": "kWh"
     },
     {
@@ -336,14 +336,14 @@
       "date": "2020-01-14",
       "measured": 7.494960000000001,
       "quantity": "co2_kg",
-      "simulated": 4.788571376189891,
+      "simulated": 8.657230737025884,
       "unit": "kg"
     },
     {
       "date": "2020-01-15",
       "measured": 28.104,
       "quantity": "heating_kwh",
-      "simulated": 34.04844289418334,
+      "simulated": 31.36765861226537,
       "unit": "kWh"
     },
     {
@@ -357,14 +357,14 @@
       "date": "2020-01-15",
       "measured": 6.988720032,
       "quantity": "co2_kg",
-      "simulated": 4.6365365552907445,
+      "simulated": 7.873273485605633,
       "unit": "kg"
     },
     {
       "date": "2020-01-17",
       "measured": 31.287999999999997,
       "quantity": "heating_kwh",
-      "simulated": 42.04951739221173,
+      "simulated": 39.85697912220484,
       "unit": "kWh"
     },
     {
@@ -378,14 +378,14 @@
       "date": "2020-01-17",
       "measured": 6.699280031999999,
       "quantity": "co2_kg",
-      "simulated": 4.797836436909766,
+      "simulated": 7.427304210389732,
       "unit": "kg"
     },
     {
       "date": "2020-01-18",
       "measured": 64.928,
       "quantity": "heating_kwh",
-      "simulated": 104.19401862597238,
+      "simulated": 100.82519894854684,
       "unit": "kWh"
     },
     {
@@ -399,14 +399,14 @@
       "date": "2020-01-18",
       "measured": 3.7186399679999997,
       "quantity": "co2_kg",
-      "simulated": 3.7809653126457117,
+      "simulated": 4.03083832254625,
       "unit": "kg"
     },
     {
       "date": "2020-01-19",
       "measured": 40.239999999999995,
       "quantity": "heating_kwh",
-      "simulated": 43.57840469775471,
+      "simulated": 35.79333083546458,
       "unit": "kWh"
     },
     {
@@ -420,14 +420,14 @@
       "date": "2020-01-19",
       "measured": 5.60736,
       "quantity": "co2_kg",
-      "simulated": 4.510968769434827,
+      "simulated": 5.1034589153906555,
       "unit": "kg"
     },
     {
       "date": "2020-01-27",
       "measured": 23.872,
       "quantity": "heating_kwh",
-      "simulated": 37.39031134801709,
+      "simulated": 30.856558019205558,
       "unit": "kWh"
     },
     {
@@ -441,14 +441,14 @@
       "date": "2020-01-27",
       "measured": 5.969359968,
       "quantity": "co2_kg",
-      "simulated": 3.5890262646172393,
+      "simulated": 4.559517691401337,
       "unit": "kg"
     },
     {
       "date": "2020-01-28",
       "measured": 48.455999999999996,
       "quantity": "heating_kwh",
-      "simulated": 63.629126166389156,
+      "simulated": 61.28889175680204,
       "unit": "kWh"
     },
     {
@@ -462,14 +462,14 @@
       "date": "2020-01-28",
       "measured": 5.651839968,
       "quantity": "co2_kg",
-      "simulated": 4.247799968510711,
+      "simulated": 4.9882373715034705,
       "unit": "kg"
     },
     {
       "date": "2020-01-29",
       "measured": 32.128,
       "quantity": "heating_kwh",
-      "simulated": 56.18530608145432,
+      "simulated": 53.191305003903544,
       "unit": "kWh"
     },
     {
@@ -483,14 +483,14 @@
       "date": "2020-01-29",
       "measured": 6.597199968,
       "quantity": "co2_kg",
-      "simulated": 4.887461618701152,
+      "simulated": 6.253541587034846,
       "unit": "kg"
     },
     {
       "date": "2020-01-30",
       "measured": 22.4,
       "quantity": "heating_kwh",
-      "simulated": 32.0539609595637,
+      "simulated": 28.221408682599442,
       "unit": "kWh"
     },
     {
@@ -504,14 +504,14 @@
       "date": "2020-01-30",
       "measured": 6.786160032,
       "quantity": "co2_kg",
-      "simulated": 4.30412375274835,
+      "simulated": 5.064853396540972,
       "unit": "kg"
     },
     {
       "date": "2020-01-31",
       "measured": 24.944,
       "quantity": "heating_kwh",
-      "simulated": 28.70018890069952,
+      "simulated": 23.38820996644599,
       "unit": "kWh"
     },
     {
@@ -525,14 +525,14 @@
       "date": "2020-01-31",
       "measured": 7.692959999999999,
       "quantity": "co2_kg",
-      "simulated": 4.346537079043836,
+      "simulated": 5.483561268212899,
       "unit": "kg"
     },
     {
       "date": "2020-02-01",
       "measured": 9.696,
       "quantity": "heating_kwh",
-      "simulated": 28.875463894999747,
+      "simulated": 19.513760145342324,
       "unit": "kWh"
     },
     {
@@ -546,14 +546,14 @@
       "date": "2020-02-01",
       "measured": 8.670559968,
       "quantity": "co2_kg",
-      "simulated": 6.704619046486631,
+      "simulated": 6.658644256539681,
       "unit": "kg"
     },
     {
       "date": "2020-02-02",
       "measured": 31.687999999999995,
       "quantity": "heating_kwh",
-      "simulated": 33.972073140899994,
+      "simulated": 24.990980066582793,
       "unit": "kWh"
     },
     {
@@ -567,14 +567,14 @@
       "date": "2020-02-02",
       "measured": 6.144480000000001,
       "quantity": "co2_kg",
-      "simulated": 4.51129399267,
+      "simulated": 4.558763414086334,
       "unit": "kg"
     },
     {
       "date": "2020-02-10",
       "measured": 30.663999999999998,
       "quantity": "heating_kwh",
-      "simulated": 54.33653823789066,
+      "simulated": 46.234331949408656,
       "unit": "kWh"
     },
     {
@@ -588,14 +588,14 @@
       "date": "2020-02-10",
       "measured": 7.70688,
       "quantity": "co2_kg",
-      "simulated": 6.939841580814247,
+      "simulated": 6.863098034055349,
       "unit": "kg"
     },
     {
       "date": "2020-02-11",
       "measured": 58.91999999999999,
       "quantity": "heating_kwh",
-      "simulated": 97.86581904631156,
+      "simulated": 102.60349842790033,
       "unit": "kWh"
     },
     {
@@ -609,14 +609,14 @@
       "date": "2020-02-11",
       "measured": 7.97784,
       "quantity": "co2_kg",
-      "simulated": 7.122779642805844,
+      "simulated": 7.165666178473788,
       "unit": "kg"
     },
     {
       "date": "2020-02-12",
       "measured": 49.343999999999994,
       "quantity": "heating_kwh",
-      "simulated": 79.47530843258465,
+      "simulated": 82.80862810390462,
       "unit": "kWh"
     },
     {
@@ -630,14 +630,14 @@
       "date": "2020-02-12",
       "measured": 7.243120032,
       "quantity": "co2_kg",
-      "simulated": 6.321249557143736,
+      "simulated": 6.456349004458055,
       "unit": "kg"
     },
     {
       "date": "2020-02-13",
       "measured": 55.04,
       "quantity": "heating_kwh",
-      "simulated": 35.956483169541286,
+      "simulated": 31.575744914693406,
       "unit": "kWh"
     },
     {
@@ -651,14 +651,14 @@
       "date": "2020-02-13",
       "measured": 5.2965599999999995,
       "quantity": "co2_kg",
-      "simulated": 4.267855384364176,
+      "simulated": 4.0813433760890305,
       "unit": "kg"
     },
     {
       "date": "2020-02-14",
       "measured": 19.312,
       "quantity": "heating_kwh",
-      "simulated": 32.18759618525224,
+      "simulated": 28.135148676609713,
       "unit": "kWh"
     },
     {
@@ -672,14 +672,14 @@
       "date": "2020-02-14",
       "measured": 6.1044,
       "quantity": "co2_kg",
-      "simulated": 5.12193779122285,
+      "simulated": 5.412928121683411,
       "unit": "kg"
     },
     {
       "date": "2020-02-15",
       "measured": 8.064,
       "quantity": "heating_kwh",
-      "simulated": 18.75473884020869,
+      "simulated": 13.099157408514952,
       "unit": "kWh"
     },
     {
@@ -693,14 +693,14 @@
       "date": "2020-02-15",
       "measured": 7.264879968,
       "quantity": "co2_kg",
-      "simulated": 4.9633781561979164,
+      "simulated": 5.00237184418926,
       "unit": "kg"
     },
     {
       "date": "2020-02-16",
       "measured": 16.872,
       "quantity": "heating_kwh",
-      "simulated": 28.525457077025024,
+      "simulated": 25.512300271132517,
       "unit": "kWh"
     },
     {
@@ -714,14 +714,14 @@
       "date": "2020-02-16",
       "measured": 10.818559968,
       "quantity": "co2_kg",
-      "simulated": 6.043373529797223,
+      "simulated": 6.02181906957126,
       "unit": "kg"
     },
     {
       "date": "2020-02-24",
       "measured": 91.65599999999999,
       "quantity": "heating_kwh",
-      "simulated": 74.30035350062865,
+      "simulated": 67.44513056438642,
       "unit": "kWh"
     },
     {
@@ -735,14 +735,14 @@
       "date": "2020-02-24",
       "measured": 4.10712,
       "quantity": "co2_kg",
-      "simulated": 3.75032242478479,
+      "simulated": 3.6345034997287735,
       "unit": "kg"
     },
     {
       "date": "2020-02-26",
       "measured": 119.60000000000001,
       "quantity": "heating_kwh",
-      "simulated": 108.55072752237896,
+      "simulated": 93.59931382123915,
       "unit": "kWh"
     },
     {
@@ -756,14 +756,14 @@
       "date": "2020-02-26",
       "measured": 5.008240032,
       "quantity": "co2_kg",
-      "simulated": 4.574419651252544,
+      "simulated": 4.527371837124839,
       "unit": "kg"
     },
     {
       "date": "2020-02-27",
       "measured": 129.048,
       "quantity": "heating_kwh",
-      "simulated": 83.6104377080881,
+      "simulated": 76.28617051810097,
       "unit": "kWh"
     },
     {
@@ -777,14 +777,14 @@
       "date": "2020-02-27",
       "measured": 3.4236,
       "quantity": "co2_kg",
-      "simulated": 3.2865299051496146,
+      "simulated": 3.282552782221039,
       "unit": "kg"
     },
     {
       "date": "2020-02-28",
       "measured": 98.784,
       "quantity": "heating_kwh",
-      "simulated": 89.68488658993016,
+      "simulated": 79.69595359546007,
       "unit": "kWh"
     },
     {
@@ -798,14 +798,14 @@
       "date": "2020-02-28",
       "measured": 4.336159968,
       "quantity": "co2_kg",
-      "simulated": 4.450773376716384,
+      "simulated": 4.4593210768700144,
       "unit": "kg"
     },
     {
       "date": "2020-02-29",
       "measured": 55.767999999999994,
       "quantity": "heating_kwh",
-      "simulated": 75.71777058282608,
+      "simulated": 68.36127995419565,
       "unit": "kWh"
     },
     {
@@ -819,14 +819,14 @@
       "date": "2020-02-29",
       "measured": 6.062239968,
       "quantity": "co2_kg",
-      "simulated": 5.406688042443834,
+      "simulated": 5.589659660133538,
       "unit": "kg"
     },
     {
       "date": "2020-03-01",
       "measured": 43.583999999999996,
       "quantity": "heating_kwh",
-      "simulated": 67.02203845127711,
+      "simulated": 60.608948919103504,
       "unit": "kWh"
     },
     {
@@ -840,14 +840,14 @@
       "date": "2020-03-01",
       "measured": 6.275119968,
       "quantity": "co2_kg",
-      "simulated": 5.791856889289467,
+      "simulated": 5.660319918817952,
       "unit": "kg"
     },
     {
       "date": "2020-03-09",
       "measured": 37.48799999999999,
       "quantity": "heating_kwh",
-      "simulated": 44.13909243061866,
+      "simulated": 38.79965846843811,
       "unit": "kWh"
     },
     {
@@ -861,14 +861,14 @@
       "date": "2020-03-09",
       "measured": 6.594480000000001,
       "quantity": "co2_kg",
-      "simulated": 6.610375926459083,
+      "simulated": 6.436504664162544,
       "unit": "kg"
     },
     {
       "date": "2020-03-10",
       "measured": 47.495999999999995,
       "quantity": "heating_kwh",
-      "simulated": 39.2119957869281,
+      "simulated": 30.139080549054277,
       "unit": "kWh"
     },
     {
@@ -882,14 +882,14 @@
       "date": "2020-03-10",
       "measured": 6.534640032,
       "quantity": "co2_kg",
-      "simulated": 4.701277139554643,
+      "simulated": 4.772136587278659,
       "unit": "kg"
     },
     {
       "date": "2020-03-11",
       "measured": 17.791999999999998,
       "quantity": "heating_kwh",
-      "simulated": 37.6486068640471,
+      "simulated": 20.401332236783624,
       "unit": "kWh"
     },
     {
@@ -903,14 +903,14 @@
       "date": "2020-03-11",
       "measured": 7.50216,
       "quantity": "co2_kg",
-      "simulated": 7.2206849097440635,
+      "simulated": 7.295365177963665,
       "unit": "kg"
     },
     {
       "date": "2020-03-12",
       "measured": 38.583999999999996,
       "quantity": "heating_kwh",
-      "simulated": 57.63299901663255,
+      "simulated": 49.76395578057037,
       "unit": "kWh"
     },
     {
@@ -924,14 +924,14 @@
       "date": "2020-03-12",
       "measured": 8.287600032,
       "quantity": "co2_kg",
-      "simulated": 8.589990470355682,
+      "simulated": 8.575070661631688,
       "unit": "kg"
     },
     {
       "date": "2020-03-13",
       "measured": 53.88,
       "quantity": "heating_kwh",
-      "simulated": 81.46464883157168,
+      "simulated": 64.46741727276242,
       "unit": "kWh"
     },
     {
@@ -945,14 +945,14 @@
       "date": "2020-03-13",
       "measured": 5.892799968,
       "quantity": "co2_kg",
-      "simulated": 5.084366317194711,
+      "simulated": 5.348407917148174,
       "unit": "kg"
     },
     {
       "date": "2020-03-14",
       "measured": 34.976,
       "quantity": "heating_kwh",
-      "simulated": 38.64456655358018,
+      "simulated": 25.377590528529144,
       "unit": "kWh"
     },
     {
@@ -966,14 +966,14 @@
       "date": "2020-03-14",
       "measured": 5.995840032,
       "quantity": "co2_kg",
-      "simulated": 5.482902104525361,
+      "simulated": 5.482658094092869,
       "unit": "kg"
     },
     {
       "date": "2020-03-15",
       "measured": 30.799999999999997,
       "quantity": "heating_kwh",
-      "simulated": 37.685850548257726,
+      "simulated": 22.555732287297662,
       "unit": "kWh"
     },
     {
@@ -987,14 +987,14 @@
       "date": "2020-03-15",
       "measured": 6.253919999999999,
       "quantity": "co2_kg",
-      "simulated": 5.401886674093334,
+      "simulated": 5.370920372160421,
       "unit": "kg"
     },
     {
       "date": "2020-03-23",
       "measured": 70.78399999999999,
       "quantity": "heating_kwh",
-      "simulated": 91.04345649942876,
+      "simulated": 81.94172333543044,
       "unit": "kWh"
     },
     {
@@ -1008,14 +1008,14 @@
       "date": "2020-03-23",
       "measured": 7.195840032,
       "quantity": "co2_kg",
-      "simulated": 8.239186506658195,
+      "simulated": 8.211771058566484,
       "unit": "kg"
     },
     {
       "date": "2020-03-24",
       "measured": 57.19199999999999,
       "quantity": "heating_kwh",
-      "simulated": 65.6101073999928,
+      "simulated": 52.21179710087376,
       "unit": "kWh"
     },
     {
@@ -1029,14 +1029,14 @@
       "date": "2020-03-24",
       "measured": 7.168480032,
       "quantity": "co2_kg",
-      "simulated": 8.084436274449596,
+      "simulated": 8.110720837524411,
       "unit": "kg"
     },
     {
       "date": "2020-03-25",
       "measured": 55.224,
       "quantity": "heating_kwh",
-      "simulated": 63.212839631165735,
+      "simulated": 51.161084592656394,
       "unit": "kWh"
     },
     {
@@ -1050,14 +1050,14 @@
       "date": "2020-03-25",
       "measured": 6.550639968,
       "quantity": "co2_kg",
-      "simulated": 8.41923623712849,
+      "simulated": 8.229285274472828,
       "unit": "kg"
     },
     {
       "date": "2020-03-26",
       "measured": 71.016,
       "quantity": "heating_kwh",
-      "simulated": 112.22453806293359,
+      "simulated": 104.95764033864558,
       "unit": "kWh"
     },
     {
@@ -1071,14 +1071,14 @@
       "date": "2020-03-26",
       "measured": 4.494160032,
       "quantity": "co2_kg",
-      "simulated": 6.340456115283031,
+      "simulated": 6.343199642964786,
       "unit": "kg"
     },
     {
       "date": "2020-03-27",
       "measured": 37.744,
       "quantity": "heating_kwh",
-      "simulated": 49.030301957717796,
+      "simulated": 35.165232215973745,
       "unit": "kWh"
     },
     {
@@ -1092,14 +1092,14 @@
       "date": "2020-03-27",
       "measured": 6.63168,
       "quantity": "co2_kg",
-      "simulated": 7.938670027969818,
+      "simulated": 7.980029846225566,
       "unit": "kg"
     },
     {
       "date": "2020-03-28",
       "measured": 49.74399999999999,
       "quantity": "heating_kwh",
-      "simulated": 67.74525893403022,
+      "simulated": 54.72825249599205,
       "unit": "kWh"
     },
     {
@@ -1113,14 +1113,14 @@
       "date": "2020-03-28",
       "measured": 6.8299199999999995,
       "quantity": "co2_kg",
-      "simulated": 7.944824695744413,
+      "simulated": 7.999083959372836,
       "unit": "kg"
     },
     {
       "date": "2020-04-06",
       "measured": 14.367999999999999,
       "quantity": "heating_kwh",
-      "simulated": 47.69003510275936,
+      "simulated": 24.45499995496173,
       "unit": "kWh"
     },
     {
@@ -1134,14 +1134,14 @@
       "date": "2020-04-06",
       "measured": 8.20272,
       "quantity": "co2_kg",
-      "simulated": 9.020995363856008,
+      "simulated": 8.987593410765907,
       "unit": "kg"
     },
     {
       "date": "2020-04-07",
       "measured": 14.2,
       "quantity": "heating_kwh",
-      "simulated": 37.00865525594571,
+      "simulated": 16.859192712359356,
       "unit": "kWh"
     },
     {
@@ -1155,14 +1155,14 @@
       "date": "2020-04-07",
       "measured": 9.718000031999999,
       "quantity": "co2_kg",
-      "simulated": 10.908343387119299,
+      "simulated": 10.929112249940198,
       "unit": "kg"
     },
     {
       "date": "2020-04-08",
       "measured": 7.432,
       "quantity": "heating_kwh",
-      "simulated": 30.424061487857966,
+      "simulated": 10.309717653822196,
       "unit": "kWh"
     },
     {
@@ -1176,14 +1176,14 @@
       "date": "2020-04-08",
       "measured": 7.63344,
       "quantity": "co2_kg",
-      "simulated": 12.56496545455642,
+      "simulated": 12.567443674681508,
       "unit": "kg"
     },
     {
       "date": "2020-04-10",
       "measured": 17.656,
       "quantity": "heating_kwh",
-      "simulated": 42.11416157245029,
+      "simulated": 19.482637291826954,
       "unit": "kWh"
     },
     {
@@ -1197,14 +1197,14 @@
       "date": "2020-04-10",
       "measured": 9.371279999999999,
       "quantity": "co2_kg",
-      "simulated": 9.241293699055289,
+      "simulated": 9.258731227627651,
       "unit": "kg"
     },
     {
       "date": "2020-04-11",
       "measured": 14.000000000000002,
       "quantity": "heating_kwh",
-      "simulated": 34.8304515132432,
+      "simulated": 14.12706743314323,
       "unit": "kWh"
     },
     {
@@ -1218,14 +1218,14 @@
       "date": "2020-04-11",
       "measured": 10.024000032,
       "quantity": "co2_kg",
-      "simulated": 10.391548382822876,
+      "simulated": 10.426360813388614,
       "unit": "kg"
     },
     {
       "date": "2020-04-12",
       "measured": 10.959999999999999,
       "quantity": "heating_kwh",
-      "simulated": 36.894419525170996,
+      "simulated": 14.37201584186027,
       "unit": "kWh"
     },
     {
@@ -1239,14 +1239,14 @@
       "date": "2020-04-12",
       "measured": 8.700400032,
       "quantity": "co2_kg",
-      "simulated": 9.039506659262031,
+      "simulated": 9.204823688532137,
       "unit": "kg"
     },
     {
       "date": "2020-04-20",
       "measured": 24.488,
       "quantity": "heating_kwh",
-      "simulated": 43.02358749787553,
+      "simulated": 22.04449769264484,
       "unit": "kWh"
     },
     {
@@ -1260,14 +1260,14 @@
       "date": "2020-04-20",
       "measured": 12.087520032,
       "quantity": "co2_kg",
-      "simulated": 10.727077097146868,
+      "simulated": 10.9352541483058,
       "unit": "kg"
     },
     {
       "date": "2020-04-21",
       "measured": 13.456000000000001,
       "quantity": "heating_kwh",
-      "simulated": 36.0492719082688,
+      "simulated": 14.917948644173979,
       "unit": "kWh"
     },
     {
@@ -1281,14 +1281,14 @@
       "date": "2020-04-21",
       "measured": 12.743200032,
       "quantity": "co2_kg",
-      "simulated": 11.367845421115822,
+      "simulated": 11.29182486103472,
       "unit": "kg"
     },
     {
       "date": "2020-04-22",
       "measured": 10.543999999999999,
       "quantity": "heating_kwh",
-      "simulated": 33.73894333601478,
+      "simulated": 13.872489212090905,
       "unit": "kWh"
     },
     {
@@ -1302,14 +1302,14 @@
       "date": "2020-04-22",
       "measured": 12.648640032,
       "quantity": "co2_kg",
-      "simulated": 12.488930303188571,
+      "simulated": 12.503418379835834,
       "unit": "kg"
     },
     {
       "date": "2020-04-23",
       "measured": 9.728,
       "quantity": "heating_kwh",
-      "simulated": 31.951542498346768,
+      "simulated": 12.65270451503088,
       "unit": "kWh"
     },
     {
@@ -1323,14 +1323,14 @@
       "date": "2020-04-23",
       "measured": 10.46208,
       "quantity": "co2_kg",
-      "simulated": 12.63105847546308,
+      "simulated": 12.64666345735926,
       "unit": "kg"
     },
     {
       "date": "2020-04-24",
       "measured": 15.575999999999999,
       "quantity": "heating_kwh",
-      "simulated": 41.09108710031542,
+      "simulated": 20.141423125190805,
       "unit": "kWh"
     },
     {
@@ -1344,14 +1344,14 @@
       "date": "2020-04-24",
       "measured": 10.029520032,
       "quantity": "co2_kg",
-      "simulated": 8.6110127244139,
+      "simulated": 8.43977222084853,
       "unit": "kg"
     },
     {
       "date": "2020-04-25",
       "measured": 35.488,
       "quantity": "heating_kwh",
-      "simulated": 63.652672448108305,
+      "simulated": 42.733511418847606,
       "unit": "kWh"
     },
     {
@@ -1365,14 +1365,14 @@
       "date": "2020-04-25",
       "measured": 3.639520032,
       "quantity": "co2_kg",
-      "simulated": 4.592422144636756,
+      "simulated": 4.643169873343583,
       "unit": "kg"
     },
     {
       "date": "2020-04-26",
       "measured": 28.6,
       "quantity": "heating_kwh",
-      "simulated": 51.560276493950724,
+      "simulated": 26.653559198546063,
       "unit": "kWh"
     },
     {
@@ -1386,14 +1386,14 @@
       "date": "2020-04-26",
       "measured": 5.5452,
       "quantity": "co2_kg",
-      "simulated": 7.126126441094343,
+      "simulated": 7.099814480146599,
       "unit": "kg"
     },
     {
       "date": "2020-05-04",
       "measured": 5.248,
       "quantity": "heating_kwh",
-      "simulated": 46.312818867349336,
+      "simulated": 29.672603943033415,
       "unit": "kWh"
     },
     {
@@ -1407,14 +1407,14 @@
       "date": "2020-05-04",
       "measured": 4.16256,
       "quantity": "co2_kg",
-      "simulated": 6.3351867883148705,
+      "simulated": 6.35742733724114,
       "unit": "kg"
     },
     {
       "date": "2020-05-05",
       "measured": 27.151999999999997,
       "quantity": "heating_kwh",
-      "simulated": 55.33444726479807,
+      "simulated": 31.287712924991745,
       "unit": "kWh"
     },
     {
@@ -1428,14 +1428,14 @@
       "date": "2020-05-05",
       "measured": 10.27728,
       "quantity": "co2_kg",
-      "simulated": 9.537334882951237,
+      "simulated": 9.537853731920318,
       "unit": "kg"
     },
     {
       "date": "2020-05-06",
       "measured": 23.423999999999996,
       "quantity": "heating_kwh",
-      "simulated": 52.11502860013625,
+      "simulated": 27.579937968220662,
       "unit": "kWh"
     },
     {
@@ -1449,14 +1449,14 @@
       "date": "2020-05-06",
       "measured": 9.48216,
       "quantity": "co2_kg",
-      "simulated": 10.413003456972168,
+      "simulated": 10.277899057490657,
       "unit": "kg"
     },
     {
       "date": "2020-05-07",
       "measured": 26.823999999999998,
       "quantity": "heating_kwh",
-      "simulated": 64.40924323455027,
+      "simulated": 45.374841320315724,
       "unit": "kWh"
     },
     {
@@ -1470,14 +1470,14 @@
       "date": "2020-05-07",
       "measured": 5.4887999999999995,
       "quantity": "co2_kg",
-      "simulated": 9.75387067026325,
+      "simulated": 9.792038412461377,
       "unit": "kg"
     },
     {
       "date": "2020-05-08",
       "measured": 16.184,
       "quantity": "heating_kwh",
-      "simulated": 55.06832022473791,
+      "simulated": 35.48552937531852,
       "unit": "kWh"
     },
     {
@@ -1491,14 +1491,14 @@
       "date": "2020-05-08",
       "measured": 5.263840032,
       "quantity": "co2_kg",
-      "simulated": 9.792194329001468,
+      "simulated": 9.792277816423645,
       "unit": "kg"
     },
     {
       "date": "2020-05-09",
       "measured": 11.328,
       "quantity": "heating_kwh",
-      "simulated": 51.02194851893329,
+      "simulated": 29.85222440673556,
       "unit": "kWh"
     },
     {
@@ -1512,14 +1512,14 @@
       "date": "2020-05-09",
       "measured": 8.156239968,
       "quantity": "co2_kg",
-      "simulated": 10.70486502257371,
+      "simulated": 10.91478598074849,
       "unit": "kg"
     },
     {
       "date": "2020-05-10",
       "measured": 25.264,
       "quantity": "heating_kwh",
-      "simulated": 71.10938978373251,
+      "simulated": 51.799174018423095,
       "unit": "kWh"
     },
     {
@@ -1533,14 +1533,14 @@
       "date": "2020-05-10",
       "measured": 4.59624,
       "quantity": "co2_kg",
-      "simulated": 4.84389067030235,
+      "simulated": 4.864448993508017,
       "unit": "kg"
     },
     {
       "date": "2020-05-18",
       "measured": 9.904,
       "quantity": "heating_kwh",
-      "simulated": 60.87742468913412,
+      "simulated": 37.95545545013087,
       "unit": "kWh"
     },
     {
@@ -1554,14 +1554,14 @@
       "date": "2020-05-18",
       "measured": 7.918800000000001,
       "quantity": "co2_kg",
-      "simulated": 9.726886956179959,
+      "simulated": 9.817129467949782,
       "unit": "kg"
     },
     {
       "date": "2020-05-19",
       "measured": 7.160000000000001,
       "quantity": "heating_kwh",
-      "simulated": 49.549597490898165,
+      "simulated": 30.131419059696697,
       "unit": "kWh"
     },
     {
@@ -1575,14 +1575,14 @@
       "date": "2020-05-19",
       "measured": 6.450160031999999,
       "quantity": "co2_kg",
-      "simulated": 9.557210674132829,
+      "simulated": 9.672811688523584,
       "unit": "kg"
     },
     {
       "date": "2020-05-20",
       "measured": 6.263999999999999,
       "quantity": "heating_kwh",
-      "simulated": 45.61170065617108,
+      "simulated": 24.5619513496226,
       "unit": "kWh"
     },
     {
@@ -1596,14 +1596,14 @@
       "date": "2020-05-20",
       "measured": 5.50632,
       "quantity": "co2_kg",
-      "simulated": 10.129260638474738,
+      "simulated": 10.158503482346426,
       "unit": "kg"
     },
     {
       "date": "2020-05-21",
       "measured": 4.4719999999999995,
       "quantity": "heating_kwh",
-      "simulated": 41.640721242281856,
+      "simulated": 22.14149747646408,
       "unit": "kWh"
     },
     {
@@ -1617,14 +1617,14 @@
       "date": "2020-05-21",
       "measured": 5.927119968,
       "quantity": "co2_kg",
-      "simulated": 9.164518290382185,
+      "simulated": 9.238532514543392,
       "unit": "kg"
     },
     {
       "date": "2020-05-22",
       "measured": 0.0,
       "quantity": "heating_kwh",
-      "simulated": 33.53186488220298,
+      "simulated": 7.721800256625404,
       "unit": "kWh"
     },
     {
@@ -1638,14 +1638,14 @@
       "date": "2020-05-22",
       "measured": 1.7639200320000001,
       "quantity": "co2_kg",
-      "simulated": 1.6714432711274636,
+      "simulated": 1.697658492900438,
       "unit": "kg"
     },
     {
       "date": "2020-05-23",
       "measured": 9.888,
       "quantity": "heating_kwh",
-      "simulated": 59.30637618526735,
+      "simulated": 34.53411189178177,
       "unit": "kWh"
     },
     {
@@ -1659,14 +1659,14 @@
       "date": "2020-05-23",
       "measured": 2.6496,
       "quantity": "co2_kg",
-      "simulated": 2.925852819641661,
+      "simulated": 2.8277048568022227,
       "unit": "kg"
     },
     {
       "date": "2020-05-24",
       "measured": 26.76,
       "quantity": "heating_kwh",
-      "simulated": 117.27552768684389,
+      "simulated": 84.94902188873942,
       "unit": "kWh"
     },
     {
@@ -1680,17 +1680,17 @@
       "date": "2020-05-24",
       "measured": 0.750640032,
       "quantity": "co2_kg",
-      "simulated": 0.5183044200796295,
+      "simulated": 0.5313022994696325,
       "unit": "kg"
     }
   ],
-  "generated_at": "2026-10-02T11:14:54+00:00",
+  "generated_at": "2026-10-02T12:35:46+00:00",
   "model": "greenlight",
   "summaries": {
     "co2_kg": {
       "count": 80,
-      "mae": 1.3605071309834673,
-      "mean_absolute_relative_error": 0.28534628904498455
+      "mae": 1.2250451494944063,
+      "mean_absolute_relative_error": 0.2664731075429482
     },
     "electricity_kwh": {
       "count": 80,
@@ -1699,8 +1699,8 @@
     },
     "heating_kwh": {
       "count": 80,
-      "mae": 21.737210683471385,
-      "mean_absolute_relative_error": 1.2345631550110874
+      "mae": 13.71465657860333,
+      "mean_absolute_relative_error": 0.5899924753334791
     }
   }
 }
