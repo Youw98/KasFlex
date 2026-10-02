@@ -156,14 +156,19 @@ roughly 30–32 °C).
 ## GreenLight calibration for AGC2 compartments (validation replay only)
 
 These replace gl-gym defaults in the measured AGC2 replay, not in the 5 ha planning
-scenario. Method and held-out errors: [CALIBRATION.md](CALIBRATION.md).
+scenario. Fitted on even ISO weeks of AICU against heat, CO₂ and hourly indoor
+temperature; tested on odd weeks and on the Reference compartment. Method and
+held-out errors: [CALIBRATION.md](CALIBRATION.md).
 
 | Field | Value | Tag | Source / rationale |
 |---|---|---|---|
 | `etaLampCool` | 0 (gl-gym 0.63) | documented | AGC2 ReadMe: 81 W/m² HPS plus Heliospectra LEDs, no active lamp cooling, so all lamp power heats the compartment. gl-gym's default is for water-cooled LEDs. |
-| `aCov` | 156 m² per 144 m² floor (gl-gym 216.6) | fitted | Roof glass at 23° slope only; the 96 m² compartment shares its walls with heated neighbours. Chosen from {156, 180, 216.6} on even ISO weeks of AICU. |
-| `aRoof` | 17.4 m² per 144 m² floor (gl-gym 52.2) | fitted | Chosen from {7.2, 17.4, 52.2}. The default is 36% of floor area. |
-| `cLeakage` | 1e-5 (gl-gym 3e-5) | fitted | Chosen from {1e-5, 3e-5, 1e-4}. |
+| `aCov` | 180 m² per 144 m² floor (gl-gym 216.6) | fitted | Between roof glass only (156) and a free-standing house; a compartment shares some walls with heated neighbours. Chosen from {140, 156, 180, 216.6}. |
+| `aRoof` | 17.4 m² per 144 m² floor (gl-gym 52.2) | fitted | Chosen from {7.2, 12, 17.4, 26, 52.2}. The default is 36% of floor area. |
+| `cLeakage` | 2e-5 (gl-gym 3e-5) | fitted | Chosen from {0.5, 1, 2, 3} × 1e-5. |
+| `tauRfNir` | 0.85 (gl-gym 0.57) | fitted | Chosen from {0.45, 0.57, 0.7, 0.85}; at the edge of the range. |
+| `kThScr` | 1.25e-4 (gl-gym 5e-4) | fitted | Chosen from {1.25, 2.5, 5, 10, 20} × 1e-4; at the edge of the range. |
+| `tauThScrFir` | 0.05 (gl-gym 0.15) | fitted | Chosen from {0.05, 0.15, 0.3, 0.5}; at the edge of the range. |
 | AGC heat formula | `(t_rail − t_air) × 2.1 + (t_grow − t_air) × 0.62` W/m² | documented | AGC2 ReadMe, `Heat_cons`. Applied to simulated pipes so heat is compared like with like. |
 | AGC lamp power | 81 × HPS + 7.27 × blue + 25.3 × red + 6.23 × far-red + 22.72 × white W/m² | documented | AGC2 ReadMe, `ElecHigh`/`ElecLow`; LED intensities from `int_*_vip` (0–1000). |
 

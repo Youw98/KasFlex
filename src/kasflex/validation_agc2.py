@@ -37,20 +37,27 @@ AGC2_LED_CHANNELS = {
 }
 AGC2_LAMP_POWER_W_M2 = AGC2_HPS_W_M2 + sum(watts for _col, watts in AGC2_LED_CHANNELS.values())
 #: GreenLight construction parameters for an AGC2 compartment, fitted on the even
-#: ISO weeks of the AICU compartment and tested on the odd weeks. The method,
-#: search grid and held-out errors are in docs/CALIBRATION.md; the harness is
-#: workers/greenlight/calibrate_agc2.py.
+#: ISO weeks of the AICU compartment, tested on the odd weeks, and confirmed on the
+#: Reference compartment, all from the checksum-verified 4TU archive. The method,
+#: candidates and held-out errors are in docs/CALIBRATION.md; the harness is
+#: workers/greenlight/calibrate_agc2.py. The score weighs daily heat, daily CO2
+#: and hourly indoor temperature.
 #:
 #: * ``etaLampCool`` 0: gl-gym defaults to actively cooled LEDs that carry 63% of
 #:   lamp input out of the greenhouse. AGC2 lit with 81 W/m2 HPS plus uncooled
 #:   LEDs, so all lamp power ends up as heat inside. Physical, not fitted.
-#: * ``aCov`` 156 m2 per 144 m2 floor: roof glass only (slope 23 deg). A 96 m2
-#:   compartment shares its side walls with heated neighbours; gl-gym's 216.6
-#:   assumes a free-standing house with glass walls. Fitted within that range.
-#: * ``aRoof`` 17.4 m2 per 144 m2 (12%), fitted; gl-gym's 52.2 (36%) is three
-#:   times the vent area of a Venlo roof.
-#: * ``cLeakage`` 1e-5, fitted; gl-gym's default is 3e-5.
-AGC2_CALIBRATION = {"etaLampCool": 0.0, "aCov": 156.0, "aRoof": 17.4, "cLeakage": 1e-5}
+#: * ``aCov`` 180 m2 per 144 m2 floor, between roof glass only (156) and gl-gym's
+#:   free-standing house (216.6): a compartment shares some walls with neighbours.
+#: * ``aRoof`` 17.4 m2 per 144 m2 (12%); gl-gym's 52.2 (36%) is three times the
+#:   vent area of a Venlo roof. ``cLeakage`` 2e-5; gl-gym's default is 3e-5.
+#: * ``tauRfNir`` 0.85, ``kThScr`` 1.25e-4 and ``tauThScrFir`` 0.05 sit at the edge
+#:   of the values tried: clear glass, and a tighter, more opaque screen than
+#:   gl-gym's. Edge values mean these compensate for something the model lacks;
+#:   read them as a fit, not as measured properties.
+AGC2_CALIBRATION = {
+    "etaLampCool": 0.0, "aCov": 180.0, "aRoof": 17.4, "cLeakage": 2e-5,
+    "tauRfNir": 0.85, "kThScr": 1.25e-4, "tauThScrFir": 0.05,
+}
 STEFAN_BOLTZMANN = 5.670374419e-8
 EXCEL_EPOCH = datetime(1899, 12, 30)
 

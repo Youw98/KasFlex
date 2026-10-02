@@ -85,7 +85,8 @@ def test_calibration_keeps_lamp_heat_inside_the_greenhouse():
     """gl-gym's LED default removes 63% of lamp power by active cooling. AGC2
     lamps are HPS plus uncooled LEDs, so that heat must stay in the model."""
     assert AGC2_CALIBRATION["etaLampCool"] == 0.0
-    assert set(AGC2_CALIBRATION) == {"etaLampCool", "aCov", "aRoof", "cLeakage"}
+    assert set(AGC2_CALIBRATION) == {"etaLampCool", "aCov", "aRoof", "cLeakage", "tauRfNir",
+                                     "kThScr", "tauThScrFir"}
 
 
 def test_measured_indoor_temperature_is_kept_for_scoring_not_as_a_control(tmp_path):
