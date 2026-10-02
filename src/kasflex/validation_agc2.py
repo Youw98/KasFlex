@@ -335,6 +335,9 @@ def _replay_payload(
         },
         "greenlight_parameter_overrides": {"lamp_power": AGC2_LAMP_POWER_W_M2},
         "greenlight_calibration": dict(AGC2_CALIBRATION),
+        # For scoring only, never a control: the calibration compares the simulated
+        # indoor temperature with this.
+        "measured_indoor": {"temperature_c": _hourly(series["Tair"])},
         "replay_controls": {
             "heating_setpoint_c": series["t_heat_vip"],
             "co2_setpoint_ppm": series["co2_vip"],

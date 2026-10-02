@@ -61,6 +61,8 @@ CALIBRATION_PARAMETERS = {
     "cHecOut1": 51,    # convective exchange cover-outdoor air, constant term
     "aRoof": 55,       # roof ventilation area [m2, per model floor area p[46]]
     "cLeakage": 60,    # leakage coefficient [-]
+    "tauThScrFir": 81,  # thermal screen FIR transmission [-]
+    "kThScr": 84,      # air flux through the thermal screen [m3 m-2 K-0.66 s-1]
     "tauRfNir": 68,    # cover NIR transmission [-]
     "tauRfPar": 69,    # cover PAR transmission [-]
     "etaLampCool": 186,  # fraction of lamp input removed by active lamp cooling [-]

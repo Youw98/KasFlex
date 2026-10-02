@@ -86,3 +86,17 @@ def test_calibration_keeps_lamp_heat_inside_the_greenhouse():
     lamps are HPS plus uncooled LEDs, so that heat must stay in the model."""
     assert AGC2_CALIBRATION["etaLampCool"] == 0.0
     assert set(AGC2_CALIBRATION) == {"etaLampCool", "aCov", "aRoof", "cLeakage"}
+
+
+def test_measured_indoor_temperature_is_kept_for_scoring_not_as_a_control(tmp_path):
+    """The calibration compares simulated and measured indoor air temperature, so
+    the replay carries it, but never among the controls that drive the model."""
+    from kasflex.validation_agc2 import _replay_payload
+
+    climate = _day_rows(Tair=21.5, Rhair=80, CO2air=600, t_heat_vip=18, co2_vip=800,
+                        AssimLight=0, EnScr=0, BlackScr=0, VentLee=0, Ventwind=0,
+                        int_blue_vip=0, int_red_vip=0, int_farred_vip=0, int_white_vip=0)
+    weather = _day_rows(Iglob=0, Tout=5, Rhout=90, Windsp=2, Pyrgeo=-50)
+    payload = _replay_payload(date(2020, 3, 13), climate, weather, tmp_path / "w" / "B")
+    assert payload["measured_indoor"]["temperature_c"] == pytest.approx([21.5] * 24)
+    assert "measured_indoor" not in payload["replay_controls"]
