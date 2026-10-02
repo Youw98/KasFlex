@@ -34,19 +34,25 @@ On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`.
 
 ## First browser run
 
-The main page is the team-demo workspace. It prepares the real historical demo day
-and shows the day context before it asks for a plan.
+The main page is the grower workspace. It opens on a workshop scenario (or the
+showcase or real historical day, chosen under **Demo data**) and shows the day
+before it asks for a plan.
 
-1. Check the electricity-price and weather context.
-2. Pick **Balanced**, **Lowest cost**, or **Grid relief**, plus practical operating preferences.
-3. Click **Build tomorrow's plan**.
-4. Respond separately to four dimensions: **saves money**, **protects the crop**,
-   **respects the grid**, and **fits how I work**.
-5. If you disagree, KasFlex proposes a dimension-specific alternative and shows the
-   trade-off rather than silently regenerating the whole plan.
-6. Review position/risk/data detail only when you need it.
-7. Approve only after all four dimensions have a response and the current revision
-   passes the independent checker.
+1. Read the scenario story and check the price, temperature and grid-contract chart.
+2. Look at KasFlex's suggestion and its reasons. Accept it with **Plan with this
+   suggestion**, or choose **I choose differently** to set the priority and
+   preferences yourself. In the *no advisor* version there is no suggestion.
+3. Optionally set your own targets (maximum grid import, light, budget) and goals.
+4. Build the plan and read it from the charts; point at an hour for the details.
+5. Respond to **saves money**, **protects the crop**, **fits how I work** and, with
+   targets set, **meets my goals**. Disagreeing needs a short reason; KasFlex turns
+   it into a specific alternative, shows the trade-off and remembers the reason.
+6. Open **Why this plan?**, the **Week outlook**, position, risk or data sources only
+   when you need them. In the chat version, **Ask KasFlex** answers questions.
+7. Approve once every part has a response and the current revision passes the
+   independent checker. A workshop scenario then shows how the day really went.
+
+The researcher sets the study version and the scenario on `/admin`.
 
 The first successful demo-data load is cached; later runs reuse it. Market/weather
 inputs are real historical data, while greenhouse response, crop outcomes and asset

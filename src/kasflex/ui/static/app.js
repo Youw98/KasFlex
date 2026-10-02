@@ -16,13 +16,28 @@ const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 })[char]);
-const api = async (path, body) => {
+// Settings changes (API keys among them) need the admin password; the token is
+// shared with the grower page's settings menu for this browser session.
+const adminToken = () => { try { return sessionStorage.getItem("kasflex.admin.token") || ""; } catch { return ""; } };
+const api = async (path, body, retried = false) => {
+  const headers = { "Content-Type": "application/json" };
+  if (adminToken()) headers["X-KasFlex-Admin"] = adminToken();
   const res = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({ error: `${res.status} ${res.statusText}` }));
+  if (res.status === 401 && !retried && path !== "/api/admin/login") {
+    const password = window.prompt("Admin password");
+    if (password) {
+      const login = await api("/api/admin/login", { password }, true).catch(() => null);
+      if (login?.token) {
+        try { sessionStorage.setItem("kasflex.admin.token", login.token); } catch {}
+        return api(path, body, true);
+      }
+    }
+  }
   if (!res.ok) throw new Error(data.error || `request failed (${res.status})`);
   return data;
 };

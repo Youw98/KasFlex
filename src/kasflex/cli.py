@@ -326,7 +326,8 @@ def cmd_ui(args: argparse.Namespace) -> int:
     print(f"  audit log  {resolve_output(ScenarioConfig.from_yaml(args.config).audit_path)}")
     if args.anonymous:
         print("  operator identity is not recorded (anonymous mode)")
-    print("\nLocalhost only, no authentication. Ctrl-C to stop.")
+    print("\nLocalhost only. Settings and research data need the settings password "
+          "(KASFLEX_ADMIN_PASSWORD, default admin99). Ctrl-C to stop.")
     if not args.no_browser:
         try:
             webbrowser.open(url)

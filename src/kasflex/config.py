@@ -9,6 +9,7 @@ prevent.
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field, fields, is_dataclass
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ from kasflex.energy.assets import (
     HeatBuffer,
     Pv,
 )
+from kasflex.energy.contracts import contract_limits
 
 
 class ConfigError(ValueError):
@@ -111,6 +113,13 @@ class ScenarioConfig:
     """What one kW less peak import is worth under the "grid relief" priority:
     Liander's 2026 medium-voltage kWmax tariff, per kW per month. Set it to your own
     network operator's kWmax tariff, or higher if grid relief carries other value."""
+    grid_contract_type: str = "cbc"
+    """Kind of grid connection contract: firm, cbc, time_block, duration or
+    non_firm (see :mod:`kasflex.energy.contracts`). It sets *when* the contracted
+    capacity in ``hub.contract`` is available. ``cbc`` keeps the congestion windows
+    written in the scenario file."""
+    scenario_id: str = ""
+    """Workshop scenario to plan for when ``data_source`` is ``scenario``."""
     history_days: int = 60
     """Days of past operation the learned planner trains its demand forecaster on.
     Below about 21 the lag features leave too little to fit; more is better."""
@@ -177,4 +186,9 @@ class ScenarioConfig:
             )
         if "name" not in data or "date" not in data:
             raise ConfigError(f"{where}: both 'name' and 'date' are required")
+        kind = str(data.get("grid_contract_type", "cbc"))
+        try:
+            hub = dataclasses.replace(hub, contract=contract_limits(hub.contract, kind))
+        except ValueError as exc:
+            raise ConfigError(f"{where}.grid_contract_type: {exc}") from exc
         return cls(hub=hub, checker=checker, **data)

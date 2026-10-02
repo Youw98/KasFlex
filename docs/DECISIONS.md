@@ -308,3 +308,48 @@ the battery to its ceiling and would otherwise never qualify.
 **Re-measure it.** The right reserve depends on how wrong the forecast actually is,
 and today's forecast error is the surrogate greenhouse's. These numbers should be
 regenerated once stage 1 lands.
+
+## ADR-0013 — Plan one day ahead; show a week only as an estimate
+
+**Context.** Growers asked whether KasFlex should make a week plan instead of a day
+plan.
+
+**Decision.** KasFlex keeps planning one day ahead. A "week outlook" repeats the day
+plan on seven simulated days like the chosen one and sums cost, saving and growth,
+labelled as an estimate.
+
+**Why.** The Dutch day-ahead market clears one day at a time, so tomorrow's prices
+are known and the day after's are not. Weather forecasts lose most of their skill
+after two to three days, and the greenhouse model's error compounds over a longer
+horizon. A seven-day plan would present guesses with the same confidence as known
+prices. The outlook answers the real question ("what does this add up to over a
+week?") without pretending to plan it.
+
+## ADR-0014 — The grid contract is a hard rule, not a dimension to negotiate
+
+**Context.** The grower review used to ask whether a plan "respects the grid",
+next to money, crop and work. The project review concluded that the grid limit
+is not a matter of opinion: the contract allows it or it does not.
+
+**Decision.** The contract (and any lower limit the grower sets, or a limit read
+from a reason such as "the grid operator allows 1.5 MW from 16 to 20") becomes the
+hourly import limit the checker enforces. The review asks about money, crop, work
+and, when the grower set any, their own goals. Grid compliance is shown as a badge.
+
+**Consequences.** "Fits how I work" is now concrete: equipment switches, CHP hours
+and night hours, CHP starts, and hours that differ from normal control. A grower
+who says why they disagree changes the plan through `kasflex.reasons`, and a reason
+phrased as a rule ("we always...", "never at night") is applied to later plans.
+
+## ADR-0015 — Three study versions share one planner
+
+**Decision.** The workshop runs in one of three versions, chosen on the admin page:
+*no advisor* (the grower sets priority and targets; KasFlex calculates and checks
+but does not suggest, argue or explain), *AI suggests* (a recommendation first,
+agree or disagree per part with a reason), and *AI + chat* (the same, plus a chat
+panel). All three use the same optimiser and the same checker.
+
+**Why.** The study compares the *interaction*, not the optimiser. If version 1 used
+a weaker planner, any difference in outcomes would mix the planner's quality with
+the effect of advice. Each run records its version in the audit and research data.
+

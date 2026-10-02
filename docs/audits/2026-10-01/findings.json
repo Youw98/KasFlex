@@ -1,0 +1,215 @@
+[
+  {
+    "id": "KF-2026-10-01-01",
+    "title": "A request could point the AI at any server, and the stored API key went with it",
+    "state": "confirmed",
+    "severity": "high",
+    "category": "security",
+    "fingerprint": "llm-base-url-override",
+    "location": {
+      "file": "src/kasflex/ui/server.py",
+      "endpoint": "POST /api/run, /api/chat, /api/recommend, /api/models/test (overrides.llm_base_url)"
+    },
+    "actor": "Anyone using the browser on the workshop laptop (devtools or curl); no password",
+    "path": "body.overrides.llm_base_url -> _apply_overrides (accepted: listed in ADJUSTABLE) -> _model_settings -> build_call_fn(base_url) -> _openai_style/_anthropic/_google send the stored key (Authorization / x-api-key / ?key=) to that URL",
+    "result": "The settings lock is bypassed: the AI service, model and address change without the password, and the provider API key from .env is sent to a server of the actor's choosing.",
+    "evidence": "Local request POST /api/run with overrides {llm_provider: openai, llm_base_url: http://127.0.0.1:9/steal} returned 200 before the fix; /api/models/test accepted a base_url without the password.",
+    "fix": "Any override of a settings-menu field (SITE_FIELDS: llm_*, grid contract, installation, prices) and /api/models/test now require the admin token (server.py do_POST).",
+    "test": "tests/test_workshop.py::test_audit_f2_a_request_cannot_redirect_the_ai_and_its_key",
+    "siblings": "Checked every POST that reads body.overrides; all pass through the same gate. GET /api/consent only accepts participant_id and condition."
+  },
+  {
+    "id": "KF-2026-10-01-02",
+    "title": "Other participants' reasons, chat and research data were readable without the password",
+    "state": "confirmed",
+    "severity": "medium",
+    "category": "privacy",
+    "fingerprint": "research-read-unauthenticated",
+    "location": {
+      "file": "src/kasflex/ui/server.py",
+      "endpoint": "GET /api/preferences, /api/export/fair, /api/deliberations, /api/reliance, /api/elicitations, /api/conflicts, /api/conversation/*, /api/reviews"
+    },
+    "actor": "A workshop participant at the shared laptop, typing a URL",
+    "path": "GET request -> do_GET -> list_preferences / fair_bundle / list_deliberations ... with no authorisation check",
+    "result": "Free-text disagreement reasons and chat of every participant (e.g. 'sick colleague Jan'), the full research bundle and all past plans were readable. Pseudonymised, but personal data under GDPR Art. 4(5).",
+    "evidence": "Local request GET /api/preferences returned another participant's reason verbatim; /api/export/fair returned the JSON-LD bundle (200).",
+    "fix": "These GET routes require the admin token (_ADMIN_GETS). The setup page downloads exports with the token instead of plain links; the older pages ask for the password when needed.",
+    "test": "tests/test_workshop.py::test_audit_f1_research_data_needs_the_password",
+    "siblings": "GET /api/memory?everyone, /api/consent (counts only), /api/workshop (no personal data) checked."
+  },
+  {
+    "id": "KF-2026-10-01-03",
+    "title": "Anyone could withdraw or change another participant's consent, erasing their data",
+    "state": "confirmed",
+    "severity": "medium",
+    "category": "privacy",
+    "fingerprint": "consent-withdraw-unauthenticated",
+    "location": {
+      "file": "src/kasflex/ui/server.py",
+      "endpoint": "POST /api/consent/withdraw, POST /api/consent"
+    },
+    "actor": "A participant who guesses another pseudonym (P001, P002 ...)",
+    "path": "body.participant_id -> withdraw_consent -> consent.erase(stores) with no proof of identity; grant_consent overwrote an existing consent the same way",
+    "result": "Another participant's research data is erased, or their consent scopes changed.",
+    "evidence": "Code path traced: withdraw_consent erased stores for any participant_id in the body; no identity check before the fix. The regression test now proves refusal without the key.",
+    "fix": "Consenting returns a withdrawal key once (only its SHA-256 hash is stored, admin_auth.ConsentKeys). Withdrawing or changing an existing consent needs that key or the admin token. The participant's browser keeps the key.",
+    "test": "tests/test_workshop.py::test_audit_f3_only_the_participant_can_withdraw_or_change_their_consent",
+    "siblings": "setup.js (researcher) uses the admin token; grower.js and demo.js store and send the key."
+  },
+  {
+    "id": "KF-2026-10-01-04",
+    "title": "Form controls in the goals form had no accessible name",
+    "state": "confirmed",
+    "severity": "medium",
+    "category": "accessibility",
+    "fingerprint": "a11y-goal-form-labels",
+    "location": {
+      "file": "src/kasflex/ui/static/demo.html",
+      "screen": "Your own targets and goals"
+    },
+    "actor": "Screen-reader users",
+    "path": "select#goal-metric, select#goal-op, input#goal-value without label or aria-label",
+    "result": "WCAG 2.2 SC 4.1.2 and 1.3.1 failed: the controls are announced without a purpose.",
+    "evidence": "axe-core 4.10 (wcag2a/aa, wcag21aa, wcag22aa): label (critical) and select-name (critical) on the prepare screen.",
+    "fix": "aria-label on each control.",
+    "test": "tests/test_workshop.py::test_audit_a11y_controls_have_names_and_live_regions; axe re-run: 0 violations on 9 screens"
+  },
+  {
+    "id": "KF-2026-10-01-05",
+    "title": "Smaller accessibility gaps: landmarks, nested interactive, pressed state, hover-only meaning, motion",
+    "state": "confirmed",
+    "severity": "low",
+    "category": "accessibility",
+    "fingerprint": "a11y-minor",
+    "location": {
+      "file": "src/kasflex/ui/static/demo.js",
+      "screen": "grower workspace, admin login"
+    },
+    "path": "Simulation notice and toast outside landmarks; role=img container holding a details element; response buttons without aria-pressed; fact chips and hour strips explained only in a title tooltip; smooth scrolling ignoring prefers-reduced-motion; admin login outside a main landmark",
+    "result": "WCAG 1.3.1, 4.1.2 and 2.3.3 (AAA, best practice) issues; status messages not announced (4.1.3).",
+    "evidence": "axe-core: region, nested-interactive, landmark-one-main; manual review for aria-pressed, tooltips and motion.",
+    "fix": "Region and live-region roles, aria-pressed, visually hidden labels and role=img with aria-label, a prefers-reduced-motion switch for scrolling and CSS, main landmark on the admin login.",
+    "test": "axe re-run: 0 violations; tests/test_workshop.py::test_audit_a11y_controls_have_names_and_live_regions"
+  },
+  {
+    "id": "KF-2026-10-01-06",
+    "title": "No limit on password guesses",
+    "state": "hardening",
+    "priority": "medium",
+    "category": "security",
+    "location": {
+      "file": "src/kasflex/admin_auth.py",
+      "endpoint": "POST /api/admin/login"
+    },
+    "fix": "Done: after 5 wrong passwords in 5 minutes, logins are refused (429) until the window passes.",
+    "test": "tests/test_workshop.py::test_audit_f4_guessing_the_password_is_slowed_then_stopped"
+  },
+  {
+    "id": "KF-2026-10-01-07",
+    "title": "Error responses carried a stack trace; the Server header named the Python version",
+    "state": "hardening",
+    "priority": "low",
+    "category": "security",
+    "location": {
+      "file": "src/kasflex/ui/server.py"
+    },
+    "fix": "Done: 500 responses say where to look (the terminal) without the trace; sys_version is empty.",
+    "test": "tests/test_workshop.py::test_audit_f5_errors_and_headers_do_not_describe_the_installation"
+  },
+  {
+    "id": "KF-2026-10-01-08",
+    "title": "Default password admin99",
+    "state": "hardening",
+    "priority": "high",
+    "category": "security",
+    "location": {
+      "file": "src/kasflex/admin_auth.py"
+    },
+    "fix": "Not changed (requested by the owner for now). Set KASFLEX_ADMIN_PASSWORD before any session outside a supervised workshop; the start-up banner now says so."
+  },
+  {
+    "id": "KF-2026-10-01-09",
+    "title": "Participants can still set their own study condition and switch the safety check off from devtools",
+    "state": "hardening",
+    "priority": "medium",
+    "category": "quality",
+    "location": {
+      "file": "src/kasflex/ui/server.py",
+      "endpoint": "overrides.condition, overrides.checker.enabled"
+    },
+    "fix": "Not changed: the grower page sends both by design (version stamp, safety demonstration). If the study needs it tamper-proof, take condition from the workshop state on the server and record checker-off runs as demonstrations."
+  },
+  {
+    "id": "KF-2026-10-01-10",
+    "title": "CSP allows inline styles",
+    "state": "hardening",
+    "priority": "low",
+    "category": "security",
+    "location": {
+      "file": "src/kasflex/ui/server.py"
+    },
+    "fix": "Not changed: style attributes are set from script for charts. Scripts are already limited to 'self'; inline style is a low-value XSS vector here."
+  },
+  {
+    "id": "KF-2026-10-01-11",
+    "title": "No .env.example",
+    "state": "hardening",
+    "priority": "low",
+    "category": "quality",
+    "location": {
+      "file": ".env.example"
+    },
+    "fix": "Done: lists every variable, no values."
+  },
+  {
+    "id": "KF-2026-10-01-12",
+    "title": "GL-Gym is AGPL-3.0-or-later",
+    "state": "needs_validation",
+    "category": "legal",
+    "location": {
+      "document": "docs/WUR_LICENCE_CHECK.md"
+    },
+    "missing_fact": "WUR's answer to the questions in docs/WUR_LICENCE_CHECK.md. Released binaries do not bundle gl-gym (verified in packaging/kasflex.spec); hosting the worker as a service would trigger AGPL section 13."
+  },
+  {
+    "id": "KF-2026-10-01-13",
+    "title": "HTTPS and HSTS missing",
+    "state": "rejected",
+    "category": "security",
+    "location": {
+      "url": "http://127.0.0.1:8765/"
+    },
+    "reason": "The server binds to 127.0.0.1 only and refuses other Host headers; TLS on loopback adds nothing. Becomes relevant only if the app is ever hosted, which the module docstring forbids."
+  },
+  {
+    "id": "KF-2026-10-01-14",
+    "title": "innerHTML in the research workspace (app.js)",
+    "state": "rejected",
+    "category": "security",
+    "location": {
+      "file": "src/kasflex/ui/static/app.js"
+    },
+    "reason": "All eight sinks build SVG or fixed markup from numbers and developer-owned strings; server text goes through escapeHtml or textContent (covered by test_advanced_ui_does_not_put_api_errors_or_reasoning_directly_into_html)."
+  },
+  {
+    "id": "KF-2026-10-01-15",
+    "title": "Static file path traversal",
+    "state": "rejected",
+    "category": "security",
+    "location": {
+      "file": "src/kasflex/ui/server.py",
+      "endpoint": "GET /<file>"
+    },
+    "reason": "_static resolves the path and refuses anything outside STATIC_DIR; .env returns 404 (test_local_endpoint_saves_and_refuses_cross_origin)."
+  },
+  {
+    "id": "KF-2026-10-01-16",
+    "title": "Secrets in the repository",
+    "state": "rejected",
+    "category": "security",
+    "location": {
+      "file": ".env"
+    },
+    "reason": "scan_secrets.py: the only hits are the git-ignored local .env and a pandas test fixture inside the untracked .venv-greenlight."
+  }
+]

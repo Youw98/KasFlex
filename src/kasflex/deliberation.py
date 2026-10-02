@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-DIMENSIONS = ("money", "crop", "grid", "work")
+DIMENSIONS = ("money", "crop", "grid", "work", "goal")
 RESPONSES = ("agree", "unsure", "disagree")
 
 

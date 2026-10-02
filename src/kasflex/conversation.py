@@ -233,6 +233,8 @@ class PlanContext:
     weather_note: str = ""
     verdict_note: str = ""
     data_source: str = "synthetic"
+    background: str = ""
+    """Passages from the workshop's documents that match the question, with titles."""
 
     def brief(self) -> str:
         """The plan, written in the language the answer is wanted in."""
@@ -272,6 +274,12 @@ class PlanContext:
                          f"{self.verdict_note}")
         lines += ["", "Het plan, per uur:" if dutch else "The plan, hour by hour:",
                   plan_digest(self.plan, language)]
+        if self.background:
+            lines += ["", ("Achtergronddocumenten (noem de titel als u eruit put; wat er niet "
+                           "staat, weet u niet):") if dutch else
+                      ("Background documents (name the title when you use one; what is not "
+                       "in them, you do not know):"),
+                      self.background]
         return "\n".join(lines)
 
 

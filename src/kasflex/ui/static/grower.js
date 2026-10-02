@@ -56,16 +56,33 @@ const LS = {
 
 /* ------------------------------------------------------------------- api */
 
-async function api(path, body) {
+function adminToken() {
+  try { return sessionStorage.getItem("kasflex.admin.token") || ""; } catch { return ""; }
+}
+
+async function api(path, body, retried = false) {
+  const headers = body === undefined ? {} : { "Content-Type": "application/json" };
+  if (adminToken()) headers["X-KasFlex-Admin"] = adminToken();
   const options = body === undefined
-    ? {}
-    : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+    ? { headers }
+    : { method: "POST", headers, body: JSON.stringify(body) };
   let response;
   try { response = await fetch(path, options); }
   catch { throw new Error(t("common.error")); }
   const text = await response.text();
   let payload = {};
   try { payload = text ? JSON.parse(text) : {}; } catch { /* non-JSON body */ }
+  // Saving an API key needs the admin password: ask once, then retry.
+  if (response.status === 401 && !retried && path !== "/api/admin/login") {
+    const password = window.prompt("Admin password");
+    if (password) {
+      const login = await api("/api/admin/login", { password }, true).catch(() => null);
+      if (login && login.token) {
+        try { sessionStorage.setItem("kasflex.admin.token", login.token); } catch { /* private mode */ }
+        return api(path, body, true);
+      }
+    }
+  }
   if (!response.ok) throw new Error(payload.error || t("common.error"));
   return payload;
 }
@@ -1139,10 +1156,16 @@ function askConsent(status) {
 
     const send = async (agreed) => {
       try {
-        await api("/api/consent", {
+        const keyName = `kasflex.consent.key.${status.participant_id}`;
+        let stored = "";
+        try { stored = localStorage.getItem(keyName) || ""; } catch { /* private mode */ }
+        const granted = await api("/api/consent", {
           participant_id: status.participant_id, version: status.version,
-          scopes: agreed ? scopes : {},
+          scopes: agreed ? scopes : {}, withdraw_key: stored,
         });
+        try {
+          if (granted.withdraw_key) localStorage.setItem(keyName, granted.withdraw_key);
+        } catch { /* private mode */ }
       } catch (error) { showError(error); }
       sheet.close();
       resolve();
@@ -1186,7 +1209,11 @@ function renderConsentControls() {
         className: "danger", textContent: t("consent.withdraw"),
         onclick: async () => {
           try {
-            await api("/api/consent/withdraw", { participant_id: status.participant_id });
+            let key = "";
+            try { key = localStorage.getItem(`kasflex.consent.key.${status.participant_id}`) || ""; }
+            catch { /* private mode */ }
+            await api("/api/consent/withdraw", { participant_id: status.participant_id,
+                                                withdraw_key: key });
             root.replaceChildren(el("p", { textContent: t("consent.withdrawn") }));
             state.consent = await api("/api/consent");
           } catch (error) { showError(error); }
