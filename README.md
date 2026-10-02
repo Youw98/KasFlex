@@ -56,7 +56,9 @@ whole-plan regeneration.
    set any, **meets my goals**. **Disagree** needs a short reason ("CHP maintenance
    8–14", "max 1.5 MW from 16 to 20", "we always have few staff"). KasFlex turns it
    into a plan change, shows the trade-off, and remembers it; a reason phrased as a
-   rule comes back in later plans.
+   rule comes back in later plans. A one-off reason ("only two staff tomorrow") is
+   offered again with one click (↻) in the next suggestion, first when the day looks
+   alike: the same weekday, a cold night again, or a lowered grid limit again.
 8. **Why this plan?** shows which inputs the plan leans on (a what-if graph);
    **Week outlook** estimates a week of such days; in the chat version **Ask
    KasFlex** answers questions about the plan, with or without an AI model.
@@ -357,8 +359,9 @@ For the researcher running a workshop:
    visit). Edit, duplicate or create scenarios: the story and debrief in English and
    Dutch, 24 prices and temperatures, the grid contract type, installation changes,
    and the error (type, hours, limit). Edited built-ins can be reset.
-4. **Documents for the chat**: paste text (from Word or PDF) or load a .txt/.md
-   file. The chat answers from the plan and these documents and names the one it
+4. **Documents for the chat**: load a Word (.docx), .txt or .md file, or paste
+   text (for a PDF, copy its text). Large Word files with pictures work: the browser
+   sends only the text part. The chat answers from the plan and these documents and names the one it
    used. KasFlex ships one itself: the Dutch grid contract types.
 5. **Remembered reasons**: what participants said when they disagreed. Clear them
    between workshop groups.

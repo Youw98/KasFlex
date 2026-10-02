@@ -37,6 +37,7 @@ const state = {
   dimensions: {},
   openReason: "",
   chooseOwn: false,
+  reuse: new Set(),
   providers: [],
   adminToken: readSession("kasflex.admin.token") || "",
   approved: false,
@@ -175,7 +176,7 @@ function dimensionsFor(run=state.run) {
 
 function applyVersion() {
   const advised = isAdvised();
-  $("recommend-panel").hidden = !advised || !state.recommendation;
+  $("recommend-panel").hidden = !advised || (!state.recommendation && !state.recommending);
   $("choices-panel").hidden = advised && Boolean(state.recommendation) && !state.chooseOwn;
   $("open-factors").hidden = !advised;
   $("dimension-panel").hidden = !advised;
@@ -241,6 +242,7 @@ function selectedPolicy() {
   };
   const advice = state.recommendation?.policy;
   if (advice?.avoid_chp_hours?.length) policy.avoid_chp_hours = advice.avoid_chp_hours;
+  if (state.reuse.size) policy.reuse_memory = [...state.reuse];
   return policy;
 }
 
@@ -467,6 +469,18 @@ function renderContextChart(ctx) {
 // -- AI goes first ---------------------------------------------------------------
 
 async function loadRecommendation() {
+  // Loading has its own look, so a slow first plan never reads as an empty screen.
+  const panel = $("recommend-panel");
+  state.recommending = true;
+  panel.classList.add("loading");
+  panel.setAttribute("aria-busy", "true");
+  if (!state.recommendation) {
+    $("recommend-title").textContent = T("Comparing 4 plans…", "4 plannen vergelijken…");
+    $("recommend-facts").replaceChildren();
+    $("recommend-options").replaceChildren(el("div", "skeleton"), el("div", "skeleton"), el("div", "skeleton"));
+  }
+  $("accept-recommendation").disabled = true;
+  applyVersion();
   try {
     state.recommendation = await api("/api/recommend", {overrides:overrides(), policy:selectedPolicy()});
     const advice = state.recommendation;
@@ -481,6 +495,11 @@ async function loadRecommendation() {
   } catch (error) {
     state.recommendation = null;
     showError(error, T("Making a suggestion", "Voorstel maken"));
+  } finally {
+    state.recommending = false;
+    panel.classList.remove("loading");
+    panel.removeAttribute("aria-busy");
+    $("accept-recommendation").disabled = false;
   }
   applyVersion();
 }
@@ -547,11 +566,36 @@ function renderRecommendation(advice) {
     svgText(chart, tx, top - 7, T("need", "nodig"), {class:"tick", "text-anchor":"middle"});
   }
 
+  // What the grower said before: standing rules are already in the plan (🧠);
+  // one-off reasons can be applied again with one click, similar days first.
   const memory = $("recommend-memory");
-  const remembered = (advice.remembered || []).filter((item) => item.applied);
-  memory.hidden = !remembered.length;
-  memory.replaceChildren(...remembered.map((item) => fact("🧠", `“${item.said}”`,
-    T("Taken from what you said before", "Meegenomen uit wat u eerder zei"))));
+  const items = advice.remembered || [];
+  memory.hidden = !items.length;
+  memory.replaceChildren();
+  const why = {weekday:T("same weekday", "zelfde weekdag"), cold:T("cold night again", "weer een koude nacht"),
+               grid:T("grid limit lowered again", "netgrens weer lager")};
+  for (const item of items.slice(0, 6)) {
+    if (item.applied && !state.reuse.has(item.pref_id)) {
+      memory.append(fact("🧠", `“${item.said}”`, T("Taken from what you said before", "Meegenomen uit wat u eerder zei")));
+      continue;
+    }
+    const on = state.reuse.has(item.pref_id);
+    const chip = el("button", `fact reuse${on ? " on" : ""}${item.similar ? " similar" : ""}`);
+    chip.type = "button";
+    chip.setAttribute("aria-pressed", String(on));
+    const label = item.similar ? `${T("Apply again", "Opnieuw toepassen")} (${why[item.similar]})`
+                               : T("Apply again", "Opnieuw toepassen");
+    chip.title = `${label}: ${item.summary}`;
+    const glyph = el("i", "", on ? "✓" : "↻");
+    glyph.setAttribute("aria-hidden", "true");
+    chip.append(glyph, el("strong", "", `“${item.said}”`), el("span", "sr", ` (${label})`));
+    if (item.similar) chip.append(el("small", "", why[item.similar]));
+    chip.addEventListener("click", async () => {
+      if (on) state.reuse.delete(item.pref_id); else state.reuse.add(item.pref_id);
+      await loadRecommendation();
+    });
+    memory.append(chip);
+  }
 }
 
 function chooseOwn() {
@@ -700,7 +744,7 @@ function renderDecision(run, {preserveDimensions=false}={}) {
   if (refused) {
     problems.append(el("strong", "", T("The check does not approve this plan:", "De check keurt dit plan niet goed:")));
     const list = el("ul");
-    for (const violation of (run.violations || []).slice(0, 4)) list.append(el("li", "", violation.message));
+    for (const violation of (run.violations || []).slice(0, 4)) list.append(el("li", "", violation.plain || violation.message));
     problems.append(list);
   }
   // The grid contract is a hard rule, not something to agree or disagree with.
