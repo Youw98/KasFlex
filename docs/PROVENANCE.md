@@ -6,7 +6,7 @@ next to where they came from.
 
 The six parameters that reach every cost figure the system produces (CHP,
 heat buffer, battery, crop temperature ceiling) are corrected against
-published sources in [the README](../README.md#where-the-numbers-come-from).
+published sources, named in the sections below.
 This page carries the same table for those, and adds a row for every other
 parameter the scenario configuration and asset defaults expose, so that
 nothing is left as an unsourced default.
@@ -45,9 +45,8 @@ and the defaults in `src/kasflex/energy/assets.py`.
 
 ## Battery
 
-The system-level round-trip efficiency is cited in [the
-README](../README.md#where-the-numbers-come-from) (0.92 each way; 85%
-round-trip; sources: ScienceDirect, OSTI).
+The system-level round-trip efficiency is 0.92 each way, 85% round trip
+(sources: ScienceDirect, OSTI).
 
 | Field | Value | Tag | Source / rationale |
 |---|---|---|---|
@@ -57,26 +56,25 @@ round-trip; sources: ScienceDirect, OSTI).
 | `hub.battery.soc_min_frac` | 0.10 | documented | Standard vendor lower reserve on grid-scale Li-ion (Tesla Megapack, CATL EnerC, etc.); protects cycle life. |
 | `hub.battery.soc_max_frac` | 0.90 | documented | Corresponding upper reserve. |
 | `hub.battery.soc_init_frac` | 0.50 | industry norm | Midpoint start. Deterministic seed for reproducibility (R6). |
-| `hub.battery.charge_efficiency` | 0.92 | documented | See README citations. |
-| `hub.battery.discharge_efficiency` | 0.92 | documented | See README citations. |
+| `hub.battery.charge_efficiency` | 0.92 | documented | Published grid-scale Li-ion values. |
+| `hub.battery.discharge_efficiency` | 0.92 | documented | Published grid-scale Li-ion values. |
 | `hub.battery.c_rate_max` | 0.5 | documented | Matches the 2-hour grid-scale duration standard for utility Li-ion. |
 
 ## Combined heat and power (CHP)
 
-CHP electrical efficiency, heat/power ratio and CO₂ factor are cited in
-[the README](../README.md#where-the-numbers-come-from) (US EPA CHP catalog;
-van der Velden & Smit, *Energy Policy* 2015; Carbon Independent).
+CHP electrical efficiency, heat/power ratio and CO₂ factor come from the US EPA
+CHP catalog; van der Velden & Smit, *Energy Policy* 2015; and Carbon Independent.
 
 | Field | Value | Tag | Source / rationale |
 |---|---|---|---|
 | `hub.chp.electrical_capacity_kw` | 1 500 kWe | industry norm | Mid-size greenhouse gas engine (0.5–5 MW is the Dutch sector's typical range, per van der Velden & Smit). |
-| `hub.chp.heat_to_power_ratio` | 1.1 | documented | See README citations (EPA Table 2-2, interpolated to 1.5 MW). |
+| `hub.chp.heat_to_power_ratio` | 1.1 | documented | Published source (EPA Table 2-2, interpolated to 1.5 MW). |
 | `hub.chp.electrical_efficiency` | 0.375 | documented | Same source. |
 | `hub.chp.min_load_frac` | 0.50 | industry norm | Below half load the engine's electrical efficiency and NOx behaviour deteriorate. |
 | `hub.chp.min_run_hours` | 2 | industry norm | A gas engine reaches steady thermal state within about two hours; cycling faster costs efficiency and maintenance life. |
 | `hub.chp.min_down_hours` | 2 | industry norm | Same reasoning applied to restart. |
 | `hub.chp.ramp_kw_per_hour` | 1 500 kW/h | documented | A greenhouse gas engine reaches full load within minutes, so at one-hour resolution the ramp does not bind. Kept explicit because larger units and steam turbines do. |
-| `hub.chp.co2_kg_per_kwh_e` | 0.50 kg/kWh_e | documented | See README (natural-gas emission factor / electrical efficiency). |
+| `hub.chp.co2_kg_per_kwh_e` | 0.50 kg/kWh_e | documented | Published source (natural-gas emission factor / electrical efficiency). |
 
 ## Boiler
 
@@ -88,13 +86,12 @@ van der Velden & Smit, *Energy Policy* 2015; Carbon Independent).
 
 ## Heat buffer
 
-Buffer capacity is cited in [the
-README](../README.md#where-the-numbers-come-from) (Hortinergy: ~300 m³/ha
-Dutch practice; VB Greenhouses on U-values).
+Buffer capacity follows Hortinergy (~300 m³/ha in Dutch practice) and VB
+Greenhouses on U-values.
 
 | Field | Value | Tag | Source / rationale |
 |---|---|---|---|
-| `hub.buffer.capacity_kwh` | 43 600 kWh | documented | See README citations (1 500 m³ for 5 ha × 25 K working swing). |
+| `hub.buffer.capacity_kwh` | 43 600 kWh | documented | Published source (1 500 m³ for 5 ha × 25 K working swing). |
 | `hub.buffer.max_charge_kw` | 3 000 kW | industry norm | Sized to accept CHP + boiler simultaneously when needed. |
 | `hub.buffer.max_discharge_kw` | 3 000 kW | industry norm | Sized to cover a majority of night heat demand from the buffer alone. |
 | `hub.buffer.level_min_frac` | 0.05 | industry norm | Practical dead volume in a stratified tank. |
@@ -110,15 +107,15 @@ Dutch practice; VB Greenhouses on U-values).
 
 ## Crop limits (all crop-specific and worth revisiting per cultivar)
 
-`temp_max_c` is cited in [the
-README](../README.md#where-the-numbers-come-from).
+`temp_max_c` follows tomato pollen-viability literature (viability collapses above
+roughly 30–32 °C).
 
 | Field | Value | Tag | Source / rationale |
 |---|---|---|---|
 | `hub.crop.dli_target_mol_m2` | 10 mol/m² | industry norm | Supplemental daily light integral for a Dutch winter lit tomato crop; the sun provides most summer light and lamps top up the rest. |
 | `hub.crop.dli_tolerance_mol_m2` | 3 mol/m² | industry norm | A tolerance wide enough that a valid winter plan is achievable; narrower windows reject every plan for a reason the planner cannot act on. |
 | `hub.crop.temp_min_c` | 15 °C | documented | Lower bound for tomato vegetative development; below this fruit set drops sharply. |
-| `hub.crop.temp_max_c` | 32 °C | documented | See README (pollen viability collapses above roughly 30–32 °C). |
+| `hub.crop.temp_max_c` | 32 °C | documented | Published source (pollen viability collapses above roughly 30–32 °C). |
 | `hub.crop.rh_max_pct` | 85% | documented | Above this, Botrytis risk rises steeply on tomato. |
 | `hub.crop.co2_min_ppm` | 300 ppm | industry norm | Roughly atmospheric; the floor of the enrichment control band. |
 | `hub.crop.co2_max_ppm` | 1 600 ppm | industry norm | A common upper enrichment target; above this the marginal photosynthesis gain flattens. |

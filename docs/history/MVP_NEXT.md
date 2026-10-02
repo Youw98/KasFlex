@@ -1,5 +1,8 @@
 # KasFlex MVP: add, change, remove
 
+> **Historical.** An earlier add/change/remove list. The current status is in
+> [MVP_PLAN.md](../MVP_PLAN.md).
+
 Make the main workflow: **What will this greenhouse's energy cost tomorrow, what can I change, and how certain is the estimate?** Start with one Dutch greenhouse and one day ahead. Keep research experiments accessible one level deeper.
 
 ## What exists today
