@@ -16,17 +16,86 @@ interface: the chat names its source, so a grower can see what it drew on.
 
 from __future__ import annotations
 
+import base64
+import binascii
+import io
 import json
 import re
 import uuid
+import zipfile
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
 from kasflex.energy.contracts import CONTRACT_TYPES
 
 MAX_CHARS = 60_000
+#: Largest Word file accepted, and the most its text part may unpack to.
+MAX_DOCX_BYTES = 1_400_000  # base64 must fit the 2 MB request limit
+MAX_DOCX_XML_BYTES = 20_000_000
+_W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+
+
+def docx_text(data: bytes) -> str:
+    """The paragraphs of a Word (.docx) file as plain text, one per line.
+
+    Standard library only. The file comes from the researcher (behind the settings
+    password), but is still treated as untrusted: size limits before and after
+    unpacking (a zip bomb stops here), and XML with a DOCTYPE is refused, which
+    rules out entity-expansion tricks. Tables come through as their cell text.
+
+    Raises:
+        ValueError: when the file is not a readable Word document or too large.
+    """
+    if len(data) > MAX_DOCX_BYTES:
+        raise ValueError("That Word file is too large; split it or paste the text.")
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            info = archive.getinfo("word/document.xml")
+            if info.file_size > MAX_DOCX_XML_BYTES:
+                raise ValueError("That Word file unpacks to too much text.")
+            xml = archive.read(info)
+    except (KeyError, zipfile.BadZipFile) as exc:
+        raise ValueError("Not a Word (.docx) file. Save it as .docx or paste the text.") from exc
+    return docx_xml_text(xml)
+
+
+def docx_xml_text(xml: bytes) -> str:
+    """Paragraph text from ``word/document.xml``. The browser unpacks large Word files
+    (images make them megabytes) and sends only this part."""
+    if len(xml) > MAX_DOCX_XML_BYTES:
+        raise ValueError("That Word file unpacks to too much text.")
+    if b"<!DOCTYPE" in xml[:4096] or b"<!ENTITY" in xml:
+        raise ValueError("That Word file contains XML this reader does not accept.")
+    try:
+        root = ElementTree.fromstring(xml)
+    except ElementTree.ParseError as exc:
+        raise ValueError("That Word file could not be read.") from exc
+    paragraphs = []
+    for para in root.iter(f"{_W}p"):
+        text = "".join(node.text or "" for node in para.iter(f"{_W}t")).strip()
+        if text:
+            paragraphs.append(text)
+    return "\n\n".join(paragraphs)
+
+
+def text_from_upload(filename: str, encoded: str = "", docx_xml: str = "") -> str:
+    """Text of an uploaded file: a Word file's unpacked ``document.xml``, or a whole
+    file sent as base64 (Word, plain text or Markdown)."""
+    if docx_xml:
+        return docx_xml_text(docx_xml.encode("utf-8"))
+    try:
+        data = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("The file did not arrive intact; try again.") from exc
+    name = str(filename or "").lower()
+    if name.endswith(".docx"):
+        return docx_text(data)
+    if name.endswith((".txt", ".md")):
+        return data.decode("utf-8", errors="replace")
+    raise ValueError("Use a .docx, .txt or .md file. For a PDF, copy its text and paste it.")
 _WORD = re.compile(r"[a-zà-ÿ0-9]+", re.IGNORECASE)
 STOP = frozenset("""
 de het een en of van in op te is dat die voor met aan als bij niet wat er zijn ook dan maar

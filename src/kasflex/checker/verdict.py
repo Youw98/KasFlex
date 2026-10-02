@@ -113,3 +113,82 @@ class Verdict:
 
     def to_json(self, indent: int | None = 2) -> str:
         return json.dumps(self.to_dict(), indent=indent, sort_keys=True)
+
+
+#: Each check in plain words, English and Dutch. ``{when}`` is "at 18:00" or
+#: "over the day"; ``{actual}``/``{bound}`` carry their unit.
+_PLAIN = {
+    "grid.import_limit": (
+        "{when}: {actual} from the grid, the contract allows {bound}.",
+        "{when}: {actual} van het net, het contract staat {bound} toe.",
+    ),
+    "grid.export_limit": (
+        "{when}: {actual} back to the grid, the contract allows {bound}.",
+        "{when}: {actual} terug naar het net, het contract staat {bound} toe.",
+    ),
+    "battery.power_limit": (
+        "{when}: the battery would run at {actual}; it can do {bound}.",
+        "{when}: de batterij zou {actual} leveren; ze kan {bound}.",
+    ),
+    "battery.state_of_charge": (
+        "{when}: the battery would be at {actual}; the safe limit is {bound}.",
+        "{when}: de batterij zou op {actual} staan; de veilige grens is {bound}.",
+    ),
+    "buffer.level_bounds": (
+        "{when}: the heat buffer would be at {actual}; its limit is {bound}.",
+        "{when}: de warmtebuffer zou op {actual} staan; de grens is {bound}.",
+    ),
+    "chp.min_run_time": (
+        "{when}: the CHP would run {actual}; it needs at least {bound} once started.",
+        "{when}: de WKK zou {actual} draaien; eenmaal aan moet hij minstens {bound}.",
+    ),
+    "chp.min_down_time": (
+        "{when}: the CHP would restart after {actual}; it needs {bound} off.",
+        "{when}: de WKK zou na {actual} weer starten; hij moet {bound} uit blijven.",
+    ),
+    "chp.ramp_rate": (
+        "{when}: the CHP would change by {actual}; it can change {bound}.",
+        "{when}: de WKK zou {actual} veranderen; hij kan {bound}.",
+    ),
+    "crop.daily_light_integral": (
+        "{when}: {actual} of light; the crop needs at least {bound}.",
+        "{when}: {actual} licht; het gewas heeft minstens {bound} nodig.",
+    ),
+    "crop.temperature_band": (
+        "{when}: {actual} in the greenhouse; the crop needs {bound}.",
+        "{when}: {actual} in de kas; het gewas heeft {bound} nodig.",
+    ),
+    "crop.humidity": (
+        "{when}: humidity {actual}; the limit is {bound}.",
+        "{when}: luchtvochtigheid {actual}; de grens is {bound}.",
+    ),
+    "heat.demand_met": (
+        "{when}: {actual} of heat short; the plan must cover {bound}.",
+        "{when}: {actual} warmte tekort; het plan moet {bound} dekken.",
+    ),
+}
+
+
+def plain_message(violation: dict[str, Any], language: str = "en") -> str:
+    """A violation in the grower's words and language; the checker's own text otherwise."""
+    templates = _PLAIN.get(str(violation.get("constraint", "")))
+    if not templates:
+        return str(violation.get("message", ""))
+    nl = language == "nl"
+    hour = violation.get("hour")
+    when = ((f"Om {int(hour):02d}:00" if nl else f"At {int(hour):02d}:00") if hour is not None
+            else ("Over de dag" if nl else "Over the day"))
+    unit = str(violation.get("unit", "")).replace("mol/m2/day", "mol/m²").replace("degC", "°C")
+
+    def amount(value: Any) -> str:
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return str(value)
+        text = f"{number:,.0f}" if abs(number) >= 100 else f"{number:,.1f}"
+        if nl:
+            text = text.replace(",", "·").replace(".", ",").replace("·", ".")
+        return f"{text} {unit}".strip()
+
+    return templates[1 if nl else 0].format(when=when, actual=amount(violation.get("actual")),
+                                            bound=amount(violation.get("bound")))

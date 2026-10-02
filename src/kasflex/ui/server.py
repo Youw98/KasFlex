@@ -42,6 +42,7 @@ from kasflex.admin_auth import HEADER as ADMIN_HEADER
 from kasflex.admin_auth import SITE_FIELDS, AdminGate, ConsentKeys, SiteSettings
 from kasflex.api_connections import ApiConnections
 from kasflex.checker.rules import SafetyChecker
+from kasflex.checker.verdict import plain_message
 from kasflex.config import ConfigError, ScenarioConfig
 from kasflex.consent import SCOPES as CONSENT_SCOPES
 from kasflex.consent import ConsentLog
@@ -611,7 +612,8 @@ class UiServer(WorkshopMixin):
         Remembered disagreement reasons come back here. A standing one (``always``)
         is applied every day; a cold-weather one only on a cold day; a one-off fact
         (``once``, such as a maintenance visit) is never applied automatically, it is
-        only shown again as a reminder.
+        only shown again as a reminder, and applied when the grower says so
+        (``reuse_memory``: the ids of earlier reasons to apply to this plan too).
         """
         raw = supplied if isinstance(supplied, dict) else {}
         priority = str(raw.get("priority", "balanced")).lower()
@@ -688,9 +690,10 @@ class UiServer(WorkshopMixin):
         }
         if raw.get("use_memory") is False:
             return policy
+        reuse = {str(i) for i in raw.get("reuse_memory") or [] if isinstance(i, str)}
         for pref in self.remembered(participant_key(overrides)):
             applies = pref.scope.get("applies", "once")
-            if applies == "always" or (applies == "cold" and cold):
+            if applies == "always" or (applies == "cold" and cold) or pref.pref_id in reuse:
                 policy = apply_effects(policy, pref.scope.get("effects") or {})
                 remembered_ids.append(pref.pref_id)
         policy["remembered_preference_ids"] = remembered_ids
@@ -1804,7 +1807,8 @@ class UiServer(WorkshopMixin):
             "fell_back": result.fell_back_to_baseline,
             "revisions_used": result.revisions_used,
             "feedback": result.verdict.feedback(explain=config.checker.explain),
-            "violations": [v.to_dict() for v in result.verdict.violations],
+            "violations": [{**v.to_dict(), "plain": plain_message(
+                v.to_dict(), i18n.normalise(config.language))} for v in result.verdict.violations],
             "realised_hard": hard,
             "realised_projected": len(result.realised_violations) - hard,
             "metrics": result.metrics,

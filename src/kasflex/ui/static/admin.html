@@ -116,11 +116,11 @@
 
     <section class="panel">
       <h2 id="t-docs">4 · Documents for the chat</h2>
-      <p id="t-docs-hint" class="hint">The chat answers from the plan and from these documents, and names the document it used. Paste text from Word or PDF, or load a .txt or .md file.</p>
+      <p id="t-docs-hint" class="hint">The chat answers from the plan and from these documents, and names the document it used. Load a Word file, or paste text (for a PDF, copy its text).</p>
       <div id="doc-list" class="memory-list"></div>
       <div class="form-grid two doc-form">
         <label class="field"><span id="t-doc-title">Title</span><input id="doc-title" type="text" maxlength="120"></label>
-        <label class="field"><span id="t-doc-file">Load a text file</span><input id="doc-file" type="file" accept=".txt,.md,text/plain,text/markdown"></label>
+        <label class="field"><span id="t-doc-file">Load a file (.docx, .txt, .md)</span><input id="doc-file" type="file" accept=".docx,.txt,.md,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label>
       </div>
       <label class="field doc-text"><span id="t-doc-text">Text</span><textarea id="doc-text" rows="6"></textarea></label>
       <div class="editor-actions"><button id="save-doc" type="button" class="primary dark">Add document</button></div>

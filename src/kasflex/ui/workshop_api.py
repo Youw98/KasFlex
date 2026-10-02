@@ -13,6 +13,7 @@ from typing import Any
 from kasflex import i18n
 from kasflex.assistant import answer as offline_answer
 from kasflex.documents import search as search_documents
+from kasflex.documents import text_from_upload
 from kasflex.energy.contracts import CONTRACT_TYPES, describe
 from kasflex.factors import explain_factors
 from kasflex.recommend import recommend
@@ -136,6 +137,33 @@ def evaluate_goals(goals, targets, metrics, work) -> tuple[list[dict], list[dict
         target_rows.append({"key": key, "value": value, "actual": round(actual, 2),
                             "op": op, "met": met})
     return goal_rows, target_rows
+
+
+def similar_situation(pref, config, conditions) -> str:
+    """Why an earlier one-off reason may fit tomorrow too, or "" if nothing suggests it.
+
+    KasFlex never reapplies a one-off reason by itself ("only two staff tomorrow"
+    was about that day); it offers it again when tomorrow looks alike, and the
+    grower decides. The signals are deliberately plain so the grower can check
+    them: the same weekday, a cold night again, or a lowered grid limit again.
+    """
+    import datetime as _dt  # noqa: PLC0415
+
+    effects = pref.scope.get("effects") or {}
+    try:
+        said = _dt.datetime.fromisoformat(str(pref.created_at)).date()
+        planned = _dt.date.fromisoformat(str(config.date))
+        # A reason given today was about tomorrow: compare with the planned weekday.
+        if (said + _dt.timedelta(days=1)).weekday() == planned.weekday():
+            return "weekday"
+    except ValueError:
+        pass
+    if "night_temp_c" in effects and min(
+            (c.outdoor_temp_c for c in conditions if c.hour in NIGHT), default=99) <= 1.0:
+        return "cold"
+    if "import_caps" in effects and config.hub.contract.congestion_windows:
+        return "grid"
+    return ""
 
 
 def scenario_check(scenario, rows: list[dict[str, Any]], metrics: dict[str, Any],
@@ -352,11 +380,12 @@ class WorkshopMixin:
                            language=language)
         participant = participant_key(overrides)
         applied_ids = set(base.get("remembered_preference_ids") or [])
-        advice["remembered"] = [
-            {"pref_id": p.pref_id, "said": p.reason, "summary": p.rule,
-             "applies": p.scope.get("applies", "once"), "applied": p.pref_id in applied_ids}
-            for p in self.remembered(participant)
-        ]
+        advice["remembered"] = sorted(
+            ({"pref_id": p.pref_id, "said": p.reason, "summary": p.rule,
+              "applies": p.scope.get("applies", "once"), "applied": p.pref_id in applied_ids,
+              "similar": similar_situation(p, config, conditions)}
+             for p in self.remembered(participant)),
+            key=lambda item: (not item["similar"], item["applied"]))
         merged = {**base, **advice["policy"]}
         merged["avoid_chp_hours"] = base.get("avoid_chp_hours", [])
         advice["policy"] = {k: v for k, v in merged.items()
@@ -426,7 +455,12 @@ class WorkshopMixin:
         from kasflex.ui.server import ApiError  # noqa: PLC0415
 
         try:
-            document = self.documents.save(payload.get("title", ""), payload.get("text", ""),
+            text = payload.get("text", "")
+            if payload.get("file_base64") or payload.get("docx_xml"):
+                text = text_from_upload(str(payload.get("filename", "")),
+                                        str(payload.get("file_base64") or ""),
+                                        str(payload.get("docx_xml") or ""))
+            document = self.documents.save(payload.get("title", ""), text,
                                            str(payload.get("id") or ""))
         except ValueError as exc:
             raise ApiError(str(exc)) from exc

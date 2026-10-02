@@ -130,9 +130,9 @@ function translate() {
     "save-scenario":["Save scenario", "Scenario opslaan"], "cancel-edit":["Cancel", "Annuleren"],
     "t-memory":["5 · Remembered reasons", "5 · Onthouden redenen"], "forget-all":["Forget all", "Alles vergeten"],
     "t-docs":["4 · Documents for the chat", "4 · Documenten voor de chat"],
-    "t-docs-hint":["The chat answers from the plan and from these documents, and names the document it used. Paste text from Word or PDF, or load a .txt or .md file.",
-                   "De chat antwoordt uit het plan en uit deze documenten, en noemt het document dat hij gebruikte. Plak tekst uit Word of PDF, of laad een .txt- of .md-bestand."],
-    "t-doc-title":["Title", "Titel"], "t-doc-file":["Load a text file", "Tekstbestand laden"], "t-doc-text":["Text", "Tekst"],
+    "t-docs-hint":["The chat answers from the plan and from these documents, and names the document it used. Load a Word file, or paste text (for a PDF, copy its text).",
+                   "De chat antwoordt uit het plan en uit deze documenten, en noemt het document dat hij gebruikte. Laad een Wordbestand, of plak tekst (kopieer de tekst uit een pdf)."],
+    "t-doc-title":["Title", "Titel"], "t-doc-file":["Load a file (.docx, .txt, .md)", "Bestand laden (.docx, .txt, .md)"], "t-doc-text":["Text", "Tekst"],
     "save-doc":["Add document", "Document toevoegen"],
     "t-memory-hint":["What participants said when they disagreed. KasFlex uses these in later plans of the same participant. Clear them between workshop groups.",
                      "Wat deelnemers zeiden toen ze het oneens waren. KasFlex gebruikt dit in latere plannen van dezelfde deelnemer. Wis dit tussen workshopgroepen."],
@@ -450,7 +450,10 @@ async function loadDocuments() {
 async function saveDocument() {
   clearError();
   try {
-    await api("/api/documents/save", {title:$("doc-title").value, text:$("doc-text").value});
+    // A Word file is read on the server; its text replaces whatever is in the box.
+    const upload = state.upload ? {filename:state.upload.name, docx_xml:state.upload.xml} : {};
+    await api("/api/documents/save", {title:$("doc-title").value, text:$("doc-text").value, ...upload});
+    state.upload = null;
     $("doc-title").value = "";
     $("doc-text").value = "";
     $("doc-file").value = "";
@@ -459,14 +462,62 @@ async function saveDocument() {
   } catch (error) { showError(error); }
 }
 
+/** The text part (word/document.xml) of a Word file. A .docx is a zip archive; the
+ *  pictures in it can make it megabytes, so only this part goes to the server. */
+async function docxDocumentXml(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let end = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+    if (view.getUint32(i, true) === 0x06054b50) { end = i; break; }
+  }
+  if (end < 0) throw new Error(T("not a Word (.docx) file", "geen Wordbestand (.docx)"));
+  const count = view.getUint16(end + 10, true);
+  let at = view.getUint32(end + 16, true);
+  for (let n = 0; n < count; n++) {
+    if (view.getUint32(at, true) !== 0x02014b50) break;
+    const method = view.getUint16(at + 10, true);
+    const size = view.getUint32(at + 20, true);
+    const nameLength = view.getUint16(at + 28, true);
+    const extra = view.getUint16(at + 30, true), comment = view.getUint16(at + 32, true);
+    const local = view.getUint32(at + 42, true);
+    const name = new TextDecoder().decode(bytes.subarray(at + 46, at + 46 + nameLength));
+    if (name === "word/document.xml") {
+      const start = local + 30 + view.getUint16(local + 26, true) + view.getUint16(local + 28, true);
+      const data = bytes.subarray(start, start + size);
+      if (method === 0) return new TextDecoder().decode(data);
+      if (method !== 8 || typeof DecompressionStream === "undefined") {
+        throw new Error(T("this browser cannot open it; paste the text", "deze browser kan het niet openen; plak de tekst"));
+      }
+      const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+      return await new Response(stream).text();
+    }
+    at += 46 + nameLength + extra + comment;
+  }
+  throw new Error(T("no text found in it", "er staat geen tekst in"));
+}
+
 function loadDocumentFile(event) {
   const file = event.target.files?.[0];
+  state.upload = null;
   if (!file) return;
+  if (!$("doc-title").value) $("doc-title").value = file.name.replace(/\.(txt|md|docx)$/i, "");
   const reader = new FileReader();
-  reader.onload = () => {
-    $("doc-text").value = String(reader.result || "");
-    if (!$("doc-title").value) $("doc-title").value = file.name.replace(/\.(txt|md)$/i, "");
-  };
+  if (/\.docx$/i.test(file.name)) {
+    reader.onload = async () => {
+      try {
+        const xml = await docxDocumentXml(new Uint8Array(reader.result));
+        state.upload = {name:file.name, xml};
+        $("doc-text").value = "";
+        $("doc-text").placeholder = T(`Word file “${file.name}” is read when you add it.`,
+                                      `Wordbestand “${file.name}” wordt gelezen bij toevoegen.`);
+      } catch (error) {
+        showError(T(`Could not open “${file.name}”: ${error.message}`, `Kan “${file.name}” niet openen: ${error.message}`));
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+  reader.onload = () => { $("doc-text").value = String(reader.result || ""); };
   reader.readAsText(file);
 }
 

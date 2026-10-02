@@ -755,3 +755,104 @@ def test_audit_a11y_controls_have_names_and_live_regions():
         assert needle in html, needle
     script = (static_dir() / "demo.js").read_text(encoding="utf-8")
     assert 'setAttribute("aria-pressed"' in script and "prefers-reduced-motion" in script
+
+
+# --- remembered reasons in similar situations, plain checker text, Word documents ---------
+
+
+def test_a_one_off_reason_can_be_applied_again_by_choice(ui):
+    ui.forget_remembered({"everyone": True})
+    run = ui.run({"planner": "collaborative", "data_source": "synthetic"}, {})
+    reply = ui.deliberate({**_ref(run), "dimension": "work", "response": "disagree",
+                           "reason": "only two staff tomorrow"})
+    pref_id = reply["remembered_id"]
+    advice = ui.recommendation({"overrides": {"data_source": "synthetic"}, "policy": {}})
+    offered = {item["pref_id"]: item for item in advice["remembered"]}
+    assert pref_id in offered and offered[pref_id]["applied"] is False
+    assert "similar" in offered[pref_id]
+    later = ui.run({"planner": "collaborative", "data_source": "synthetic"},
+                   {"reuse_memory": [pref_id]})
+    assert later["policy"].get("switch_penalty_eur", 0) > 0
+    assert later["remembered_applied"][0]["said"] == "only two staff tomorrow"
+    ui.forget_remembered({"everyone": True})
+
+
+def test_similar_situations_are_named_plainly():
+    import types
+
+    from kasflex.ui.workshop_api import similar_situation
+
+    config = types.SimpleNamespace(date="2023-01-17", hub=EnergyHub())
+    said_monday = types.SimpleNamespace(created_at="2023-01-16T08:00:00+00:00",
+                                        scope={"effects": {}})
+    assert similar_situation(said_monday, config, []) == "weekday"  # about Tuesday, again Tuesday
+    cold = types.SimpleNamespace(created_at="2023-01-01T08:00:00+00:00",
+                                 scope={"effects": {"night_temp_c": -6}})
+    night = [types.SimpleNamespace(hour=2, outdoor_temp_c=-3.0)]
+    assert similar_situation(cold, config, night) == "cold"
+
+
+def test_checker_messages_are_plain_and_in_the_growers_language():
+    from kasflex.checker.verdict import plain_message
+
+    v = {"constraint": "grid.import_limit", "actual": 4100.4, "bound": 1500, "unit": "kW",
+         "hour": 17, "message": "raw"}
+    assert plain_message(v, "nl") == (
+        "Om 17:00: 4.100 kW van het net, het contract staat 1.500 kW toe.")
+    assert plain_message(v, "en").startswith("At 17:00: 4,100 kW from the grid")
+    assert plain_message({"constraint": "unknown", "message": "raw"}, "nl") == "raw"
+
+
+def test_run_violations_carry_plain_text(ui):
+    run = ui.run({"planner": "collaborative", "data_source": "synthetic", "language": "nl"},
+                 {"targets": {"max_import_kw": 300}})
+    assert run["violations"], "a 0.3 MW cap must be refused"
+    assert all(v["plain"] for v in run["violations"])
+
+
+def _docx(paragraphs, extra=b""):
+    import io
+    import zipfile
+
+    body = "".join(f'<w:p><w:r><w:t>{p}</w:t></w:r></w:p>' for p in paragraphs)
+    xml = (extra + b'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/'
+           b'2006/main"><w:body>' + body.encode() + b"</w:body></w:document>")
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("word/document.xml", xml)
+    return buffer.getvalue()
+
+
+def test_word_documents_become_chat_documents(ui, tmp_path):
+    import base64
+
+    from kasflex.documents import DocumentStore, docx_text, search
+
+    assert docx_text(_docx(["Netcontract Westland", "Tijdsblok 22-07 uur volledig vermogen"])) \
+        == "Netcontract Westland\n\nTijdsblok 22-07 uur volledig vermogen"
+    with pytest.raises(ValueError):
+        docx_text(b"not a zip")
+    with pytest.raises(ValueError):  # entity expansion refused
+        docx_text(_docx(["x"], extra=b'<!DOCTYPE d [<!ENTITY a "aaaa">]>'))
+
+    ui.documents = DocumentStore(tmp_path / "docs")
+    encoded = base64.b64encode(_docx(["De WKK krijgt onderhoud op de eerste maandag."])).decode()
+    ui.save_document({"title": "Bedrijfsnotities", "filename": "notes.docx",
+                      "file_base64": encoded})
+    hits = search("Wanneer krijgt de WKK onderhoud?", ui.documents.all("nl"))
+    assert hits[0]["title"] == "Bedrijfsnotities"
+    with pytest.raises(ApiError):
+        ui.save_document({"title": "x", "filename": "scan.pdf", "file_base64": encoded})
+
+
+def test_the_browser_may_send_only_the_word_text_part():
+    import io
+    import zipfile
+
+    from kasflex.documents import text_from_upload
+
+    with zipfile.ZipFile(io.BytesIO(_docx(["Alleen de tekst"]))) as archive:
+        xml = archive.read("word/document.xml").decode()
+    assert text_from_upload("notes.docx", docx_xml=xml) == "Alleen de tekst"
+    with pytest.raises(ValueError):
+        text_from_upload("notes.docx", docx_xml="<!DOCTYPE x [<!ENTITY a 'b'>]><x/>")

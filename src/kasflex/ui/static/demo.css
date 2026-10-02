@@ -338,3 +338,10 @@ dialog::backdrop{background:#10201988;backdrop-filter:blur(4px)}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 @media (forced-colors: active){.bar-track i,.meter i,.hour-strip i.on,.dot.done{forced-color-adjust:none}}
 .chip-x{min-width:24px;min-height:24px}
+.fact.reuse{cursor:pointer;background:#fff;border-style:dashed;font:inherit;color:var(--ink)}
+.fact.reuse.similar{border-color:var(--s-4);border-style:solid}.fact.reuse.on{background:var(--green-soft);border-color:var(--green);border-style:solid}
+.fact.reuse small{color:var(--muted);font-size:12px}
+.recommend-panel.loading #recommend-options,.recommend-panel.loading #recommend-facts{opacity:.55}
+.skeleton{height:14px;border-radius:99px;background:linear-gradient(90deg,#eef1ef 0%,#f8faf9 50%,#eef1ef 100%);background-size:200% 100%;animation:shimmer 1.4s linear infinite;margin:10px 0}
+@keyframes shimmer{to{background-position:-200% 0}}
+.recommend-panel.loading .why-text{visibility:hidden}
