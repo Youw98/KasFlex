@@ -43,6 +43,8 @@ data = ["pandas>=2.0", "pyarrow>=15", "entsoe-py>=0.6", "requests>=2.32",
 llm = ["anthropic>=0.40"]
 mcp = ["mcp>=2,<3"]
 dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6"]
+# End-to-end tests of the grower page in headless Chromium (tests/browser).
+browser = ["playwright>=1.47"]
 
 [project.urls]
 Homepage = "https://github.com/Youw98/KasFlex"

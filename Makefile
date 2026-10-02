@@ -1,9 +1,11 @@
-.PHONY: help install install-greenlight test lint format reproduce diagram clean
+.PHONY: help install install-greenlight test test-browser audit lint format reproduce diagram clean
 
 help:
 	@echo "install             core plus dev dependencies"
 	@echo "install-greenlight  the separate AGPL worker environment"
 	@echo "test                run the test suite"
+	@echo "test-browser        the grower page in headless Chromium, with axe-core"
+	@echo "audit               known advisories in the installed dependencies"
 	@echo "lint                ruff"
 	@echo "reproduce           regenerate every result from a clean state"
 	@echo "diagram             re-render docs/architecture.{svg,png} from the .mmd"
@@ -20,6 +22,16 @@ install-greenlight:
 
 test:
 	pytest -q
+
+test-browser:
+	pip install -e ".[dev,browser]"
+	python -m playwright install chromium
+	npm install --no-save axe-core@4
+	pytest -q tests/browser -rs
+
+audit:
+	pip install pip-audit
+	pip-audit --skip-editable
 
 lint:
 	ruff check src/ tests/ workers/

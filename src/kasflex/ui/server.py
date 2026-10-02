@@ -39,8 +39,15 @@ from urllib.parse import parse_qsl, urlsplit
 from kasflex import i18n
 from kasflex.actions import derive_actions
 from kasflex.actions import summarise as summarise_actions
+from kasflex.admin_auth import (
+    DEFAULT_PASSWORD,
+    SITE_FIELDS,
+    AdminGate,
+    ConsentKeys,
+    SiteSettings,
+    admin_password,
+)
 from kasflex.admin_auth import HEADER as ADMIN_HEADER
-from kasflex.admin_auth import SITE_FIELDS, AdminGate, ConsentKeys, SiteSettings
 from kasflex.api_connections import ApiConnections
 from kasflex.checker.rules import SafetyChecker
 from kasflex.checker.verdict import plain_message
@@ -586,6 +593,8 @@ class UiServer(WorkshopMixin):
         language = i18n.normalise(self.base.language)
         return {"fields": fields, "models": self.model_status(),
                 "connections": self.connections.status(),
+                # The admin page warns while the published default still opens it.
+                "default_password": admin_password() == DEFAULT_PASSWORD,
                 "contract_names": {key: describe_contract(key, language)["name"]
                                    for key in CONTRACT_TYPES}}
 
@@ -2649,7 +2658,6 @@ def serve(
         ValueError: for a network address without ``allow_network``, or with the
             default password.
     """
-    from kasflex.admin_auth import DEFAULT_PASSWORD, admin_password  # noqa: PLC0415
 
     network = not _is_loopback(host)
     if network and not allow_network:
