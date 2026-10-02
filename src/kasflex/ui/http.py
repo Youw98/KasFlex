@@ -189,7 +189,6 @@ class RequestHandler(BaseHTTPRequestHandler):
     #: screen built for someone comparing planners.
     _PAGES = {"": "demo.html", "/": "demo.html",
               "/grower": "demo.html",
-              "/legacy-grower": "grower.html",
               "/advanced": "index.html", "/research": "index.html",
               "/setup": "setup.html", "/admin": "admin.html"}
 

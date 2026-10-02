@@ -604,7 +604,7 @@ def main(argv: list[str] | None = None) -> int:
     p_val.add_argument(
         "--write-doc", default=None,
         help="also write the deviation table into this docs file "
-             "(usually docs/VALIDATION.md)",
+             "(usually docs/research/VALIDATION.md)",
     )
     p_val.add_argument(
         "--greenhouse", choices=["greenlight", "surrogate"], default="greenlight",

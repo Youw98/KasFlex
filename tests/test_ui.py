@@ -500,8 +500,8 @@ def test_the_page_and_its_assets_are_served(live):
                          ("/demo.js", b"/api/deliberate"),
                          ("/demo.en.json", b"protects the crop"),
                          ("/demo.nl.json", b"beschermt het gewas"),
-                         ("/grower", b"KasFlex"), ("/grower.css", b"--kf-forest"),
-                         ("/grower.js", b"api("), ("/mark.svg", b"<svg")):
+                         ("/grower", b"KasFlex"), ("/setup.css", b"--kf-forest"),
+                         ("/mark.svg", b"<svg")):
         status, body = _get(live + path)
         assert status == 200, path
         assert needle in body, path

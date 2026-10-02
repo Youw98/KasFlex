@@ -1,0 +1,493 @@
+/* KasFlex grower interface.
+ *
+ * Built to the UI/UX specification: calm, light, spacious, agricultural rather
+ * than futuristic, and trustworthy rather than AI-looking. One major decision per
+ * screen; whitespace is part of the design.
+ *
+ * The accessibility floors below are measured, not estimated, and they survived
+ * the restyle unchanged. They come from the 65+ column, which is the right target
+ * here: Dutch horticulture has an ageing workforce, the task moves real money, and
+ * most users meet the screen for the first time.
+ *
+ *   Body text        18px   (16px floor; 18-20px recommended for 65+)
+ *   Smallest text    16px   nothing renders below this, anywhere
+ *   Text contrast    4.5:1  every token measured against its background
+ *   Control borders  3:1    WCAG 1.4.11 -- decorative hairlines do not meet it
+ *   Primary target   56px
+ *   Any target       48px
+ *   Spacing          12px+  between adjacent controls
+ */
+
+/* Brand tokens. Contrast against --canvas is measured, and it decides the role a
+ * colour may play -- not taste:
+ *
+ *   forest  #0F3B2C  11.97:1  text, headings, primary fills
+ *   ink     #102A25  14.60:1  body text
+ *   muted   #64756E   4.67:1  secondary text, just clears the 4.5 floor
+ *   green   #41864E   4.25:1  FILLS and large text only. Fails body text.
+ *   line    #6E8A72   3.64:1  borders on controls, derived from sage
+ *   sage    #8EA98F   2.45:1  fills only. Too light even for a control border.
+ *   mint / sun                fills only, never text
+ *
+ * The guideline's sage is the one place brand and accessibility disagreed, so
+ * --kf-line is darkened out of the same family rather than the palette being
+ * abandoned or the floor being lowered. */
+:root {
+  --kf-forest: #0F3B2C;
+  --kf-green: #41864E;
+  --kf-sage: #8EA98F;
+  --kf-mint: #BDD8C1;
+  --kf-sun: #F6B943;
+  --kf-cream: #F3EEE6;
+  --kf-canvas: #FCFAF6;
+  --kf-ink: #102A25;
+  --kf-muted: #64756E;
+  --kf-line: #6E8A72;
+
+  --kf-glass-cool: #CDE4E0;
+  --kf-glass-teal: #7DBBB2;
+
+  /* Roles, so components never reach for a raw brand colour. */
+  --ink: var(--kf-ink);
+  --ink-soft: #2C4A40;       /* 10.4:1 */
+  --ink-muted: var(--kf-muted);
+
+  --paper: #ffffff;
+  --ground: var(--kf-canvas);
+  --sunk: var(--kf-cream);
+
+  --line: #E4E9E2;           /* decorative rules only, never bounding a control */
+  --line-strong: var(--kf-line);
+
+  --brand: var(--kf-forest);
+  --brand-mid: var(--kf-green);   /* fills and large text only */
+  /* Green that is allowed to be body text. kf-green itself is 4.25:1 on canvas
+     and fails, so green type uses this and green fills use kf-green. */
+  --brand-text: #35703F;     /* 5.68:1 on canvas */
+  --brand-soft: #E7F1E8;
+  --brand-line: var(--kf-sage);
+
+  /* Success and safety are the brand's own green, darkened until it clears
+     4.5:1 on mint -- the pill and saving chip sit on mint, not on canvas. */
+  --good: #1B5632;           /* 5.67:1 on mint, 8.31:1 on canvas */
+  --good-soft: var(--kf-mint);
+  --good-line: #5E9469;
+  /* Attention is warm sun, never alarm. */
+  --warn: #8A5A12;           /* 5.7:1 */
+  --warn-soft: #FDF0DA;
+  --warn-line: #C79A4B;
+  /* Muted warm red, and only when genuinely necessary. */
+  --bad: #93342B;            /* 6.6:1 */
+  --bad-soft: #F8E7E3;
+  --bad-line: #BE7067;
+  /* Informational uses the glass tones rather than a foreign blue. */
+  --info: #1F5A54;           /* 7.5:1 */
+  --info-soft: #E2EFEC;
+  --info-line: var(--kf-glass-teal);
+
+  --focus: #0F3B2C;
+
+  --radius: 12px;
+  --radius-md: 18px;
+  --radius-lg: 26px;
+  /* One soft shadow, used sparingly. No shadow stacks. */
+  --shadow: 0 8px 30px rgba(15, 59, 44, .06);
+  --pad: clamp(20px, 4vw, 44px);
+  --font: Manrope, "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --target: 48px;
+  --target-primary: 56px;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--ground);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { font-size: clamp(2rem, 4.5vw, 2.4rem); }
+h2 { font-size: clamp(1.4rem, 3vw, 1.7rem); }
+h3 { font-size: 1.25rem; }
+h1, h2, h3 { line-height: 1.25; margin: 0; font-weight: 700; letter-spacing: -.01em; }
+p { margin: 0; }
+
+/* Inline links get the same 44px floor as buttons. A link is a target, and a
+ * 24px one is as hard to hit as a 24px button. */
+a { color: var(--brand-text); text-underline-offset: 3px; }
+a:visited { color: #5b3a86; }
+main a:not(.more-list a) {
+  display: inline-flex; align-items: center;
+  min-height: 44px; padding: 4px 2px;
+}
+
+.skip {
+  position: absolute; left: -9999px; top: 0; z-index: 999;
+  background: var(--brand); color: #fff; padding: 14px 22px;
+  border-radius: 0 0 10px 0; font-size: 18px; font-weight: 600;
+}
+.skip:focus { left: 0; }
+
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+
+/* --------------------------------------------------------------- buttons */
+
+/* Every button carries a fill and a border. Weak signifiers measurably cost
+ * time and fixations, and the cost compounds across a session. */
+button {
+  font: inherit; font-size: 18px; font-weight: 600;
+  border-radius: var(--radius);
+  border: 2px solid var(--line-strong);
+  background: var(--paper); color: var(--ink);
+  padding: 12px 24px; min-height: var(--target);
+  cursor: pointer;
+  transition: background .12s, border-color .12s, box-shadow .12s;
+}
+button:hover:not(:disabled) { background: var(--sunk); border-color: var(--ink-muted); }
+button:active:not(:disabled) { background: var(--sunk); box-shadow: inset 0 2px 5px rgba(22,38,26,.18); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+
+button.primary {
+  background: var(--brand); color: #fff; border-color: var(--brand);
+  font-size: 19px; padding: 15px 32px; min-height: var(--target-primary);
+}
+button.primary:hover:not(:disabled) { background: #163419; border-color: #163419; }
+button.quiet { color: var(--brand-text); }
+button.quiet:hover:not(:disabled) { background: var(--brand-soft); }
+button.danger { color: var(--bad); border-color: var(--bad-line); }
+button.danger:hover:not(:disabled) { background: var(--bad-soft); }
+
+.button-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.button-row.end { justify-content: flex-end; }
+
+/* ----------------------------------------------------------------- shell */
+
+.topbar {
+  display: flex; align-items: center; gap: clamp(16px, 3vw, 32px); flex-wrap: wrap;
+  padding: 14px var(--pad);
+  background: var(--paper); border-bottom: 1px solid var(--line);
+}
+.identity { display: flex; align-items: center; gap: 12px; }
+.identity img { display: block; }
+.identity b { display: block; font-size: 21px; color: var(--brand); line-height: 1.2; }
+.identity small { display: block; font-size: 16px; color: var(--ink-soft); }
+
+/* Clear but not alarming: the glass teal from the palette, never red. */
+.sim-badge {
+  display: flex; flex-direction: column;
+  padding: 7px 14px; border-radius: var(--radius); max-width: 340px;
+  background: var(--info-soft); border: 1px solid var(--info-line); color: var(--info);
+}
+.sim-badge b { font-size: 16px; letter-spacing: .06em; }
+.sim-badge span { font-size: 16px; }
+
+.context { margin-left: auto; text-align: right; }
+.topbar select { flex: none; }
+.context b { display: block; font-size: 18px; }
+.context small { display: block; font-size: 16px; color: var(--ink-soft); }
+
+/* On a phone the full header ate 328px of an 812px screen before any content.
+   The subtitle, the site context and the notice detail all fold away; what must
+   survive is the mark, the name, and that this is a simulation. */
+@media (max-width: 720px) {
+  .topbar { gap: 12px; padding: 10px var(--pad); }
+  .identity small { display: none; }
+  .identity img { width: 32px; height: 32px; }
+  .identity b { font-size: 19px; }
+  .context { width: 100%; margin-left: 0; text-align: left; order: 3; }
+  .context b { display: inline; font-size: 16px; }
+  .context small { display: inline; font-size: 16px; }
+  .context b::after { content: " · "; }
+  .sim-badge { order: 4; width: 100%; flex-direction: row; gap: 8px; flex-wrap: wrap; }
+  .mainnav { gap: 0; overflow-x: auto; flex-wrap: nowrap; }
+  .mainnav button { padding: 12px 16px; white-space: nowrap; }
+}
+
+.topbar select {
+  font: inherit; font-size: 17px; padding: 10px 14px; border-radius: var(--radius);
+  border: 2px solid var(--line-strong); background: var(--paper); color: var(--ink);
+  min-height: var(--target);
+}
+
+/* Visible navigation with words, not a hidden menu behind an icon. */
+.mainnav {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 0 var(--pad); background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+.mainnav button {
+  border: none; border-radius: 0; background: none;
+  padding: 14px 20px; min-height: 56px; font-size: 18px; font-weight: 600;
+  color: var(--ink-soft); box-shadow: inset 0 -3px 0 transparent;
+}
+.mainnav button:hover { background: var(--sunk); }
+.mainnav button[aria-current="page"] {
+  color: var(--brand); box-shadow: inset 0 -4px 0 var(--brand);
+}
+
+main { padding: var(--pad); max-width: 1020px; margin: 0 auto; }
+.view[hidden] { display: none !important; }
+
+.footer {
+  padding: 20px var(--pad) 40px; text-align: center;
+  color: var(--ink-soft); font-size: 16px;
+}
+
+/* ----------------------------------------------------------------- cards */
+
+.card {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: clamp(22px, 3vw, 32px);
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+}
+.lede { color: var(--ink-soft); font-size: 19px; margin-top: 8px; }
+
+/* Four calm summary blocks. Never more. */
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+@media (max-width: 860px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 460px) { .tiles { grid-template-columns: 1fr; } }
+
+/* Quiet by default. The palette is 60-70% warm off-white, so a wall of mint
+ * tiles would spend the whole budget on four summary values. State is carried by
+ * the value's colour and by a small marker; the tint stays faint and appears at
+ * strength only when something actually needs attention. */
+.tile {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--radius-md); padding: 20px;
+  border-left: 4px solid var(--line-strong);
+}
+.tile .k { font-size: 16px; color: var(--ink-muted); }
+.tile .v { font-size: 27px; font-weight: 700; margin-top: 4px; line-height: 1.15; }
+.tile .n { font-size: 16px; color: var(--ink-soft); margin-top: 6px; }
+.tile.good { border-left-color: var(--good); }
+.tile.good .v { color: var(--good); }
+.tile.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+.tile.warn .v { color: var(--warn); }
+.tile.bad { background: var(--bad-soft); border-left-color: var(--bad); }
+.tile.bad .v { color: var(--bad); }
+.tile.cost { border-left-color: var(--kf-sun); }
+.tile.cost .v { color: var(--warn); }
+
+/* How certain the estimate is, inside the same card as the figure. A separate
+ * panel would let a reader take the number and leave before meeting the range,
+ * which is the opposite of the point. */
+.uncertainty { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+.uncertainty-headline { font-weight: 700; font-size: 19px; }
+.uncertainty-detail { color: var(--ink-soft); font-size: 17px; margin-top: 6px; }
+.uncertainty[data-confidence="unknown"] .uncertainty-headline,
+.uncertainty[data-confidence="low"] .uncertainty-headline { color: var(--warn); }
+#uncertainty-caveats { margin: 8px 0 0; padding-left: 22px; }
+#uncertainty-caveats li { margin-bottom: 6px; }
+
+.saving {
+  display: inline-block; margin-top: 14px; padding: 12px 20px;
+  border-radius: var(--radius); background: var(--good-soft);
+  border: 2px solid var(--good-line); color: var(--good);
+  font-weight: 700; font-size: 18px;
+}
+
+/* --------------------------------------------------------------- actions */
+
+.action-list { display: grid; gap: 14px; margin-top: 20px; }
+
+.action {
+  display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start;
+  width: 100%; text-align: left;
+  padding: 20px; border: 2px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--paper); font: inherit; min-height: var(--target);
+}
+.action:hover { background: var(--sunk); }
+.action[aria-current="true"] { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
+.action .title { font-size: 19px; font-weight: 700; }
+.action .why { color: var(--ink-soft); font-size: 17px; margin-top: 4px; }
+.action .foot { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: 999px;
+  font-size: 16px; font-weight: 700; border: 2px solid;
+  background: var(--good-soft); color: var(--good); border-color: var(--good-line);
+}
+.pill.cost { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); }
+
+.decide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 760px) { .decide { grid-template-columns: 1fr; } }
+.decision-note { margin-top: 14px; font-size: 17px; color: var(--good); font-weight: 600; }
+
+/* ---------------------------------------------------------------- preview */
+
+/* Lighting, heating, CHP. No axis labels, no power values. */
+.preview-row { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; margin-bottom: 10px; }
+.preview-row .k { font-size: 17px; color: var(--ink-soft); }
+.preview-bar { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; height: 26px; }
+.preview-bar i { background: var(--sunk); border-radius: 2px; }
+.preview-bar i.on { background: var(--brand-line); }
+.preview-bar i.hi { background: var(--brand); }
+.preview-scale { display: flex; justify-content: space-between; margin-left: 134px; color: var(--ink-soft); font-size: 16px; margin-top: 6px; }
+
+/* ------------------------------------------------------------- plan/edit */
+
+.plan-layout { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+@media (max-width: 900px) { .plan-layout { grid-template-columns: 1fr; } }
+.plan-layout aside { position: sticky; top: 20px; }
+
+.stepper { display: flex; align-items: center; gap: 16px; }
+.stepper button { min-width: 64px; min-height: var(--target-primary); font-size: 24px; font-weight: 700; }
+.stepper .value { font-size: 30px; font-weight: 700; min-width: 110px; text-align: center; font-variant-numeric: tabular-nums; }
+
+.impact { padding: 18px; border-radius: var(--radius); background: var(--good-soft); border: 2px solid var(--good-line); margin: 18px 0; }
+.impact .k { font-size: 16px; color: var(--good); }
+.impact .v { font-size: 28px; font-weight: 700; color: var(--good); }
+.impact.checking { background: var(--sunk); border-color: var(--line-strong); }
+.impact.checking .k, .impact.checking .v { color: var(--ink-soft); }
+.impact.bad { background: var(--bad-soft); border-color: var(--bad-line); }
+.impact.bad .k, .impact.bad .v { color: var(--bad); }
+
+/* ----------------------------------------------------------------- forms */
+
+.field { margin-bottom: 22px; }
+.field > label { display: block; font-weight: 700; margin-bottom: 8px; font-size: 18px; }
+.field .hint { color: var(--ink-soft); font-size: 17px; margin-bottom: 10px; }
+.field input[type="text"], .field input[type="number"], .field input[type="password"],
+.field select, .field textarea {
+  width: 100%; font: inherit; font-size: 18px; padding: 14px 16px;
+  border-radius: var(--radius); border: 2px solid var(--line-strong);
+  background: var(--paper); color: var(--ink); min-height: var(--target-primary);
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--brand); }
+
+.choice-list { display: grid; gap: 14px; }
+.choice-item {
+  display: flex; align-items: flex-start; gap: 16px; padding: 20px;
+  border: 2px solid var(--line-strong); border-radius: var(--radius);
+  cursor: pointer; background: var(--paper); min-height: var(--target-primary);
+}
+.choice-item:hover { background: var(--sunk); }
+.choice-item input { margin-top: 2px; width: 26px; height: 26px; accent-color: var(--brand); flex: none; }
+/* Both are spans inside a span, so they need to be told to stack. */
+.choice-item .title { display: block; font-weight: 700; font-size: 19px; }
+.choice-item .desc { display: block; color: var(--ink-soft); font-size: 17px; margin-top: 3px; }
+.choice-item:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
+
+.switch-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px 0; border-bottom: 1px solid var(--line);
+}
+.switch-row:last-child { border-bottom: none; }
+.switch-row .k { font-size: 18px; font-weight: 600; }
+.switch-row input { width: 28px; height: 28px; accent-color: var(--brand); }
+
+.limit-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 18px; }
+.limit-row:last-child { border-bottom: none; }
+.limit-row .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.more-list { display: grid; gap: 12px; }
+.more-list a, .more-list button {
+  display: block; width: 100%; text-align: left;
+  padding: 16px 20px; border: 2px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--paper); color: var(--ink); font-size: 18px; font-weight: 600;
+  text-decoration: none; min-height: var(--target);
+}
+.more-list a:hover, .more-list button:hover { background: var(--sunk); }
+.more-list a:visited { color: var(--ink); }
+
+/* --------------------------------------------------------------- results */
+
+table.plain { width: 100%; border-collapse: collapse; font-size: 18px; }
+table.plain th { text-align: left; padding: 12px 10px; border-bottom: 3px solid var(--line-strong); font-size: 17px; color: var(--ink-soft); }
+table.plain td { padding: 12px 10px; border-bottom: 1px solid var(--line); }
+table.plain td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ preferences */
+
+.pref { border: 2px solid var(--line-strong); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; background: var(--paper); }
+.pref.retired { background: var(--ground); border-color: var(--line); }
+.pref .rule { font-weight: 700; margin-bottom: 8px; font-size: 18px; }
+.pref .reason { color: var(--ink-soft); font-style: italic; font-size: 17px; }
+.pref .meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; align-items: center; font-size: 16px; color: var(--ink-muted); }
+
+.tag { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 16px; font-weight: 700; border: 2px solid; }
+.tag.preference { background: var(--sunk); color: var(--ink-soft); border-color: var(--line-strong); }
+.tag.strong { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); }
+.tag.absolute { background: var(--bad-soft); color: var(--bad); border-color: var(--bad-line); }
+.tag.unconfirmed { background: var(--info-soft); color: var(--info); border-color: var(--info-line); }
+
+/* ------------------------------------------------------------ onboarding */
+
+.onboarding { position: fixed; inset: 0; z-index: 50; background: var(--ground); overflow-y: auto; }
+.onboarding-inner { max-width: 640px; margin: 0 auto; padding: var(--pad); min-height: 100%; display: flex; flex-direction: column; justify-content: center; }
+.progress { display: flex; gap: 8px; margin-bottom: 24px; }
+.progress span { flex: 1; height: 8px; border-radius: 4px; background: var(--line-strong); }
+.progress span.done { background: var(--brand); }
+.step-label { color: var(--ink-soft); font-size: 17px; margin-bottom: 10px; font-weight: 600; }
+.onboarding h1 { margin-bottom: 14px; }
+.onboarding .lede { font-size: 19px; margin-bottom: 28px; }
+.onboarding .actions { margin-top: 30px; }
+.profile-item { display: flex; align-items: center; gap: 16px; padding: 18px; border: 2px solid var(--line-strong); border-radius: var(--radius); margin-bottom: 12px; background: var(--paper); }
+.profile-item .grow { flex: 1; }
+.profile-item .name { font-weight: 700; font-size: 18px; }
+.profile-item .when { color: var(--ink-muted); font-size: 16px; }
+
+/* ---------------------------------------------------------------- states */
+
+.empty { text-align: center; padding: 40px 20px; color: var(--ink-soft); font-size: 18px; }
+.loading { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 44px; color: var(--ink-soft); font-size: 18px; }
+.spinner { width: 30px; height: 30px; border: 4px solid var(--line-strong); border-top-color: var(--brand); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error { padding: 18px 20px; border-radius: var(--radius); font-size: 18px; background: var(--bad-soft); border: 2px solid var(--bad-line); color: #6b1812; margin-bottom: 20px; }
+
+/* Every decision is reversible for a while. Low software confidence makes
+ * reversibility matter more, not less. */
+.undo-bar {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 24px; z-index: 40;
+  display: flex; align-items: center; gap: 16px;
+  background: var(--ink); color: #fff; padding: 14px 18px;
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  max-width: calc(100% - 32px); font-size: 17px;
+}
+.undo-bar button { background: transparent; color: #fff; border-color: #7d8f82; min-height: 44px; padding: 8px 18px; font-size: 17px; }
+.undo-bar button:hover:not(:disabled) { background: rgba(255,255,255,.14); border-color: #fff; }
+.undo-bar .count { font-variant-numeric: tabular-nums; color: #c8d6cc; font-size: 16px; }
+
+dialog#sheet { border: 2px solid var(--line-strong); border-radius: var(--radius-lg); padding: 0; max-width: 560px; width: calc(100% - 32px); color: var(--ink); }
+dialog#sheet::backdrop { background: rgba(22,38,26,.45); }
+
+.muted { color: var(--ink-soft); }
+.small { font-size: 16px; }
+.center { text-align: center; }
+.stack > * + * { margin-top: 16px; }
+
+details.more { margin-top: 16px; }
+details.more summary { cursor: pointer; font-weight: 700; color: var(--brand-text); font-size: 18px; padding: 14px 0; min-height: var(--target); display: flex; align-items: center; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+@media print {
+  .topbar, .mainnav, .undo-bar, .footer, button { display: none !important; }
+  body { background: #fff; }
+  .card { box-shadow: none; break-inside: avoid; }
+}
+
+/* Compact variant of choice-list, for the address-or-coordinates picker. */
+.choice-list.compact { gap: 8px; grid-template-columns: 1fr 1fr; }
+.choice-list.compact .choice-item { padding: 10px 12px; }
+.choice-list.compact .choice-item input { width: 20px; height: 20px; }
+.choice-list.compact .title { font-size: 16px; }
+.choice-list.compact .desc { font-size: 14px; }
+@media (max-width: 640px) {
+  .choice-list.compact { grid-template-columns: 1fr; }
+}

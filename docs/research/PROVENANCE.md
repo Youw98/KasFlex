@@ -30,7 +30,7 @@ and the defaults in `src/kasflex/energy/assets.py`.
 
 | Field | Value | Tag | Source / rationale |
 |---|---|---|---|
-| `hub.floor_area_m2` | 50 000 m² | industry norm | A representative modern Dutch lit tomato greenhouse (Westland cluster). AGC validation runs at 96 m² instead — see [DECISIONS.md](DECISIONS.md) ADR-0004. |
+| `hub.floor_area_m2` | 50 000 m² | industry norm | A representative modern Dutch lit tomato greenhouse (Westland cluster). AGC validation runs at 96 m² instead — see [DECISIONS.md](../DECISIONS.md) ADR-0004. |
 | `hub.base_load_kw` | 150 kW | guess | Site electrical load that is not lighting (pumps, fans, screens, packing hall). Order-of-magnitude estimate; a metering study would replace it. |
 | `hub.lamp_power_w_m2` | 110 W/m² | industry norm | Typical installed supplemental-lighting density for a lit Dutch tomato greenhouse. HPS installations sit around 100–120 W/m²; LED retrofits go higher. |
 | `hub.lamp_ppfd_umol_m2_s` | 185 μmol/m²/s | industry norm | Photosynthetic photon flux at full lamp power. Consistent with HPS efficacy around 1.7 μmol/J at 110 W/m². Would change materially under LED. |
@@ -135,7 +135,7 @@ roughly 30–32 °C).
 | `checker.enabled` | true | choice | The whole point of the project is to measure what changes when this flips. |
 | `checker.explain` | true | choice | Whether the checker's rejection is passed back to the planner as guidance. R19 keeps this switchable independently of `enabled` so verification and explanation can be measured apart. |
 | `checker.max_revisions` | 3 | choice | How many times the planner is allowed to revise before the baseline takes over (R18). Small enough to be finite, large enough to test whether the planner learns from feedback. |
-| `checker.fail_on_projected` | false | choice | Projected (climate-band) violations do not reject a plan by default; that would attribute the greenhouse model's error to the planner. See [DECISIONS.md](DECISIONS.md) ADR-0007. |
+| `checker.fail_on_projected` | false | choice | Projected (climate-band) violations do not reject a plan by default; that would attribute the greenhouse model's error to the planner. See [DECISIONS.md](../DECISIONS.md) ADR-0007. |
 | `history_days` (learned planner) | 60 | industry norm | Enough past days to fit the ridge demand model without the lag features exhausting the sample. |
 | `STORED_HEAT_CREDIT_EUR_PER_KWH` (scheduler) | 0.005 EUR/kWh | choice | What one kWh of heat-buffer discharge is worth to a grower who ticks "prefer stored heat". A preference weight, not a price: about an eighth of boiler heat cost at the configured gas price, so it tips comparable plans towards the buffer without buying buffer use at any cost. |
 | `grid_peak_value_eur_per_kw` (`GRID_PEAK_VALUE_EUR_PER_KW`) | 3.57 EUR/kW | documented | Liander 2026 transport tariff, medium voltage (MS, >136 kW): the kWmax charge of EUR 3.57 per kW per month on the month's highest import ([Liander tarieven 2026](https://www.liander.nl/grootzakelijk/tarieven)). The "grid relief" priority only buys a lower peak when it costs less than this per kW saved. Counting the whole monthly charge against one day assumes that day sets the month's peak, so it is an upper bound. Other network operators, or a congestion contract, need their own value. |

@@ -15,7 +15,7 @@ The command is deliberately dumb. It does two things:
 * If the dataset is on disk, read the reference compartment's measured
   heating, electricity and CO2 series, run the greenhouse model over the
   same days, and print a table of deviations. Write the same table to
-  ``docs/VALIDATION.md`` under the current date, so the file the plan asks
+  ``docs/research/VALIDATION.md`` under the current date, so the file the plan asks
   for exists as soon as data does.
 
 The point is to make the missing measurement visible in the tooling, not
@@ -97,7 +97,7 @@ class ValidationReport:
         return result
 
     def to_markdown(self) -> str:
-        """Render as the ``docs/VALIDATION.md`` body."""
+        """Render as the ``docs/research/VALIDATION.md`` body."""
         lines = [
             f"Generated {self.generated_at} from {self.dataset} at `{self.dataset_root}`.",
             "",
@@ -442,7 +442,7 @@ def validation_status(path: str | Path = DEFAULT_RESULT_PATH) -> dict[str, Any]:
 
 
 def write_validation_doc(report: ValidationReport, doc_path: str | Path) -> None:
-    """Write or overwrite ``docs/VALIDATION.md`` with the current report table.
+    """Write or overwrite ``docs/research/VALIDATION.md`` with the current report table.
 
     The prose header of the file is preserved: only the block between the
     machine markers is replaced. That is what lets ``kasflex validate`` be

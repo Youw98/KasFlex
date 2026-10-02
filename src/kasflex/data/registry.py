@@ -164,7 +164,7 @@ def datasets_for_phase(phase: Phase) -> list[DatasetRef]:
 
 
 def as_markdown_table() -> str:
-    """Render the registry as the provenance table in docs/DATA.md."""
+    """Render the registry as the provenance table in docs/research/DATA.md."""
     header = (
         "| Key | Dataset | Kind | Phase | Licence | Source |\n"
         "|---|---|---|---|---|---|\n"

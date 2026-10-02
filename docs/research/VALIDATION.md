@@ -132,7 +132,7 @@ plus `Weather/Weather.csv`), create the separate GreenLight environment, then:
 kasflex prepare-agc2 --sample-days 12                 # Reference, 12 heat quantiles
 kasflex prepare-agc2 --all-days --compartment AICU    # any compartment, every day
 kasflex validate --cache-dir data/cache --greenhouse greenlight \
-  --result-json results/validation-agc2.json --write-doc docs/VALIDATION.md
+  --result-json results/validation-agc2.json --write-doc docs/research/VALIDATION.md
 ```
 
 To redo the calibration (about twenty minutes on four cores), prepare AICU and

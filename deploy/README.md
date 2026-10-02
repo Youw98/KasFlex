@@ -51,16 +51,6 @@ systemctl list-timers kasflex-daily
 Preferred over cron here: `Persistent=true` means a machine that was off at 14:10
 still runs the job when it comes back, and the journal keeps the output.
 
-## GitHub Actions
-
-`.github/workflows/daily.yml` runs the same job on a schedule and commits the
-cache back to the repository, which doubles as an audit trail of exactly what data
-each result was computed from. Set `ENTSOE_API_KEY` as a repository secret.
-
-Note that GitHub's scheduled runners are best-effort and can be delayed by tens of
-minutes under load. That is fine for a research pipeline and not fine for anything
-operational.
-
 ## What to watch
 
 * `results/daily.jsonl` should gain one line per day.

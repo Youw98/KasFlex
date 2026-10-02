@@ -1,7 +1,7 @@
 # KasFlex — Apple-style workspace
 
 > **Historical.** Early design notes, kept for reference. The current interface and
-> run steps are in the [README](../../README.md) and [USAGE.md](../USAGE.md).
+> run steps are in the [README](../../README.md) and [USAGE.md](../../docs/USAGE.md).
 
 The interface follows the supplied apple-design_SKILL.md: platform typography, quiet translucent navigation, clear hierarchy, immediate press feedback, reversible spring motion, and reduced-motion/transparency/contrast preferences. The requirements Markdown defines the research scope.
 
@@ -47,7 +47,7 @@ See [MVP_NEXT.md](MVP_NEXT.md) for the prioritized add/change/remove list and fo
 
 ## API configuration and saved reviews
 
-Configuration now includes a sixth section, APIs. It lists the implemented ENTSO-E and Open-Meteo connectors, their endpoints and key requirements. ENTSO-E keys can be saved, replaced or removed in the interface and are kept in the local `.env` file. See [API_SETUP.md](../API_SETUP.md). Browser checks cover key controls, clearing secret inputs, exclusion from localStorage and mobile layout. UI mutation checks use fixtures rather than overwriting user credentials; they do not validate a live ENTSO-E token.
+Configuration now includes a sixth section, APIs. It lists the implemented ENTSO-E and Open-Meteo connectors, their endpoints and key requirements. ENTSO-E keys can be saved, replaced or removed in the interface and are kept in the local `.env` file. See [docs/USAGE.md](../../docs/USAGE.md#api-keys). Browser checks cover key controls, clearing secret inputs, exclusion from localStorage and mobile layout. UI mutation checks use fixtures rather than overwriting user credentials; they do not validate a live ENTSO-E token.
 
 History reopens saved simulated plans and review decisions. The local SQLite store at `results/reviews.sqlite3` retains immutable input snapshots, plan revisions and decisions. Approval is bound to the latest saved revision and plan hash; stale references and conflicting decisions are rejected. Editing and re-verifying creates a new revision with explicit checking enabled. Research timing is recorded only when the user opts in. This records review of simulated previews; it does not yet gate physical or simulation execution. Local results and credentials are excluded from the distribution archive.
 

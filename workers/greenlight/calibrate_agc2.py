@@ -20,7 +20,7 @@ runs too warm.
 compartment prepared the same way (for example ``--compartment Reference``).
 
 Heat is compared as the AGC2 dataset defines it: pipe heat release computed from
-pipe and air temperature, not boiler input. See docs/CALIBRATION.md.
+pipe and air temperature, not boiler input. See docs/research/CALIBRATION.md.
 """
 
 from __future__ import annotations

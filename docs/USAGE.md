@@ -35,7 +35,7 @@ On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`.
 ## First browser run
 
 The main page is the grower workspace. It opens on a workshop scenario (or the
-showcase or real historical day, chosen under **Demo data**) and shows the day
+showcase or real historical day, chosen under ⚙ → **Data**) and shows the day
 before it asks for a plan.
 
 1. Read the scenario story and check the price, temperature and grid-contract chart.
@@ -57,6 +57,31 @@ The researcher sets the study version and the scenario on `/admin`.
 The first successful demo-data load is cached; later runs reuse it. Market/weather
 inputs are real historical data, while greenhouse response, crop outcomes and asset
 dispatch remain simulated.
+
+## API keys
+
+All keys are optional; the workshop scenarios run offline. Save them under
+⚙ → **APIs** (or **Configuration → APIs** on `/advanced`), or copy `.env.example`
+to `.env` and fill them in. The README lists which key does what.
+
+- **ENTSO-E** (`ENTSOE_API_KEY`): real Dutch day-ahead prices. Get a token from your
+  own [Transparency Platform](https://transparency.entsoe.eu/) account; KasFlex
+  cannot issue one. Saving a key is not a connection test: published data must
+  exist for the date you choose.
+- **Open-Meteo** forecast and historical weather: public, no key. Historical
+  weather is reanalysis, not an archived forecast or measured site data.
+- **AI model** (Anthropic, OpenAI, Gemini, an OpenAI-compatible server or a local
+  Ollama): chosen and tested under ⚙ → **AI**.
+
+`.env` lives in the KasFlex data directory (`KASFLEX_HOME`, by default the working
+directory; the packaged app uses its normal data directory). It is git-ignored and
+written with mode 0600. Saving through the interface updates the running process at
+once; after editing the file by hand, restart. A value already set in the
+environment wins at startup, so remove a system-level key separately if it should
+stay disconnected.
+
+The browser only ever learns whether a key is configured, never its value. Keys are
+kept out of browser preferences, exported plans and audit payloads.
 
 ## Direct ENTSO-E research-data workflow
 
@@ -187,7 +212,7 @@ the constraint, the hour, the actual value and the feasible bound.
 ## Validate the greenhouse model against measured data
 
 ```bash
-kasflex validate --write-doc docs/VALIDATION.md
+kasflex validate --write-doc docs/research/VALIDATION.md
 ```
 
 Compares KasFlex's greenhouse model to the [Autonomous Greenhouse Challenge
@@ -195,7 +220,7 @@ Compares KasFlex's greenhouse model to the [Autonomous Greenhouse Challenge
 measured series. When the dataset is not on disk the command explains where
 to get it, how to lay it out, and stops with exit code 2 — nothing is
 downloaded silently. Once the dataset is present, `--write-doc` updates the
-deviation table in [`docs/VALIDATION.md`](VALIDATION.md) in place, between
+deviation table in [`docs/research/VALIDATION.md`](research/VALIDATION.md) in place, between
 machine markers, so history carries the measurement. Every KasFlex result
 is stamped `greenhouse_validated: false` until this table exists.
 
@@ -211,8 +236,8 @@ kasflex run --data-source cache --date 2026-09-08
 kasflex daily                        # fetch if needed, plan tomorrow, record it
 ```
 
-Then schedule it. `deploy/` has a cron file, a systemd timer and a GitHub Actions
-workflow; see [deploy/README.md](../deploy/README.md). Time it for **after 13:00
+Then schedule it. `deploy/` has a cron file and a systemd timer;
+see [deploy/README.md](../deploy/README.md). Time it for **after 13:00
 CET** — that is when Dutch day-ahead prices for tomorrow publish, and before that
 they do not exist.
 
@@ -251,7 +276,7 @@ once by hand and look at the output before scheduling anything.**
 
 ```bash
 kasflex datasets
-kasflex datasets --markdown     # the table in docs/DATA.md
+kasflex datasets --markdown     # the table in docs/research/DATA.md
 ```
 
 ## Turn on the real greenhouse model

@@ -274,7 +274,7 @@ table flat. `?anonymous=0` keeps operator identity, which is off by default.
 
 The bundle carries a declared `@context`, a licence, per-series data provenance
 with checksums, a **codebook** describing every field that carries a finding, and
-an explicit **limitations** list. See [FAIR.md](FAIR.md) for the project's wider
+an explicit **limitations** list. See [FAIR.md](research/FAIR.md) for the project's wider
 FAIR position.
 
 The irreplaceable part of the dataset is `preference.reason` and
