@@ -37,20 +37,28 @@ AGC2_LED_CHANNELS = {
 }
 AGC2_LAMP_POWER_W_M2 = AGC2_HPS_W_M2 + sum(watts for _col, watts in AGC2_LED_CHANNELS.values())
 #: GreenLight construction parameters for an AGC2 compartment, fitted on the even
-#: ISO weeks of the AICU compartment and tested on the odd weeks. The method,
-#: search grid and held-out errors are in docs/CALIBRATION.md; the harness is
-#: workers/greenlight/calibrate_agc2.py.
+#: ISO weeks of the AICU compartment, tested on the odd weeks, and confirmed on the
+#: Reference compartment, all from the checksum-verified 4TU archive. The method,
+#: candidates and held-out errors are in docs/CALIBRATION.md; the harness is
+#: workers/greenlight/calibrate_agc2.py. The score weighs daily heat, daily CO2
+#: and hourly indoor temperature.
 #:
 #: * ``etaLampCool`` 0: gl-gym defaults to actively cooled LEDs that carry 63% of
 #:   lamp input out of the greenhouse. AGC2 lit with 81 W/m2 HPS plus uncooled
 #:   LEDs, so all lamp power ends up as heat inside. Physical, not fitted.
-#: * ``aCov`` 156 m2 per 144 m2 floor: roof glass only (slope 23 deg). A 96 m2
-#:   compartment shares its side walls with heated neighbours; gl-gym's 216.6
-#:   assumes a free-standing house with glass walls. Fitted within that range.
-#: * ``aRoof`` 17.4 m2 per 144 m2 (12%), fitted; gl-gym's 52.2 (36%) is three
-#:   times the vent area of a Venlo roof.
-#: * ``cLeakage`` 1e-5, fitted; gl-gym's default is 3e-5.
-AGC2_CALIBRATION = {"etaLampCool": 0.0, "aCov": 156.0, "aRoof": 17.4, "cLeakage": 1e-5}
+#: * ``aCov`` 216.6 and ``tauThScrFir`` 0.5 are back at or above gl-gym's
+#:   defaults, and ``kThScr`` 1e-3 is twice gl-gym's 5e-4. The earlier fit pushed
+#:   the cover and screen tight to make up for two errors in the replay that are
+#:   now fixed: a soil that started cold every day, and pipe heat counted while the
+#:   heating was off (see ``floor_temperature`` and the worker's ``CIRCUIT_ON``).
+#: * ``aRoof`` 17.4 m2 per 144 m2 (12%); gl-gym's 52.2 (36%) is three times the
+#:   vent area of a Venlo roof. ``cLeakage`` 2e-5; gl-gym's default is 3e-5.
+#: * ``aCov``, ``tauRfNir`` 0.85 and ``tauThScrFir`` sit at the edge of the values
+#:   tried. Read them as a fit, not as measured properties.
+AGC2_CALIBRATION = {
+    "etaLampCool": 0.0, "aCov": 216.6, "aRoof": 17.4, "cLeakage": 2e-5,
+    "tauRfNir": 0.85, "kThScr": 1e-3, "tauThScrFir": 0.5,
+}
 STEFAN_BOLTZMANN = 5.670374419e-8
 EXCEL_EPOCH = datetime(1899, 12, 30)
 
@@ -270,6 +278,7 @@ def _replay_payload(
     weather: list[tuple[datetime, dict[str, str]]],
     weather_dir: Path,
     compartment: str = "Reference",
+    floor_temperature_c: float | None = None,
 ) -> dict[str, Any]:
     series = {key: _quarter_hours(climate, key) for key in CLIMATE_FIELDS}
     weather_series = {key: _quarter_hours(weather, key) for key in WEATHER_FIELDS}
@@ -312,6 +321,8 @@ def _replay_payload(
         "relative_humidity_pct": series["Rhair"][0],
         "co2_ppm": series["CO2air"][0],
     }
+    if floor_temperature_c is not None:
+        initial["floor_temperature_c"] = floor_temperature_c
     return {
         "floor_area_m2": REFERENCE_AREA_M2,
         "lamp_power_w_m2": AGC2_LAMP_POWER_W_M2,
@@ -335,6 +346,9 @@ def _replay_payload(
         },
         "greenlight_parameter_overrides": {"lamp_power": AGC2_LAMP_POWER_W_M2},
         "greenlight_calibration": dict(AGC2_CALIBRATION),
+        # For scoring only, never a control: the calibration compares the simulated
+        # indoor temperature with this.
+        "measured_indoor": {"temperature_c": _hourly(series["Tair"])},
         "replay_controls": {
             "heating_setpoint_c": series["t_heat_vip"],
             "co2_setpoint_ppm": series["co2_vip"],
@@ -355,6 +369,28 @@ def _replay_payload(
             },
         },
     }
+
+
+#: Days of measured air temperature that set the floor and soil at the start of a
+#: replayed day. A one-day replay that starts the soil at gl-gym's 16.5 degC spends
+#: the day warming it; in spring that alone added about 20 kWh of heat per day.
+FLOOR_HISTORY_DAYS = 7
+
+
+def floor_temperature(
+    climate: dict[date, list[tuple[datetime, dict[str, str]]]], day: date
+) -> float | None:
+    """Mean measured air temperature over the days before ``day``, if any.
+
+    Only earlier days are used, so a replayed day never sees its own measurements.
+    """
+    values = [
+        numeric(row["Tair"])
+        for offset in range(1, FLOOR_HISTORY_DAYS + 1)
+        for _timestamp, row in climate.get(day - timedelta(days=offset), [])
+    ]
+    values = [value for value in values if math.isfinite(value)]
+    return sum(values) / len(values) if values else None
 
 
 def prepare_agc2(
@@ -421,7 +457,10 @@ def prepare_agc2(
             writer = csv.DictWriter(handle, fieldnames=list(totals))
             writer.writeheader()
             writer.writerow(totals)
-        payload = _replay_payload(day, climate[day], weather[day], weather_dir, compartment)
+        payload = _replay_payload(
+            day, climate[day], weather[day], weather_dir, compartment,
+            floor_temperature(climate, day),
+        )
         (replay_dir / f"{day.isoformat()}.json").write_text(
             json.dumps(payload, indent=2, sort_keys=True) + "\n"
         )

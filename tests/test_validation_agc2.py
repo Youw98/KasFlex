@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -85,4 +86,43 @@ def test_calibration_keeps_lamp_heat_inside_the_greenhouse():
     """gl-gym's LED default removes 63% of lamp power by active cooling. AGC2
     lamps are HPS plus uncooled LEDs, so that heat must stay in the model."""
     assert AGC2_CALIBRATION["etaLampCool"] == 0.0
-    assert set(AGC2_CALIBRATION) == {"etaLampCool", "aCov", "aRoof", "cLeakage"}
+    assert set(AGC2_CALIBRATION) == {"etaLampCool", "aCov", "aRoof", "cLeakage", "tauRfNir",
+                                     "kThScr", "tauThScrFir"}
+
+
+def test_measured_indoor_temperature_is_kept_for_scoring_not_as_a_control(tmp_path):
+    """The calibration compares simulated and measured indoor air temperature, so
+    the replay carries it, but never among the controls that drive the model."""
+    from kasflex.validation_agc2 import _replay_payload
+
+    climate = _day_rows(Tair=21.5, Rhair=80, CO2air=600, t_heat_vip=18, co2_vip=800,
+                        AssimLight=0, EnScr=0, BlackScr=0, VentLee=0, Ventwind=0,
+                        int_blue_vip=0, int_red_vip=0, int_farred_vip=0, int_white_vip=0)
+    weather = _day_rows(Iglob=0, Tout=5, Rhout=90, Windsp=2, Pyrgeo=-50)
+    payload = _replay_payload(date(2020, 3, 13), climate, weather, tmp_path / "w" / "B")
+    assert payload["measured_indoor"]["temperature_c"] == pytest.approx([21.5] * 24)
+    assert "measured_indoor" not in payload["replay_controls"]
+
+
+def test_floor_starts_at_last_weeks_air_temperature_never_the_days_own():
+    """A one-day replay that starts the soil cold spends the day warming it. The
+    floor starts at the mean measured air temperature of the week before, and the
+    replayed day's own measurements are never used."""
+    from kasflex.validation_agc2 import _replay_payload, floor_temperature
+
+    day = date(2020, 5, 12)
+    climate = {
+        date(2020, 5, 11): _day_rows(Tair=22.0),
+        date(2020, 5, 10): _day_rows(Tair=20.0),
+        date(2020, 5, 1): _day_rows(Tair=5.0),   # more than a week before
+        day: _day_rows(Tair=40.0),               # the day itself
+    }
+    assert floor_temperature(climate, day) == pytest.approx(21.0)
+    assert floor_temperature({day: _day_rows(Tair=40.0)}, day) is None
+
+    rows = _day_rows(Tair=18, Rhair=80, CO2air=600, t_heat_vip=18, co2_vip=800,
+                     AssimLight=0, EnScr=0, BlackScr=0, VentLee=0, Ventwind=0,
+                     int_blue_vip=0, int_red_vip=0, int_farred_vip=0, int_white_vip=0)
+    weather = _day_rows(Iglob=0, Tout=5, Rhout=90, Windsp=2, Pyrgeo=-50)
+    payload = _replay_payload(day, rows, weather, Path("w") / "B", floor_temperature_c=21.0)
+    assert payload["replay_controls"]["initial_indoor"]["floor_temperature_c"] == 21.0

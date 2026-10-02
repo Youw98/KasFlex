@@ -231,7 +231,11 @@ table would measure nothing.
 | `kasflex.workshop` | The study version (no advisor, AI suggests, AI + chat) and the scenario participants get. |
 | `kasflex.consent` | Granular informed consent, and the erasure that withdrawal triggers. |
 | `kasflex.actions` | What a plan changes against normal settings, named for a grower. |
-| `kasflex.ui.server` | Local JSON API over the same functions the CLI uses. |
+| `kasflex.ui.server` | Local JSON API over the same functions the CLI uses: planning, checking, data, and `serve()`. |
+| `kasflex.ui.http` | The request handler: Host, Origin and password checks, the admin-only route lists, routing. |
+| `kasflex.ui.common` | What the server and its mixins share: adjustable settings, `ApiError`, interface overrides to a scenario. |
+| `kasflex.ui.deliberation_api` | Deliberation endpoints: preferences, conflicts, compromises, part-by-part negotiation. |
+| `kasflex.ui.research_api` | Research endpoints: consent, elicitation, outcomes, reliance, profiles, FAIR export. |
 | `kasflex.ui.workshop_api` | Workshop endpoints: versions, scenarios, recommendation, goals, memory, chat, factors, week outlook. |
 | `kasflex.ui.static` | Grower decision workspace (charts, chat), workshop admin page, position view and research interface. |
 | `kasflex.resources` | Where files live when frozen into an executable. |

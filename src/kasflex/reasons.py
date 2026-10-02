@@ -16,11 +16,18 @@ module reads such a reason, deterministically, and returns:
 It recognises Dutch and English. Text it cannot map to an effect is still kept
 and shown to the AI and to the grower next time; it just changes nothing in the
 plan by itself. That is the honest fallback: no invented interpretation.
+
+When an AI model is configured, :func:`read_with_model` gets a second chance at
+text the rules miss. The model may only choose from the same effects, each value
+is checked and clamped here (:func:`clean_effects`), and the summary the grower
+sees is written from the checked effects, not by the model. The alternative plan
+still goes through the deterministic checker like any other.
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from typing import Any
 
 NIGHT = [22, 23, 0, 1, 2, 3, 4, 5]
@@ -146,7 +153,8 @@ def interpret(reason: str, dimension: str = "", language: str = "en") -> dict[st
     if effects and _contains(text, STANDING_WORDS):
         # "We always have few staff" is a rule for every day, not a note about one.
         applies = "always"
-    return {"effects": effects, "applies": applies if effects else "once", "summary": summary}
+    return {"effects": effects, "applies": applies if effects else "once", "summary": summary,
+            "source": "rules"}
 
 
 def apply_effects(policy: dict[str, Any], effects: dict[str, Any]) -> dict[str, Any]:
@@ -172,4 +180,157 @@ def apply_effects(policy: dict[str, Any], effects: dict[str, Any]) -> dict[str, 
     return merged
 
 
-__all__ = ["apply_effects", "interpret"]
+PRIORITIES = ("balanced", "cost", "crop", "grid")
+APPLIES = ("once", "cold", "always")
+
+#: What a model may ask for. Anything else in its reply is dropped.
+MODEL_SYSTEM = """\
+A grower disagreed with part of tomorrow's greenhouse energy plan and gave a short
+reason. Translate the reason into planner settings, using ONLY these keys:
+
+  "avoid_chp_hours": list of hours 0-23 when the CHP must stay off
+  "switch_penalty_eur": 60 when the plan should switch equipment less (few staff)
+  "night_temp_c": the night temperature to plan for, when the grower expects cold
+  "battery_reserve_pct": battery reserve to keep, 0-95
+  "prefer_stored_heat": true to use the heat buffer first, false to keep it full
+  "priority": one of "balanced", "cost", "crop", "grid"
+  "import_caps": {"hour": kW} upper limits on grid import for some hours
+
+Return ONLY this JSON:
+{"effects": {...}, "applies": "once" | "cold" | "always"}
+
+"applies" is "always" for a standing rule, "cold" for something that holds on cold
+days, otherwise "once". If the reason does not call for any of these settings,
+return {"effects": {}, "applies": "once"}. Never invent a setting the grower did
+not ask for."""
+
+
+def _number(value: Any, low: float, high: float) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if number != number:  # NaN
+        return None
+    return min(high, max(low, number))
+
+
+def _hour_list(value: Any) -> list[int]:
+    if not isinstance(value, list):
+        return []
+    hours = set()
+    for item in value:
+        hour = _number(item, -1, 24)
+        if hour is not None and float(item) == int(hour) and 0 <= hour <= 23:
+            hours.add(int(hour))
+    return sorted(hours)
+
+
+def clean_effects(raw: Any) -> dict[str, Any]:
+    """Keep only known effects with values in range; drop everything else."""
+    if not isinstance(raw, dict):
+        return {}
+    effects: dict[str, Any] = {}
+    hours = _hour_list(raw.get("avoid_chp_hours"))
+    if hours:
+        effects["avoid_chp_hours"] = hours
+    if "switch_penalty_eur" in raw:
+        penalty = _number(raw["switch_penalty_eur"], 0, 200)
+        if penalty:
+            effects["switch_penalty_eur"] = penalty
+    if "night_temp_c" in raw:
+        temp = _number(raw["night_temp_c"], -25, 15)
+        if temp is not None:
+            effects["night_temp_c"] = temp
+    if "battery_reserve_pct" in raw:
+        reserve = _number(raw["battery_reserve_pct"], 0, 95)
+        if reserve is not None:
+            effects["battery_reserve_pct"] = reserve
+    if isinstance(raw.get("prefer_stored_heat"), bool):
+        effects["prefer_stored_heat"] = raw["prefer_stored_heat"]
+    if raw.get("priority") in PRIORITIES:
+        effects["priority"] = raw["priority"]
+    caps = raw.get("import_caps")
+    if isinstance(caps, dict):
+        cleaned = {}
+        for hour, kw in caps.items():
+            hour_value = _number(hour, -1, 24)
+            limit = _number(kw, 0, 1_000_000)
+            if hour_value is not None and 0 <= hour_value <= 23 and limit:
+                cleaned[int(hour_value)] = limit
+        if cleaned:
+            effects["import_caps"] = cleaned
+    return effects
+
+
+def _span(hours: list[int], nl: bool) -> str:
+    if len(hours) >= 24:
+        return "de hele dag" if nl else "all day"
+    return ", ".join(f"{h:02d}:00" for h in hours) if len(hours) <= 3 else (
+        f"{hours[0]:02d}:00–{(hours[-1] + 1) % 24:02d}:00")
+
+
+def describe_effects(effects: dict[str, Any], language: str = "en") -> list[str]:
+    """Say in words what the effects change, from the effects themselves."""
+    nl = language == "nl"
+    said: list[str] = []
+    if effects.get("avoid_chp_hours"):
+        span = _span(effects["avoid_chp_hours"], nl)
+        said.append(f"WKK uit {span}" if nl else f"CHP off {span}")
+    if effects.get("switch_penalty_eur"):
+        said.append("minder schakelingen, rustiger plan" if nl
+                    else "fewer equipment switches, a steadier plan")
+    if "night_temp_c" in effects:
+        said.append(f"rekenen met een nacht van {effects['night_temp_c']:.0f} °C" if nl
+                    else f"plan for a {effects['night_temp_c']:.0f} °C night")
+    if "battery_reserve_pct" in effects:
+        said.append(f"{effects['battery_reserve_pct']:.0f}% batterijreserve" if nl
+                    else f"keep {effects['battery_reserve_pct']:.0f}% battery reserve")
+    if "prefer_stored_heat" in effects:
+        said.append(("opgeslagen warmte eerst" if effects["prefer_stored_heat"]
+                     else "warmtebuffer vol houden") if nl else
+                    ("stored heat first" if effects["prefer_stored_heat"]
+                     else "keep the heat buffer full"))
+    if effects.get("priority"):
+        names = {"en": {"balanced": "balanced", "cost": "lowest cost", "crop": "crop first",
+                        "grid": "lower grid peak"},
+                 "nl": {"balanced": "gebalanceerd", "cost": "laagste kosten",
+                        "crop": "gewas eerst", "grid": "lagere netpiek"}}
+        said.append(names["nl" if nl else "en"][effects["priority"]])
+    if effects.get("import_caps"):
+        caps = effects["import_caps"]
+        hours = sorted(caps)
+        kw = min(caps.values())
+        said.append(f"maximaal {kw / 1000:.1f} MW van het net {_span(hours, nl)}" if nl else
+                    f"at most {kw / 1000:.1f} MW from the grid {_span(hours, nl)}")
+    return said
+
+
+def read_with_model(reason: str, dimension: str, language: str,
+                    call: Callable[[str, str], str]) -> dict[str, Any] | None:
+    """Ask a model to read a reason the rules could not, within the same effects.
+
+    ``call(system, prompt)`` returns the model's text. Returns a reading like
+    :func:`interpret` with ``source`` set to ``"ai"``, or None when the model finds
+    no effect or its reply cannot be used. The caller treats None as "the rules'
+    reading stands"; errors from ``call`` itself are the caller's to handle.
+    """
+    from kasflex.conversation import _extract_json  # noqa: PLC0415
+
+    prompt = (f"Language: {language}. Part of the plan: {dimension or 'general'}.\n"
+              f"The grower's reason: {reason}")
+    try:
+        data = _extract_json(call(MODEL_SYSTEM, prompt))
+    except ValueError:
+        return None
+    effects = clean_effects(data.get("effects"))
+    if not effects:
+        return None
+    applies = data.get("applies") if data.get("applies") in APPLIES else "once"
+    nl = language == "nl"
+    summary = (("KasFlex (AI) leest dit als: " if nl else "KasFlex (AI) reads this as: ")
+               + "; ".join(describe_effects(effects, language)))
+    return {"effects": effects, "applies": applies, "summary": summary, "source": "ai"}
+
+
+__all__ = ["apply_effects", "clean_effects", "describe_effects", "interpret", "read_with_model"]

@@ -1,12 +1,331 @@
 {
- "archive_checksum_verified": false,
+ "archive_checksum_verified": true,
  "best": {
-  "aCov": 156.0,
+  "aCov": 216.6,
   "aRoof": 17.4,
-  "cLeakage": 1e-05,
-  "etaLampCool": 0.0
+  "cLeakage": 2e-05,
+  "etaLampCool": 0.0,
+  "kThScr": 0.001,
+  "tauRfNir": 0.85,
+  "tauThScrFir": 0.5
+ },
+ "candidates": {
+  "aCov": [
+   140.0,
+   156.0,
+   180.0,
+   216.6
+  ],
+  "aRoof": [
+   7.2,
+   12.0,
+   17.4,
+   26.0,
+   52.2
+  ],
+  "cLeakage": [
+   5e-06,
+   1e-05,
+   2e-05,
+   3e-05,
+   5e-05
+  ],
+  "kThScr": [
+   0.000125,
+   0.00025,
+   0.0005,
+   0.001,
+   0.002
+  ],
+  "tauRfNir": [
+   0.45,
+   0.57,
+   0.7,
+   0.85
+  ],
+  "tauThScrFir": [
+   0.05,
+   0.15,
+   0.3,
+   0.5
+  ]
  },
  "compartment": "AICU",
+ "confirmation": {
+  "archive_checksum_verified": true,
+  "compartment": "Reference",
+  "days": 160,
+  "results": {
+   "calibrated": {
+    "by_month": {
+     "2019-12": {
+      "days": 15,
+      "measured_heating_kwh": 53.17333333333334,
+      "simulated_heating_kwh": 38.072408964503516,
+      "temp_mae_c": 0.9683184283309512
+     },
+     "2020-01": {
+      "days": 29,
+      "measured_heating_kwh": 104.00919540229886,
+      "simulated_heating_kwh": 58.31173092644608,
+      "temp_mae_c": 0.7924000049916264
+     },
+     "2020-02": {
+      "days": 28,
+      "measured_heating_kwh": 112.25714285714284,
+      "simulated_heating_kwh": 96.80855693610359,
+      "temp_mae_c": 0.835740276059461
+     },
+     "2020-03": {
+      "days": 29,
+      "measured_heating_kwh": 80.80000000000001,
+      "simulated_heating_kwh": 58.296779823816195,
+      "temp_mae_c": 0.9727120624191458
+     },
+     "2020-04": {
+      "days": 30,
+      "measured_heating_kwh": 57.457777777777764,
+      "simulated_heating_kwh": 41.82145015450941,
+      "temp_mae_c": 1.2890612731818796
+     },
+     "2020-05": {
+      "days": 29,
+      "measured_heating_kwh": 35.99080459770115,
+      "simulated_heating_kwh": 59.72171036116091,
+      "temp_mae_c": 1.2255194712644335
+     }
+    },
+    "summary": {
+     "co2_kg": {
+      "bias": 1.4372058373559782,
+      "mae": 1.8932059979324414,
+      "mean_abs_relative_error_pct": 36.245549733731295,
+      "simulated_over_measured_total": 1.286460070364745
+     },
+     "days": 160,
+     "electricity_kwh": {
+      "bias": 8.354142716876456,
+      "mae": 8.430276223603201,
+      "mean_abs_relative_error_pct": 6.563667718882018,
+      "simulated_over_measured_total": 1.054156247354314
+     },
+     "failed_days": [],
+     "heating_kwh": {
+      "bias": -15.11117304867704,
+      "mae": 27.03872420408668,
+      "mean_abs_relative_error_pct": 45.253911917267416,
+      "simulated_over_measured_total": 0.7996485652272456
+     },
+     "temp_c": {
+      "bias": 0.047495291373796,
+      "mae": 1.020785356072914,
+      "midday_bias": 0.8664086919625592
+     }
+    }
+   },
+   "gl_gym_defaults": {
+    "by_month": {
+     "2019-12": {
+      "days": 15,
+      "measured_heating_kwh": 53.17333333333334,
+      "simulated_heating_kwh": 126.34082343098798,
+      "temp_mae_c": 1.4823363588474414
+     },
+     "2020-01": {
+      "days": 29,
+      "measured_heating_kwh": 104.00919540229886,
+      "simulated_heating_kwh": 156.19384796587454,
+      "temp_mae_c": 1.2533082883248383
+     },
+     "2020-02": {
+      "days": 28,
+      "measured_heating_kwh": 112.25714285714284,
+      "simulated_heating_kwh": 179.8443451623768,
+      "temp_mae_c": 2.5101919029440194
+     },
+     "2020-03": {
+      "days": 29,
+      "measured_heating_kwh": 80.80000000000001,
+      "simulated_heating_kwh": 145.9077706822027,
+      "temp_mae_c": 1.9593800248770876
+     },
+     "2020-04": {
+      "days": 30,
+      "measured_heating_kwh": 57.457777777777764,
+      "simulated_heating_kwh": 102.9347323046467,
+      "temp_mae_c": 1.435741718256915
+     },
+     "2020-05": {
+      "days": 29,
+      "measured_heating_kwh": 35.99080459770115,
+      "simulated_heating_kwh": 63.0680185586435,
+      "temp_mae_c": 1.4035036310610642
+     }
+    },
+    "summary": {
+     "co2_kg": {
+      "bias": 4.26602151545175,
+      "mae": 4.407244017252795,
+      "mean_abs_relative_error_pct": 81.83822410414955,
+      "simulated_over_measured_total": 1.850292137514565
+     },
+     "days": 160,
+     "electricity_kwh": {
+      "bias": 8.354142716876456,
+      "mae": 8.430276223603201,
+      "mean_abs_relative_error_pct": 6.563667718882018,
+      "simulated_over_measured_total": 1.054156247354314
+     },
+     "failed_days": [],
+     "heating_kwh": {
+      "bias": 53.3811383175771,
+      "mae": 53.3811383175771,
+      "mean_abs_relative_error_pct": 86.41664991520805,
+      "simulated_over_measured_total": 1.7077536348288818
+     },
+     "temp_c": {
+      "bias": -1.5946680517329068,
+      "mae": 1.6841389787279877,
+      "midday_bias": -1.6641416216293958
+     }
+    }
+   },
+   "lamp_cooling_only": {
+    "by_month": {
+     "2019-12": {
+      "days": 15,
+      "measured_heating_kwh": 53.17333333333334,
+      "simulated_heating_kwh": 44.121694009432225,
+      "temp_mae_c": 1.0917574320457601
+     },
+     "2020-01": {
+      "days": 29,
+      "measured_heating_kwh": 104.00919540229886,
+      "simulated_heating_kwh": 57.62129512174317,
+      "temp_mae_c": 1.0317064222933234
+     },
+     "2020-02": {
+      "days": 28,
+      "measured_heating_kwh": 112.25714285714284,
+      "simulated_heating_kwh": 112.73017392289357,
+      "temp_mae_c": 1.0086785694199898
+     },
+     "2020-03": {
+      "days": 29,
+      "measured_heating_kwh": 80.80000000000001,
+      "simulated_heating_kwh": 79.20211857484891,
+      "temp_mae_c": 1.1332301211768185
+     },
+     "2020-04": {
+      "days": 30,
+      "measured_heating_kwh": 57.457777777777764,
+      "simulated_heating_kwh": 60.51828952874341,
+      "temp_mae_c": 1.0881290498486271
+     },
+     "2020-05": {
+      "days": 29,
+      "measured_heating_kwh": 35.99080459770115,
+      "simulated_heating_kwh": 63.0680185586435,
+      "temp_mae_c": 1.4035036310610642
+     }
+    },
+    "summary": {
+     "co2_kg": {
+      "bias": 4.283735984266009,
+      "mae": 4.432248063939293,
+      "mean_abs_relative_error_pct": 82.21523907779338,
+      "simulated_over_measured_total": 1.8538229386365128
+     },
+     "days": 160,
+     "electricity_kwh": {
+      "bias": 8.354142716876456,
+      "mae": 8.430276223603201,
+      "mean_abs_relative_error_pct": 6.563667718882018,
+      "simulated_over_measured_total": 1.054156247354314
+     },
+     "failed_days": [],
+     "heating_kwh": {
+      "bias": -3.981642700541852,
+      "mae": 24.117338388911513,
+      "mean_abs_relative_error_pct": 41.67086280696067,
+      "simulated_over_measured_total": 0.9472094042443738
+     },
+     "temp_c": {
+      "bias": -0.549200711593859,
+      "mae": 1.1296749873831826,
+      "midday_bias": -0.47256101969877884
+     }
+    }
+   },
+   "previous_calibration": {
+    "by_month": {
+     "2019-12": {
+      "days": 15,
+      "measured_heating_kwh": 53.17333333333334,
+      "simulated_heating_kwh": 24.560817045727656,
+      "temp_mae_c": 1.539007070329454
+     },
+     "2020-01": {
+      "days": 29,
+      "measured_heating_kwh": 104.00919540229886,
+      "simulated_heating_kwh": 36.574555356938376,
+      "temp_mae_c": 1.6346876689757428
+     },
+     "2020-02": {
+      "days": 28,
+      "measured_heating_kwh": 112.25714285714284,
+      "simulated_heating_kwh": 74.18391447871724,
+      "temp_mae_c": 0.8245821012390983
+     },
+     "2020-03": {
+      "days": 29,
+      "measured_heating_kwh": 80.80000000000001,
+      "simulated_heating_kwh": 44.08803733524464,
+      "temp_mae_c": 1.1694878849261563
+     },
+     "2020-04": {
+      "days": 30,
+      "measured_heating_kwh": 57.457777777777764,
+      "simulated_heating_kwh": 32.37930469611151,
+      "temp_mae_c": 1.4281821055986264
+     },
+     "2020-05": {
+      "days": 29,
+      "measured_heating_kwh": 35.99080459770115,
+      "simulated_heating_kwh": 41.306171907093564,
+      "temp_mae_c": 1.1866412577957945
+     }
+    },
+    "summary": {
+     "co2_kg": {
+      "bias": 1.4131187296405476,
+      "mae": 1.8856518519071426,
+      "mean_abs_relative_error_pct": 35.79415830307617,
+      "simulated_over_measured_total": 1.281659091693703
+     },
+     "days": 160,
+     "electricity_kwh": {
+      "bias": 8.354142716876456,
+      "mae": 8.430276223603201,
+      "mean_abs_relative_error_pct": 6.563667718882018,
+      "simulated_over_measured_total": 1.054156247354314
+     },
+     "failed_days": [],
+     "heating_kwh": {
+      "bias": -31.960613487381046,
+      "mae": 34.79167694921874,
+      "mean_abs_relative_error_pct": 48.640326798796785,
+      "simulated_over_measured_total": 0.5762503183712239
+     },
+     "temp_c": {
+      "bias": 0.5863045046644079,
+      "mae": 1.2797034724801784,
+      "midday_bias": 1.623345276673636
+     }
+    }
+   }
+  }
+ },
  "dataset": "Autonomous Greenhouse Challenge, Second Edition \u2014 AICU compartment",
  "fit_days": [
   "2019-12-23",
@@ -91,32 +410,15 @@
  "fixed": {
   "etaLampCool": 0.0
  },
- "grid": {
-  "aCov": [
-   156.0,
-   180.0,
-   216.6
-  ],
-  "aRoof": [
-   7.2,
-   17.4,
-   52.2
-  ],
-  "cLeakage": [
-   1e-05,
-   3e-05,
-   0.0001
-  ]
- },
  "heat_definition": "AGC2 Heat_cons formula applied to simulated pipe temperatures",
  "results": {
   "calibrated": {
    "fit": {
     "co2_kg": {
-     "bias": -0.0054460958211289285,
-     "mae": 0.7994490796846956,
-     "mean_abs_relative_error_pct": 14.746337427049392,
-     "simulated_over_measured_total": 0.9990237949438616
+     "bias": 0.2601751663348465,
+     "mae": 0.7839193997470219,
+     "mean_abs_relative_error_pct": 14.860963363965812,
+     "simulated_over_measured_total": 1.0466360345464754
     },
     "days": 78,
     "electricity_kwh": {
@@ -127,501 +429,666 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 15.290586222885162,
-     "mae": 18.447681618890996,
-     "mean_abs_relative_error_pct": 87.85249999237024,
-     "simulated_over_measured_total": 1.3595086780675745
+     "bias": 4.371426085660436,
+     "mae": 12.066708903853263,
+     "mean_abs_relative_error_pct": 45.282530037654254,
+     "simulated_over_measured_total": 1.1027799451517268
+    },
+    "temp_c": {
+     "bias": 0.3626006131413313,
+     "mae": 1.4435264942737727,
+     "midday_bias": 1.1398262167384483
     }
    },
    "test": {
     "per_day": {
      "2019-12-16": {
-      "boiler_kwh": 7.14666395842047,
-      "co2_kg": 1.8420854806334253,
+      "boiler_kwh": 26.84299330487921,
+      "co2_kg": 1.8981981757455906,
       "electricity_kwh": 207.85480163640975,
-      "heating_kwh": 10.102682628871325
+      "heating_kwh": 12.689922611605779,
+      "measured_heating_kwh": 76.152,
+      "temp_mae_c": 0.8910977363586428
      },
      "2019-12-17": {
-      "boiler_kwh": 26.672034415769346,
-      "co2_kg": 1.2900131480401613,
+      "boiler_kwh": 11.840785626490657,
+      "co2_kg": 1.3593411503471018,
       "electricity_kwh": 110.61528239430422,
-      "heating_kwh": 29.063443223457163
+      "heating_kwh": 6.503695984487311,
+      "measured_heating_kwh": 30.208,
+      "temp_mae_c": 1.521535869439443
      },
      "2019-12-18": {
-      "boiler_kwh": 40.159418325732155,
-      "co2_kg": 2.2578774973412328,
+      "boiler_kwh": 41.25566582079039,
+      "co2_kg": 2.2868036333431303,
       "electricity_kwh": 187.52704428668963,
-      "heating_kwh": 35.972778961601016
+      "heating_kwh": 30.90077811877543,
+      "measured_heating_kwh": 30.48,
+      "temp_mae_c": 2.1640645431147685
      },
      "2019-12-19": {
-      "boiler_kwh": 8.248683654987063,
-      "co2_kg": 3.0789351705647388,
+      "boiler_kwh": 6.327619653366937,
+      "co2_kg": 3.224163288709972,
       "electricity_kwh": 146.18560679268825,
-      "heating_kwh": 10.318776592928975
+      "heating_kwh": 1.3038306972685363,
+      "measured_heating_kwh": 3.184,
+      "temp_mae_c": 0.8045731670326658
      },
      "2019-12-20": {
-      "boiler_kwh": 25.56402531708155,
-      "co2_kg": 3.5345848325844926,
+      "boiler_kwh": 25.301720865630053,
+      "co2_kg": 3.9163072911668455,
       "electricity_kwh": 185.99099881084425,
-      "heating_kwh": 17.801575834880126
+      "heating_kwh": 10.772804510977188,
+      "measured_heating_kwh": 15.271999999999998,
+      "temp_mae_c": 1.2423640178309543
      },
      "2019-12-21": {
-      "boiler_kwh": 83.26835576456628,
-      "co2_kg": 2.14922666857559,
+      "boiler_kwh": 95.64025664976134,
+      "co2_kg": 2.268316696688424,
       "electricity_kwh": 168.8322332800484,
-      "heating_kwh": 64.57792333299915
+      "heating_kwh": 67.52928236496471,
+      "measured_heating_kwh": 65.872,
+      "temp_mae_c": 0.7416039970186024
      },
      "2019-12-22": {
-      "boiler_kwh": 70.34065252523581,
-      "co2_kg": 1.8660067179726625,
+      "boiler_kwh": 76.21496715293523,
+      "co2_kg": 1.9926465683066092,
       "electricity_kwh": 161.8277135655213,
-      "heating_kwh": 53.58342214091022
+      "heating_kwh": 45.09907925393894,
+      "measured_heating_kwh": 48.848,
+      "temp_mae_c": 0.7686531729168363
      },
      "2019-12-30": {
-      "boiler_kwh": 109.57253788680521,
-      "co2_kg": 4.95804018830519,
+      "boiler_kwh": 120.59514531931704,
+      "co2_kg": 5.228450980309927,
       "electricity_kwh": 229.17216010193812,
-      "heating_kwh": 81.18520412679877
+      "heating_kwh": 77.82938278535168,
+      "measured_heating_kwh": 70.904,
+      "temp_mae_c": 1.4035712864663872
      },
      "2019-12-31": {
-      "boiler_kwh": 79.57511522447052,
-      "co2_kg": 4.162681519731552,
+      "boiler_kwh": 70.82125486816265,
+      "co2_kg": 4.08384972658538,
       "electricity_kwh": 217.51616083634366,
-      "heating_kwh": 58.52532905911632
+      "heating_kwh": 44.36545123382109,
+      "measured_heating_kwh": 62.976,
+      "temp_mae_c": 1.8544876350296873
      },
      "2020-01-01": {
-      "boiler_kwh": 88.17579458649962,
-      "co2_kg": 3.1131589968314297,
+      "boiler_kwh": 93.1597784808888,
+      "co2_kg": 3.1283487116863373,
       "electricity_kwh": 230.31232013591753,
-      "heating_kwh": 63.446830394937265
+      "heating_kwh": 55.82593133596002,
+      "measured_heating_kwh": 85.42399999999999,
+      "temp_mae_c": 1.3751931760046212
      },
      "2020-01-02": {
-      "boiler_kwh": 93.07185090017049,
-      "co2_kg": 3.019691351555149,
+      "boiler_kwh": 101.12808533545382,
+      "co2_kg": 3.154049924795639,
       "electricity_kwh": 230.31232013591753,
-      "heating_kwh": 66.703288984141
+      "heating_kwh": 60.94546908897054,
+      "measured_heating_kwh": 94.88,
+      "temp_mae_c": 1.1317085186640423
      },
      "2020-01-03": {
-      "boiler_kwh": 85.24987382467755,
-      "co2_kg": 3.71963107445091,
+      "boiler_kwh": 90.52441633244699,
+      "co2_kg": 3.9899178631474106,
       "electricity_kwh": 228.0320000679587,
-      "heating_kwh": 60.77991680928063
+      "heating_kwh": 55.82911494621704,
+      "measured_heating_kwh": 76.75200000000001,
+      "temp_mae_c": 1.1548391487863323
      },
      "2020-01-04": {
-      "boiler_kwh": 97.36940087732798,
-      "co2_kg": 4.293620196684521,
+      "boiler_kwh": 107.85309243249846,
+      "co2_kg": 4.696873153993504,
       "electricity_kwh": 230.3123200339793,
-      "heating_kwh": 72.40402241867443
+      "heating_kwh": 65.53079201722085,
+      "measured_heating_kwh": 55.51200000000001,
+      "temp_mae_c": 1.4226366890801323
      },
      "2020-01-05": {
-      "boiler_kwh": 76.97052108084426,
-      "co2_kg": 4.1090070463807615,
+      "boiler_kwh": 75.7557136107828,
+      "co2_kg": 4.486550099606167,
       "electricity_kwh": 230.3123200339793,
-      "heating_kwh": 54.7721849073757
+      "heating_kwh": 46.336074991532406,
+      "measured_heating_kwh": 52.06399999999999,
+      "temp_mae_c": 1.0519859221246506
      },
      "2020-01-13": {
-      "boiler_kwh": 76.27535589708135,
-      "co2_kg": 4.5668966840808425,
+      "boiler_kwh": 74.84826730031237,
+      "co2_kg": 4.909067517195136,
       "electricity_kwh": 220.65862557088838,
-      "heating_kwh": 54.76907214129392
+      "heating_kwh": 43.56771372530537,
+      "measured_heating_kwh": 40.888,
+      "temp_mae_c": 1.4804650280210705
      },
      "2020-01-14": {
-      "boiler_kwh": 66.04548816817034,
-      "co2_kg": 7.595442315828244,
+      "boiler_kwh": 59.572233155223884,
+      "co2_kg": 8.657230737025884,
       "electricity_kwh": 225.68198583944306,
-      "heating_kwh": 47.34756370647581
+      "heating_kwh": 35.7253373157065,
+      "measured_heating_kwh": 34.328,
+      "temp_mae_c": 0.9392926467789541
      },
      "2020-01-15": {
-      "boiler_kwh": 56.07604998969458,
-      "co2_kg": 6.853239885842315,
+      "boiler_kwh": 52.70506106510831,
+      "co2_kg": 7.873273485605633,
       "electricity_kwh": 228.71632202427844,
-      "heating_kwh": 41.2099494359134
+      "heating_kwh": 31.36765861226537,
+      "measured_heating_kwh": 28.104,
+      "temp_mae_c": 0.9861743304464551
      },
      "2020-01-17": {
-      "boiler_kwh": 75.1112625789232,
-      "co2_kg": 6.683143412410122,
+      "boiler_kwh": 73.59958876862748,
+      "co2_kg": 7.427304210389732,
       "electricity_kwh": 222.64368160637838,
-      "heating_kwh": 54.823530455640196
+      "heating_kwh": 39.85697912220484,
+      "measured_heating_kwh": 31.287999999999997,
+      "temp_mae_c": 1.2774073825942147
      },
      "2020-01-18": {
-      "boiler_kwh": 140.8627073330972,
-      "co2_kg": 3.726928612343287,
+      "boiler_kwh": 145.0061188312628,
+      "co2_kg": 4.03083832254625,
       "electricity_kwh": 134.38032110406868,
-      "heating_kwh": 107.03039537745067
+      "heating_kwh": 100.82519894854684,
+      "measured_heating_kwh": 64.928,
+      "temp_mae_c": 1.207815816005071
      },
      "2020-01-19": {
-      "boiler_kwh": 66.20756228642227,
-      "co2_kg": 5.169313486064304,
+      "boiler_kwh": 61.49982084502814,
+      "co2_kg": 5.1034589153906555,
       "electricity_kwh": 228.04240215256672,
-      "heating_kwh": 48.14555988538242
+      "heating_kwh": 35.79333083546458,
+      "measured_heating_kwh": 40.239999999999995,
+      "temp_mae_c": 1.8966222498151994
      },
      "2020-01-27": {
-      "boiler_kwh": 53.27266105954977,
-      "co2_kg": 4.211275192200494,
+      "boiler_kwh": 47.33286292845606,
+      "co2_kg": 4.559517691401337,
       "electricity_kwh": 221.72032302206026,
-      "heating_kwh": 41.764780036704835
+      "heating_kwh": 30.856558019205558,
+      "measured_heating_kwh": 23.872,
+      "temp_mae_c": 1.535031571653154
      },
      "2020-01-28": {
-      "boiler_kwh": 78.4084834766761,
-      "co2_kg": 4.405814841747903,
+      "boiler_kwh": 99.03443209755783,
+      "co2_kg": 4.9882373715034705,
       "electricity_kwh": 236.7900820086763,
-      "heating_kwh": 61.352452451117685
+      "heating_kwh": 61.28889175680204,
+      "measured_heating_kwh": 48.455999999999996,
+      "temp_mae_c": 1.197975525591109
      },
      "2020-01-29": {
-      "boiler_kwh": 76.23012785462926,
-      "co2_kg": 5.553553695816742,
+      "boiler_kwh": 89.43564236235542,
+      "co2_kg": 6.253541587034846,
       "electricity_kwh": 237.93024194071748,
-      "heating_kwh": 58.1382725519116
+      "heating_kwh": 53.191305003903544,
+      "measured_heating_kwh": 32.128,
+      "temp_mae_c": 1.2842083937591975
      },
      "2020-01-30": {
-      "boiler_kwh": 51.589373102303504,
-      "co2_kg": 4.731870777495031,
+      "boiler_kwh": 47.053081382698366,
+      "co2_kg": 5.064853396540972,
       "electricity_kwh": 238.88864200155237,
-      "heating_kwh": 38.56474868214651
+      "heating_kwh": 28.221408682599442,
+      "measured_heating_kwh": 22.4,
+      "temp_mae_c": 0.8384493178791469
      },
      "2020-01-31": {
-      "boiler_kwh": 41.62194340510852,
-      "co2_kg": 5.020345460130463,
+      "boiler_kwh": 39.71275883816999,
+      "co2_kg": 5.483561268212899,
       "electricity_kwh": 238.70688202840785,
-      "heating_kwh": 30.86548711143821
+      "heating_kwh": 23.38820996644599,
+      "measured_heating_kwh": 24.944,
+      "temp_mae_c": 0.760247287485334
      },
      "2020-02-01": {
-      "boiler_kwh": 39.62481740014333,
-      "co2_kg": 6.456872191039849,
+      "boiler_kwh": 31.953130610547433,
+      "co2_kg": 6.658644256539681,
       "electricity_kwh": 251.9753600679587,
-      "heating_kwh": 29.78804935198667
+      "heating_kwh": 19.513760145342324,
+      "measured_heating_kwh": 9.696,
+      "temp_mae_c": 1.385421397950914
      },
      "2020-02-02": {
-      "boiler_kwh": 44.67645911221754,
-      "co2_kg": 4.247291879187884,
+      "boiler_kwh": 40.929014024771895,
+      "co2_kg": 4.558763414086334,
       "electricity_kwh": 242.8540801019381,
-      "heating_kwh": 34.627858621468846
+      "heating_kwh": 24.990980066582793,
+      "measured_heating_kwh": 31.687999999999995,
+      "temp_mae_c": 1.6093072705798674
      },
      "2020-02-10": {
-      "boiler_kwh": 65.97119566804454,
-      "co2_kg": 6.35512046137817,
+      "boiler_kwh": 82.10308844856915,
+      "co2_kg": 6.863098034055349,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 47.917831202056135
+      "heating_kwh": 46.234331949408656,
+      "measured_heating_kwh": 30.663999999999998,
+      "temp_mae_c": 0.8756724662250949
      },
      "2020-02-11": {
-      "boiler_kwh": 106.0878855930329,
-      "co2_kg": 6.457267545128529,
+      "boiler_kwh": 138.5409407040106,
+      "co2_kg": 7.165666178473788,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 85.04286541116309
+      "heating_kwh": 102.60349842790033,
+      "measured_heating_kwh": 58.91999999999999,
+      "temp_mae_c": 0.8425245232052273
      },
      "2020-02-12": {
-      "boiler_kwh": 86.89581753886166,
-      "co2_kg": 5.715129281941595,
+      "boiler_kwh": 111.2610140845576,
+      "co2_kg": 6.456349004458055,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 68.46274897444206
+      "heating_kwh": 82.80862810390462,
+      "measured_heating_kwh": 49.343999999999994,
+      "temp_mae_c": 0.7931947734620834
      },
      "2020-02-13": {
-      "boiler_kwh": 45.61492045847412,
-      "co2_kg": 3.8430630068786376,
+      "boiler_kwh": 51.81591181374546,
+      "co2_kg": 4.0813433760890305,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 36.311975442957824
+      "heating_kwh": 31.575744914693406,
+      "measured_heating_kwh": 55.04,
+      "temp_mae_c": 0.8720461050669358
      },
      "2020-02-14": {
-      "boiler_kwh": 43.75201832246995,
-      "co2_kg": 5.139975885499756,
+      "boiler_kwh": 43.749585299820055,
+      "co2_kg": 5.412928121683411,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 34.85062769359329
+      "heating_kwh": 28.135148676609713,
+      "measured_heating_kwh": 19.312,
+      "temp_mae_c": 0.9132346239354882
      },
      "2020-02-15": {
-      "boiler_kwh": 22.702366748711047,
-      "co2_kg": 4.466865581753325,
+      "boiler_kwh": 20.738069424225845,
+      "co2_kg": 5.00237184418926,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 20.134918337521487
+      "heating_kwh": 13.099157408514952,
+      "measured_heating_kwh": 8.064,
+      "temp_mae_c": 1.744791660043928
      },
      "2020-02-16": {
-      "boiler_kwh": 40.1367408881829,
-      "co2_kg": 5.520944788485312,
+      "boiler_kwh": 41.7741523698744,
+      "co2_kg": 6.02181906957126,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 31.301751437813852
+      "heating_kwh": 25.512300271132517,
+      "measured_heating_kwh": 16.872,
+      "temp_mae_c": 2.088426021734873
      },
      "2020-02-24": {
-      "boiler_kwh": 89.7389621380603,
-      "co2_kg": 3.392790789319011,
+      "boiler_kwh": 99.62345829974566,
+      "co2_kg": 3.6345034997287735,
       "electricity_kwh": 198.01824045661937,
-      "heating_kwh": 71.38889780383438
+      "heating_kwh": 67.44513056438642,
+      "measured_heating_kwh": 91.65599999999999,
+      "temp_mae_c": 1.3655993594063647
      },
      "2020-02-26": {
-      "boiler_kwh": 124.73938886432445,
-      "co2_kg": 4.413802140109868,
+      "boiler_kwh": 148.7364740393091,
+      "co2_kg": 4.527371837124839,
       "electricity_kwh": 198.40240045154582,
-      "heating_kwh": 96.96050809883617
+      "heating_kwh": 93.59931382123915,
+      "measured_heating_kwh": 119.60000000000001,
+      "temp_mae_c": 1.13702648613188
      },
      "2020-02-27": {
-      "boiler_kwh": 99.14738307204682,
-      "co2_kg": 3.1601117440000785,
+      "boiler_kwh": 114.30886675762987,
+      "co2_kg": 3.282552782221039,
       "electricity_kwh": 198.40240045154582,
-      "heating_kwh": 75.60386994916834
+      "heating_kwh": 76.28617051810097,
+      "measured_heating_kwh": 129.048,
+      "temp_mae_c": 0.9338446444935274
      },
      "2020-02-28": {
-      "boiler_kwh": 98.96104404407134,
-      "co2_kg": 4.183160923131167,
+      "boiler_kwh": 116.82009438787688,
+      "co2_kg": 4.4593210768700144,
       "electricity_kwh": 197.63408046169292,
-      "heating_kwh": 78.32749742687498
+      "heating_kwh": 79.69595359546007,
+      "measured_heating_kwh": 98.784,
+      "temp_mae_c": 0.7384801255332105
      },
      "2020-02-29": {
-      "boiler_kwh": 97.5130113128118,
-      "co2_kg": 4.988276394959459,
+      "boiler_kwh": 111.7759400790307,
+      "co2_kg": 5.589659660133538,
       "electricity_kwh": 196.67368047437677,
-      "heating_kwh": 73.36839845827602
+      "heating_kwh": 68.36127995419565,
+      "measured_heating_kwh": 55.767999999999994,
+      "temp_mae_c": 1.3915119237369964
      },
      "2020-03-01": {
-      "boiler_kwh": 81.15464310449723,
-      "co2_kg": 5.252376912750132,
+      "boiler_kwh": 93.87926808007913,
+      "co2_kg": 5.660319918817952,
       "electricity_kwh": 198.86048035514835,
-      "heating_kwh": 61.87618477029332
+      "heating_kwh": 60.608948919103504,
+      "measured_heating_kwh": 43.583999999999996,
+      "temp_mae_c": 0.913143532143699
      },
      "2020-03-09": {
-      "boiler_kwh": 60.32165582642205,
-      "co2_kg": 6.240610153441446,
+      "boiler_kwh": 63.201387830265915,
+      "co2_kg": 6.436504664162544,
       "electricity_kwh": 225.75167999999988,
-      "heating_kwh": 46.81115810330034
+      "heating_kwh": 38.79965846843811,
+      "measured_heating_kwh": 37.48799999999999,
+      "temp_mae_c": 1.0400671866205007
      },
      "2020-03-10": {
-      "boiler_kwh": 54.100417305097324,
-      "co2_kg": 4.286408444353447,
+      "boiler_kwh": 53.90563106525079,
+      "co2_kg": 4.772136587278659,
       "electricity_kwh": 225.75167999999988,
-      "heating_kwh": 41.10508841043125
+      "heating_kwh": 30.139080549054277,
+      "measured_heating_kwh": 47.495999999999995,
+      "temp_mae_c": 1.2570714871088666
      },
      "2020-03-11": {
-      "boiler_kwh": 42.737973035274045,
-      "co2_kg": 7.033931368387749,
+      "boiler_kwh": 43.39913781771411,
+      "co2_kg": 7.295365177963665,
       "electricity_kwh": 177.86496010193815,
-      "heating_kwh": 34.39738116605324
+      "heating_kwh": 20.401332236783624,
+      "measured_heating_kwh": 17.791999999999998,
+      "temp_mae_c": 1.7769052518738644
      },
      "2020-03-12": {
-      "boiler_kwh": 68.17028362614957,
-      "co2_kg": 7.856259556781004,
+      "boiler_kwh": 82.16788433246799,
+      "co2_kg": 8.575070661631688,
       "electricity_kwh": 164.18304010193816,
-      "heating_kwh": 54.037584440583274
+      "heating_kwh": 49.76395578057037,
+      "measured_heating_kwh": 38.583999999999996,
+      "temp_mae_c": 0.9425766931639781
      },
      "2020-03-13": {
-      "boiler_kwh": 97.94229488588991,
-      "co2_kg": 4.5098330320261795,
+      "boiler_kwh": 106.57811636972798,
+      "co2_kg": 5.348407917148174,
       "electricity_kwh": 164.18303999999992,
-      "heating_kwh": 75.88473676422784
+      "heating_kwh": 64.46741727276242,
+      "measured_heating_kwh": 53.88,
+      "temp_mae_c": 0.974827257792156
      },
      "2020-03-14": {
-      "boiler_kwh": 46.18505943858866,
-      "co2_kg": 5.401263304215964,
+      "boiler_kwh": 47.49269887248415,
+      "co2_kg": 5.482658094092869,
       "electricity_kwh": 177.8649599999999,
-      "heating_kwh": 38.70986545879497
+      "heating_kwh": 25.377590528529144,
+      "measured_heating_kwh": 34.976,
+      "temp_mae_c": 1.8701771861977046
      },
      "2020-03-15": {
-      "boiler_kwh": 49.628647158048004,
-      "co2_kg": 5.188418324314708,
+      "boiler_kwh": 47.70377553954839,
+      "co2_kg": 5.370920372160421,
       "electricity_kwh": 225.75167999999988,
-      "heating_kwh": 37.69770668859405
+      "heating_kwh": 22.555732287297662,
+      "measured_heating_kwh": 30.799999999999997,
+      "temp_mae_c": 1.62241618765725
      },
      "2020-03-23": {
-      "boiler_kwh": 99.21918559455675,
-      "co2_kg": 7.828686634564002,
+      "boiler_kwh": 121.91839922217376,
+      "co2_kg": 8.211771058566484,
       "electricity_kwh": 109.45535999999996,
-      "heating_kwh": 78.84273820632406
+      "heating_kwh": 81.94172333543044,
+      "measured_heating_kwh": 70.78399999999999,
+      "temp_mae_c": 0.9629442811012267
      },
      "2020-03-24": {
-      "boiler_kwh": 78.413530543109,
-      "co2_kg": 7.76061704233056,
+      "boiler_kwh": 83.36556846556478,
+      "co2_kg": 8.110720837524411,
       "electricity_kwh": 109.45535999999996,
-      "heating_kwh": 63.486110167472454
+      "heating_kwh": 52.21179710087376,
+      "measured_heating_kwh": 57.19199999999999,
+      "temp_mae_c": 1.0168809380796222
      },
      "2020-03-25": {
-      "boiler_kwh": 76.45771169819126,
-      "co2_kg": 8.095914023781008,
+      "boiler_kwh": 79.95592261269667,
+      "co2_kg": 8.229285274472828,
       "electricity_kwh": 110.59552003397937,
-      "heating_kwh": 61.91907692324769
+      "heating_kwh": 51.161084592656394,
+      "measured_heating_kwh": 55.224,
+      "temp_mae_c": 0.9986366629600524
      },
      "2020-03-26": {
-      "boiler_kwh": 143.1326000079978,
-      "co2_kg": 6.36982831490116,
+      "boiler_kwh": 150.66164963291462,
+      "co2_kg": 6.343199642964786,
       "electricity_kwh": 3.42048,
-      "heating_kwh": 110.47152470522866
+      "heating_kwh": 104.95764033864558,
+      "measured_heating_kwh": 71.016,
+      "temp_mae_c": 1.294461376799478
      },
      "2020-03-27": {
-      "boiler_kwh": 56.94282048720975,
-      "co2_kg": 7.613773744225074,
+      "boiler_kwh": 58.14786784644211,
+      "co2_kg": 7.980029846225566,
       "electricity_kwh": 110.59552003397937,
-      "heating_kwh": 48.514030378983165
+      "heating_kwh": 35.165232215973745,
+      "measured_heating_kwh": 37.744,
+      "temp_mae_c": 1.1647769590218862
      },
      "2020-03-28": {
-      "boiler_kwh": 75.48643152330126,
-      "co2_kg": 7.680833883521078,
+      "boiler_kwh": 78.26995837317963,
+      "co2_kg": 7.999083959372836,
       "electricity_kwh": 75.24048054994584,
-      "heating_kwh": 65.71840249836754
+      "heating_kwh": 54.72825249599205,
+      "measured_heating_kwh": 49.74399999999999,
+      "temp_mae_c": 1.1434137463569638
      },
      "2020-04-06": {
-      "boiler_kwh": 47.327003194430816,
-      "co2_kg": 8.737310754722765,
+      "boiler_kwh": 37.65495730854485,
+      "co2_kg": 8.987593410765907,
       "electricity_kwh": 68.05232050935747,
-      "heating_kwh": 44.820416714761386
+      "heating_kwh": 24.45499995496173,
+      "measured_heating_kwh": 14.367999999999999,
+      "temp_mae_c": 2.3602388024330136
      },
      "2020-04-07": {
-      "boiler_kwh": 37.83897841502928,
-      "co2_kg": 10.728900383557235,
+      "boiler_kwh": 29.92690456412265,
+      "co2_kg": 10.929112249940198,
       "electricity_kwh": 80.60119790576933,
-      "heating_kwh": 37.6909727877149
+      "heating_kwh": 16.859192712359356,
+      "measured_heating_kwh": 14.2,
+      "temp_mae_c": 1.970754771762424
      },
      "2020-04-08": {
-      "boiler_kwh": 31.779678552187175,
-      "co2_kg": 12.567184148493967,
+      "boiler_kwh": 21.174869326114276,
+      "co2_kg": 12.567443674681508,
       "electricity_kwh": 81.50143781295775,
-      "heating_kwh": 31.267309943780194
+      "heating_kwh": 10.309717653822196,
+      "measured_heating_kwh": 7.432,
+      "temp_mae_c": 2.483293603526222
      },
      "2020-04-10": {
-      "boiler_kwh": 42.5761827593237,
-      "co2_kg": 9.33277962501915,
+      "boiler_kwh": 33.38928693530763,
+      "co2_kg": 9.258731227627651,
       "electricity_kwh": 81.50143781295775,
-      "heating_kwh": 41.14591702229554
+      "heating_kwh": 19.482637291826954,
+      "measured_heating_kwh": 17.656,
+      "temp_mae_c": 1.7773940324783322
      },
      "2020-04-11": {
-      "boiler_kwh": 37.43801029659334,
-      "co2_kg": 10.162029616534378,
+      "boiler_kwh": 27.71714974952637,
+      "co2_kg": 10.426360813388614,
       "electricity_kwh": 81.50143781295775,
-      "heating_kwh": 36.53496686475246
+      "heating_kwh": 14.12706743314323,
+      "measured_heating_kwh": 14.000000000000002,
+      "temp_mae_c": 1.9470332278145683
      },
      "2020-04-12": {
-      "boiler_kwh": 39.17715802054899,
-      "co2_kg": 9.105725817915404,
+      "boiler_kwh": 28.590666200874768,
+      "co2_kg": 9.204823688532137,
       "electricity_kwh": 82.64159784693716,
-      "heating_kwh": 38.001064435462666
+      "heating_kwh": 14.37201584186027,
+      "measured_heating_kwh": 10.959999999999999,
+      "temp_mae_c": 2.425761918226878
      },
      "2020-04-20": {
-      "boiler_kwh": 43.26883297004575,
-      "co2_kg": 10.459361642184057,
+      "boiler_kwh": 38.06725262023923,
+      "co2_kg": 10.9352541483058,
       "electricity_kwh": 81.7413578378105,
-      "heating_kwh": 42.08263592198661
+      "heating_kwh": 22.04449769264484,
+      "measured_heating_kwh": 24.488,
+      "temp_mae_c": 1.4328446202807956
      },
      "2020-04-21": {
-      "boiler_kwh": 36.71849541892384,
-      "co2_kg": 10.76478151018798,
+      "boiler_kwh": 27.321973215190496,
+      "co2_kg": 11.29182486103472,
       "electricity_kwh": 81.7413578378105,
-      "heating_kwh": 36.89563476336862
+      "heating_kwh": 14.917948644173979,
+      "measured_heating_kwh": 13.456000000000001,
+      "temp_mae_c": 1.5289504236645166
      },
      "2020-04-22": {
-      "boiler_kwh": 35.954427302496235,
-      "co2_kg": 11.88938577776688,
+      "boiler_kwh": 27.36232304227112,
+      "co2_kg": 12.503418379835834,
       "electricity_kwh": 81.37531797803877,
-      "heating_kwh": 35.99606175065156
+      "heating_kwh": 13.872489212090905,
+      "measured_heating_kwh": 10.543999999999999,
+      "temp_mae_c": 1.7704897072580128
      },
      "2020-04-23": {
-      "boiler_kwh": 35.08029141338861,
-      "co2_kg": 12.494042120781465,
+      "boiler_kwh": 25.009670360475276,
+      "co2_kg": 12.64666345735926,
       "electricity_kwh": 71.83871814517018,
-      "heating_kwh": 34.17292001128966
+      "heating_kwh": 12.65270451503088,
+      "measured_heating_kwh": 9.728,
+      "temp_mae_c": 2.036265133486854
      },
      "2020-04-24": {
-      "boiler_kwh": 38.81338880794831,
-      "co2_kg": 8.167429333020241,
+      "boiler_kwh": 34.546248826639726,
+      "co2_kg": 8.43977222084853,
       "electricity_kwh": 60.79591841855046,
-      "heating_kwh": 39.7462404152297
+      "heating_kwh": 20.141423125190805,
+      "measured_heating_kwh": 15.575999999999999,
+      "temp_mae_c": 3.4160811238818702
      },
      "2020-04-25": {
-      "boiler_kwh": 71.39960715155507,
-      "co2_kg": 4.704551637675471,
+      "boiler_kwh": 71.83132336089287,
+      "co2_kg": 4.643169873343583,
       "electricity_kwh": 60.79591841855046,
-      "heating_kwh": 58.14607092268124
+      "heating_kwh": 42.733511418847606,
+      "measured_heating_kwh": 35.488,
+      "temp_mae_c": 1.0337775826454163
      },
      "2020-04-26": {
-      "boiler_kwh": 49.07462427369346,
-      "co2_kg": 6.870843109571609,
+      "boiler_kwh": 46.78461848957964,
+      "co2_kg": 7.099814480146599,
       "electricity_kwh": 56.5346386016464,
-      "heating_kwh": 44.38994531689162
+      "heating_kwh": 26.653559198546063,
+      "measured_heating_kwh": 28.6,
+      "temp_mae_c": 1.7121655537022484
      },
      "2020-05-04": {
-      "boiler_kwh": 45.10131915500741,
-      "co2_kg": 6.420323391263591,
+      "boiler_kwh": 36.10829126721698,
+      "co2_kg": 6.35742733724114,
       "electricity_kwh": 0.0,
-      "heating_kwh": 45.28141558101791
+      "heating_kwh": 29.672603943033415,
+      "measured_heating_kwh": 5.248,
+      "temp_mae_c": 2.1722866151067945
      },
      "2020-05-05": {
-      "boiler_kwh": 55.614241430444594,
-      "co2_kg": 9.29779994520967,
+      "boiler_kwh": 56.14808149447534,
+      "co2_kg": 9.537853731920318,
       "electricity_kwh": 48.192558800468426,
-      "heating_kwh": 50.906758601451166
+      "heating_kwh": 31.287712924991745,
+      "measured_heating_kwh": 27.151999999999997,
+      "temp_mae_c": 1.8429821425014072
      },
      "2020-05-06": {
-      "boiler_kwh": 53.087637253166555,
-      "co2_kg": 10.072375249048608,
+      "boiler_kwh": 52.690524773060005,
+      "co2_kg": 10.277899057490657,
       "electricity_kwh": 47.71271875076292,
-      "heating_kwh": 48.22713185017596
+      "heating_kwh": 27.579937968220662,
+      "measured_heating_kwh": 23.423999999999996,
+      "temp_mae_c": 1.9158603774176708
      },
      "2020-05-07": {
-      "boiler_kwh": 72.53500647409984,
-      "co2_kg": 9.618246324437706,
+      "boiler_kwh": 59.63488157400562,
+      "co2_kg": 9.792038412461377,
       "electricity_kwh": 0.0,
-      "heating_kwh": 64.04283186880397
+      "heating_kwh": 45.374841320315724,
+      "measured_heating_kwh": 26.823999999999998,
+      "temp_mae_c": 1.9372003873189285
      },
      "2020-05-08": {
-      "boiler_kwh": 59.77157577026184,
-      "co2_kg": 9.947564776896147,
+      "boiler_kwh": 45.30347796161389,
+      "co2_kg": 9.792277816423645,
       "electricity_kwh": 0.0,
-      "heating_kwh": 55.23396976824534
+      "heating_kwh": 35.48552937531852,
+      "measured_heating_kwh": 16.184,
+      "temp_mae_c": 1.9749311857753327
      },
      "2020-05-09": {
-      "boiler_kwh": 55.30787289882825,
-      "co2_kg": 10.75080086166999,
+      "boiler_kwh": 38.2083863211317,
+      "co2_kg": 10.91478598074849,
       "electricity_kwh": 0.0,
-      "heating_kwh": 52.78829610090739
+      "heating_kwh": 29.85222440673556,
+      "measured_heating_kwh": 11.328,
+      "temp_mae_c": 1.8114055156707762
      },
      "2020-05-10": {
-      "boiler_kwh": 73.25296797391451,
-      "co2_kg": 4.86864647758421,
+      "boiler_kwh": 63.6197696978822,
+      "co2_kg": 4.864448993508017,
       "electricity_kwh": 0.0,
-      "heating_kwh": 66.86518005499636
+      "heating_kwh": 51.799174018423095,
+      "measured_heating_kwh": 25.264,
+      "temp_mae_c": 1.7034528599845045
      },
      "2020-05-18": {
-      "boiler_kwh": 65.87540917391235,
-      "co2_kg": 9.566758880559068,
+      "boiler_kwh": 55.91077698562078,
+      "co2_kg": 9.817129467949782,
       "electricity_kwh": 0.0,
-      "heating_kwh": 60.14341604703895
+      "heating_kwh": 37.95545545013087,
+      "measured_heating_kwh": 9.904,
+      "temp_mae_c": 1.219625645213657
      },
      "2020-05-19": {
-      "boiler_kwh": 54.33299226766438,
-      "co2_kg": 9.613697801185522,
+      "boiler_kwh": 40.692494742613135,
+      "co2_kg": 9.672811688523584,
       "electricity_kwh": 0.0,
-      "heating_kwh": 50.87916678255277
+      "heating_kwh": 30.131419059696697,
+      "measured_heating_kwh": 7.160000000000001,
+      "temp_mae_c": 0.9229448676109318
      },
      "2020-05-20": {
-      "boiler_kwh": 49.00369090246148,
-      "co2_kg": 10.235833502875918,
+      "boiler_kwh": 30.3134458305964,
+      "co2_kg": 10.158503482346426,
       "electricity_kwh": 0.0,
-      "heating_kwh": 46.815342524084286
+      "heating_kwh": 24.5619513496226,
+      "measured_heating_kwh": 6.263999999999999,
+      "temp_mae_c": 1.6792434136072796
      },
      "2020-05-21": {
-      "boiler_kwh": 44.695388763133785,
-      "co2_kg": 9.242332342063058,
+      "boiler_kwh": 29.60602435856411,
+      "co2_kg": 9.238532514543392,
       "electricity_kwh": 0.0,
-      "heating_kwh": 43.43058232192446
+      "heating_kwh": 22.14149747646408,
+      "measured_heating_kwh": 4.4719999999999995,
+      "temp_mae_c": 1.5618761897087097
      },
      "2020-05-22": {
-      "boiler_kwh": 32.127120181794346,
-      "co2_kg": 1.6265881874545152,
+      "boiler_kwh": 9.975876039158452,
+      "co2_kg": 1.697658492900438,
       "electricity_kwh": 0.0,
-      "heating_kwh": 32.593232750499276
+      "heating_kwh": 7.721800256625404,
+      "measured_heating_kwh": 0.0,
+      "temp_mae_c": 1.5730994794103832
      },
      "2020-05-23": {
-      "boiler_kwh": 60.9774998923806,
-      "co2_kg": 2.7167612500505127,
+      "boiler_kwh": 45.825491960848936,
+      "co2_kg": 2.8277048568022227,
       "electricity_kwh": 0.0,
-      "heating_kwh": 54.82245602262126
+      "heating_kwh": 34.53411189178177,
+      "measured_heating_kwh": 9.888,
+      "temp_mae_c": 1.4681330045064291
      },
      "2020-05-24": {
-      "boiler_kwh": 126.39947916833036,
-      "co2_kg": 0.5310501714560201,
+      "boiler_kwh": 119.17977272445081,
+      "co2_kg": 0.5313022994696325,
       "electricity_kwh": 0.0,
-      "heating_kwh": 105.57009235718539
+      "heating_kwh": 84.94902188873942,
+      "measured_heating_kwh": 26.76,
+      "temp_mae_c": 1.274914277924432
      }
     },
     "summary": {
      "co2_kg": {
-      "bias": -0.008307372534964125,
-      "mae": 1.3093466602389001,
-      "mean_abs_relative_error_pct": 27.45072860716197,
-      "simulated_over_measured_total": 0.9986506599206005
+      "bias": 0.2684927313128197,
+      "mae": 1.2250451494944063,
+      "mean_abs_relative_error_pct": 26.647310754294818,
+      "simulated_over_measured_total": 1.0436104197642364
      },
      "days": 80,
      "electricity_kwh": {
@@ -632,21 +1099,64 @@
      },
      "failed_days": [],
      "heating_kwh": {
-      "bias": 14.600832595571413,
-      "mae": 21.625601306448775,
-      "mean_abs_relative_error_pct": 124.47519232983859,
-      "simulated_over_measured_total": 1.3897151130261893
+      "bias": 3.326526156171533,
+      "mae": 13.71465657860333,
+      "mean_abs_relative_error_pct": 58.99924753334791,
+      "simulated_over_measured_total": 1.0887892870801197
+     },
+     "temp_c": {
+      "bias": 0.396042546944486,
+      "mae": 1.419429887764987,
+      "midday_bias": 1.3456914226214094
      }
+    }
+   },
+   "test_by_month": {
+    "2019-12": {
+     "days": 9,
+     "measured_heating_kwh": 44.87733333333333,
+     "simulated_heating_kwh": 32.999358617910076,
+     "temp_mae_c": 1.2657723805786654
+    },
+    "2020-01": {
+     "days": 16,
+     "measured_heating_kwh": 47.26299999999999,
+     "simulated_heating_kwh": 48.03437339802192,
+     "temp_mae_c": 1.2212533127930427
+    },
+    "2020-02": {
+     "days": 14,
+     "measured_heating_kwh": 55.318285714285715,
+     "simulated_heating_kwh": 54.275814172676554,
+     "temp_mae_c": 1.192220098679028
+    },
+    "2020-03": {
+     "days": 14,
+     "measured_heating_kwh": 46.16457142857143,
+     "simulated_heating_kwh": 49.44853186586507,
+     "temp_mae_c": 1.2127356247769463
+    },
+    "2020-04": {
+     "days": 13,
+     "measured_heating_kwh": 16.65353846153846,
+     "simulated_heating_kwh": 19.43244343803837,
+     "temp_mae_c": 1.9919269616277808
+    },
+    "2020-05": {
+     "days": 14,
+     "measured_heating_kwh": 14.27657142857143,
+     "simulated_heating_kwh": 35.217662952149965,
+     "temp_mae_c": 1.6469968544112312
     }
    }
   },
   "gl_gym_defaults": {
    "fit": {
     "co2_kg": {
-     "bias": 3.137220047370686,
-     "mae": 3.2775481055682207,
-     "mean_abs_relative_error_pct": 59.03154366115867,
-     "simulated_over_measured_total": 1.5623423041105187
+     "bias": 3.148915764278082,
+     "mae": 3.3007210085781766,
+     "mean_abs_relative_error_pct": 59.41588352591731,
+     "simulated_over_measured_total": 1.5644387450023334
     },
     "days": 78,
     "electricity_kwh": {
@@ -657,10 +1167,15 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 96.78244560271801,
-     "mae": 96.78244560271801,
-     "mean_abs_relative_error_pct": 308.12124271407276,
-     "simulated_over_measured_total": 3.27552616829722
+     "bias": 60.316052038246724,
+     "mae": 60.316052038246724,
+     "mean_abs_relative_error_pct": 176.2222800551306,
+     "simulated_over_measured_total": 2.418136873135108
+    },
+    "temp_c": {
+     "bias": -1.1923165283991073,
+     "mae": 1.3932805685915468,
+     "midday_bias": -1.252139786288269
     }
    },
    "test": {
@@ -669,489 +1184,649 @@
       "boiler_kwh": 145.90161813563415,
       "co2_kg": 2.090882244948303,
       "electricity_kwh": 207.85480163640975,
-      "heating_kwh": 124.83331392445699
+      "heating_kwh": 112.55794868972465,
+      "measured_heating_kwh": 76.152,
+      "temp_mae_c": 1.5791299144426976
      },
      "2019-12-17": {
-      "boiler_kwh": 103.59857700483614,
-      "co2_kg": 1.7571017487233862,
+      "boiler_kwh": 67.84336041087765,
+      "co2_kg": 1.752502257141614,
       "electricity_kwh": 110.61528239430422,
-      "heating_kwh": 93.83184348044665
+      "heating_kwh": 42.47148193348721,
+      "measured_heating_kwh": 30.208,
+      "temp_mae_c": 0.7305904845396682
      },
      "2019-12-18": {
-      "boiler_kwh": 138.82344383226615,
-      "co2_kg": 2.8649035850739195,
+      "boiler_kwh": 113.73906949827867,
+      "co2_kg": 2.858896604687122,
       "electricity_kwh": 187.52704428668963,
-      "heating_kwh": 118.12197239224535
+      "heating_kwh": 81.4541327476419,
+      "measured_heating_kwh": 30.48,
+      "temp_mae_c": 1.0855574064784574
      },
      "2019-12-19": {
-      "boiler_kwh": 98.48935074463425,
-      "co2_kg": 5.42238270713375,
+      "boiler_kwh": 77.22709545757672,
+      "co2_kg": 5.395502175178987,
       "electricity_kwh": 146.18560679268825,
-      "heating_kwh": 90.43665895049799
+      "heating_kwh": 58.03729216635576,
+      "measured_heating_kwh": 3.184,
+      "temp_mae_c": 0.7710808184411789
      },
      "2019-12-20": {
-      "boiler_kwh": 134.82648997986686,
-      "co2_kg": 5.465261398265029,
+      "boiler_kwh": 113.45172435747759,
+      "co2_kg": 5.402642785510671,
       "electricity_kwh": 185.99099881084425,
-      "heating_kwh": 108.3506875729961
+      "heating_kwh": 82.03754397341531,
+      "measured_heating_kwh": 15.271999999999998,
+      "temp_mae_c": 1.2396654314464992
      },
      "2019-12-21": {
-      "boiler_kwh": 219.8885806048197,
-      "co2_kg": 3.329564293464903,
+      "boiler_kwh": 201.33615620007876,
+      "co2_kg": 3.290252049454777,
       "electricity_kwh": 168.8322332800484,
-      "heating_kwh": 170.14125049579283
+      "heating_kwh": 153.69966685189726,
+      "measured_heating_kwh": 65.872,
+      "temp_mae_c": 1.1756466514534418
      },
      "2019-12-22": {
-      "boiler_kwh": 192.7416495360424,
-      "co2_kg": 2.8450943919426717,
+      "boiler_kwh": 169.10040287557771,
+      "co2_kg": 2.8688231582313866,
       "electricity_kwh": 161.8277135655213,
-      "heating_kwh": 151.92725662199106
+      "heating_kwh": 128.34143393026346,
+      "measured_heating_kwh": 48.848,
+      "temp_mae_c": 0.946220405234231
      },
      "2019-12-30": {
-      "boiler_kwh": 271.6829050670564,
-      "co2_kg": 7.52728755753027,
+      "boiler_kwh": 244.07531045604497,
+      "co2_kg": 7.605187335302231,
       "electricity_kwh": 229.17216010193812,
-      "heating_kwh": 200.07263833703706
+      "heating_kwh": 179.82407142456077,
+      "measured_heating_kwh": 70.904,
+      "temp_mae_c": 2.263495422734154
      },
      "2019-12-31": {
-      "boiler_kwh": 219.22262076721427,
-      "co2_kg": 6.226681543677057,
+      "boiler_kwh": 179.40521453842194,
+      "co2_kg": 6.266032330348536,
       "electricity_kwh": 217.51616083634366,
-      "heating_kwh": 166.11540423375777
+      "heating_kwh": 122.52781870274518,
+      "measured_heating_kwh": 62.976,
+      "temp_mae_c": 1.5318573461638556
      },
      "2020-01-01": {
-      "boiler_kwh": 255.1256684741099,
-      "co2_kg": 4.372532430422678,
+      "boiler_kwh": 224.1043860270129,
+      "co2_kg": 4.519695584794446,
       "electricity_kwh": 230.31232013591753,
-      "heating_kwh": 189.10769310041476
+      "heating_kwh": 160.99971061131828,
+      "measured_heating_kwh": 85.42399999999999,
+      "temp_mae_c": 1.250182943873935
      },
      "2020-01-02": {
-      "boiler_kwh": 263.6146082874108,
-      "co2_kg": 4.839711060666538,
+      "boiler_kwh": 232.10614676423458,
+      "co2_kg": 4.7694200448342015,
       "electricity_kwh": 230.31232013591753,
-      "heating_kwh": 194.4986444760612
+      "heating_kwh": 169.67428297487248,
+      "measured_heating_kwh": 94.88,
+      "temp_mae_c": 1.1067624741130404
      },
      "2020-01-03": {
-      "boiler_kwh": 248.47653294816615,
-      "co2_kg": 5.821898484523932,
+      "boiler_kwh": 210.0849208017066,
+      "co2_kg": 5.875746411791926,
       "electricity_kwh": 228.0320000679587,
-      "heating_kwh": 183.8585997671093
+      "heating_kwh": 158.36763358782633,
+      "measured_heating_kwh": 76.75200000000001,
+      "temp_mae_c": 1.2407336579428783
      },
      "2020-01-04": {
-      "boiler_kwh": 247.2360526375751,
-      "co2_kg": 6.963962233607962,
+      "boiler_kwh": 212.88421431357185,
+      "co2_kg": 7.0782012096315565,
       "electricity_kwh": 230.3123200339793,
-      "heating_kwh": 183.88808802602586
+      "heating_kwh": 155.97774570572014,
+      "measured_heating_kwh": 55.51200000000001,
+      "temp_mae_c": 1.6207988460858669
      },
      "2020-01-05": {
-      "boiler_kwh": 237.11154459739163,
-      "co2_kg": 6.070504315155714,
+      "boiler_kwh": 192.3814833594295,
+      "co2_kg": 6.271761266150966,
       "electricity_kwh": 230.3123200339793,
-      "heating_kwh": 176.61674038551175
+      "heating_kwh": 139.4136333590573,
+      "measured_heating_kwh": 52.06399999999999,
+      "temp_mae_c": 1.0995804270108531
      },
      "2020-01-13": {
-      "boiler_kwh": 199.6648070985789,
-      "co2_kg": 6.810660684464683,
+      "boiler_kwh": 156.94933329382877,
+      "co2_kg": 6.74715227571703,
       "electricity_kwh": 220.65862557088838,
-      "heating_kwh": 152.50974751443948
+      "heating_kwh": 106.3455733431194,
+      "measured_heating_kwh": 40.888,
+      "temp_mae_c": 1.2981754528151621
      },
      "2020-01-14": {
-      "boiler_kwh": 193.13781544189902,
-      "co2_kg": 10.15596941582226,
+      "boiler_kwh": 142.93881231500941,
+      "co2_kg": 10.169294673929034,
       "electricity_kwh": 225.68198583944306,
-      "heating_kwh": 148.5227498547994
+      "heating_kwh": 109.55725338193878,
+      "measured_heating_kwh": 34.328,
+      "temp_mae_c": 1.3647949033313325
      },
      "2020-01-15": {
-      "boiler_kwh": 195.09369584311838,
-      "co2_kg": 8.803520464376104,
+      "boiler_kwh": 144.74143221103816,
+      "co2_kg": 8.79628545142552,
       "electricity_kwh": 228.71632202427844,
-      "heating_kwh": 149.32226984408499
+      "heating_kwh": 107.03577172236656,
+      "measured_heating_kwh": 28.104,
+      "temp_mae_c": 1.4088204291131763
      },
      "2020-01-17": {
-      "boiler_kwh": 213.45441998856637,
-      "co2_kg": 9.210406927527666,
+      "boiler_kwh": 166.78190111840252,
+      "co2_kg": 9.176064213535549,
       "electricity_kwh": 222.64368160637838,
-      "heating_kwh": 160.4470032306357
+      "heating_kwh": 112.60824672616052,
+      "measured_heating_kwh": 31.287999999999997,
+      "temp_mae_c": 2.0565282622973124
      },
      "2020-01-18": {
-      "boiler_kwh": 268.62274535785434,
-      "co2_kg": 5.895832718925304,
+      "boiler_kwh": 224.15850149419597,
+      "co2_kg": 5.911693029670347,
       "electricity_kwh": 134.38032110406868,
-      "heating_kwh": 198.69685850980764
+      "heating_kwh": 168.94805601928357,
+      "measured_heating_kwh": 64.928,
+      "temp_mae_c": 1.7468505667315588
      },
      "2020-01-19": {
-      "boiler_kwh": 199.45809177725346,
-      "co2_kg": 6.730739805138263,
+      "boiler_kwh": 152.97591560249668,
+      "co2_kg": 6.754703287690627,
       "electricity_kwh": 228.04240215256672,
-      "heating_kwh": 151.27678090356923
+      "heating_kwh": 100.15033958735027,
+      "measured_heating_kwh": 40.239999999999995,
+      "temp_mae_c": 1.4184298051728141
      },
      "2020-01-27": {
-      "boiler_kwh": 152.44762916497888,
-      "co2_kg": 6.253734867474067,
+      "boiler_kwh": 101.16642874227111,
+      "co2_kg": 6.30792078202989,
       "electricity_kwh": 221.72032302206026,
-      "heating_kwh": 121.67950725283322
+      "heating_kwh": 73.28377166828729,
+      "measured_heating_kwh": 23.872,
+      "temp_mae_c": 1.5915445910559765
      },
      "2020-01-28": {
-      "boiler_kwh": 251.07334827756506,
-      "co2_kg": 6.927993753938982,
+      "boiler_kwh": 207.96697179410924,
+      "co2_kg": 6.8821614349936056,
       "electricity_kwh": 236.7900820086763,
-      "heating_kwh": 186.9413975677142
+      "heating_kwh": 153.8743377100665,
+      "measured_heating_kwh": 48.455999999999996,
+      "temp_mae_c": 1.9451298965348143
      },
      "2020-01-29": {
-      "boiler_kwh": 241.45917138604094,
-      "co2_kg": 8.538160550998825,
+      "boiler_kwh": 196.02411736223027,
+      "co2_kg": 8.47635409054584,
       "electricity_kwh": 237.93024194071748,
-      "heating_kwh": 181.16846937065705
+      "heating_kwh": 147.28236072190793,
+      "measured_heating_kwh": 32.128,
+      "temp_mae_c": 2.364285879664951
      },
      "2020-01-30": {
-      "boiler_kwh": 169.25660749962663,
-      "co2_kg": 6.819487223475513,
+      "boiler_kwh": 120.27600363303189,
+      "co2_kg": 6.972398934511203,
       "electricity_kwh": 238.88864200155237,
-      "heating_kwh": 135.50404471334323
+      "heating_kwh": 84.30077988803573,
+      "measured_heating_kwh": 22.4,
+      "temp_mae_c": 2.1026433481110467
      },
      "2020-01-31": {
-      "boiler_kwh": 168.05165595340415,
-      "co2_kg": 7.602170026645639,
+      "boiler_kwh": 119.84792938425221,
+      "co2_kg": 7.508771758961899,
       "electricity_kwh": 238.70688202840785,
-      "heating_kwh": 134.24537951663697
+      "heating_kwh": 87.70502680299141,
+      "measured_heating_kwh": 24.944,
+      "temp_mae_c": 1.9741908298598407
      },
      "2020-02-01": {
-      "boiler_kwh": 188.16072908832663,
-      "co2_kg": 11.26931076006152,
+      "boiler_kwh": 134.63184077165226,
+      "co2_kg": 11.24742285458574,
       "electricity_kwh": 251.9753600679587,
-      "heating_kwh": 148.77324779478707
+      "heating_kwh": 100.18397428963367,
+      "measured_heating_kwh": 9.696,
+      "temp_mae_c": 1.510967416233486
      },
      "2020-02-02": {
-      "boiler_kwh": 192.57676420586293,
-      "co2_kg": 7.048079831301421,
+      "boiler_kwh": 140.00434986578745,
+      "co2_kg": 7.098348456276779,
       "electricity_kwh": 242.8540801019381,
-      "heating_kwh": 152.82496652250393
+      "heating_kwh": 110.42694919274084,
+      "measured_heating_kwh": 31.687999999999995,
+      "temp_mae_c": 1.2202224810918172
      },
      "2020-02-10": {
-      "boiler_kwh": 252.96203446746804,
-      "co2_kg": 10.281480856441078,
+      "boiler_kwh": 215.2035173053457,
+      "co2_kg": 10.357470608894014,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 190.2722975164063
+      "heating_kwh": 162.21515248660904,
+      "measured_heating_kwh": 30.663999999999998,
+      "temp_mae_c": 1.710994764169057
      },
      "2020-02-11": {
-      "boiler_kwh": 282.0294906719773,
-      "co2_kg": 11.178142229151469,
+      "boiler_kwh": 268.56532946717,
+      "co2_kg": 11.064142882545305,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 209.79610256322482
+      "heating_kwh": 198.62965775611667,
+      "measured_heating_kwh": 58.91999999999999,
+      "temp_mae_c": 2.111590299341414
      },
      "2020-02-12": {
-      "boiler_kwh": 271.0626213859766,
-      "co2_kg": 9.558364020772167,
+      "boiler_kwh": 247.16467679269334,
+      "co2_kg": 9.466708910734894,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 202.9971980980425
+      "heating_kwh": 186.8030643164574,
+      "measured_heating_kwh": 49.343999999999994,
+      "temp_mae_c": 1.8417273395591316
      },
      "2020-02-13": {
-      "boiler_kwh": 211.33371140129478,
-      "co2_kg": 5.992107437387794,
+      "boiler_kwh": 170.27179338910358,
+      "co2_kg": 5.73349672955546,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 164.03110676701894
+      "heating_kwh": 127.86402018484347,
+      "measured_heating_kwh": 55.04,
+      "temp_mae_c": 1.313093731800715
      },
      "2020-02-14": {
-      "boiler_kwh": 195.54532454293792,
-      "co2_kg": 7.689258237436911,
+      "boiler_kwh": 154.7615231966251,
+      "co2_kg": 7.801408066388752,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 153.69143017777458
+      "heating_kwh": 116.71031238272003,
+      "measured_heating_kwh": 19.312,
+      "temp_mae_c": 1.4978015773826172
      },
      "2020-02-15": {
-      "boiler_kwh": 144.0351583128364,
-      "co2_kg": 7.191862673072746,
+      "boiler_kwh": 103.44649854967079,
+      "co2_kg": 7.0366436700443655,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 118.94399440718902
+      "heating_kwh": 75.28867903025298,
+      "measured_heating_kwh": 8.064,
+      "temp_mae_c": 1.3331556479136153
      },
      "2020-02-16": {
-      "boiler_kwh": 142.12670950820672,
-      "co2_kg": 9.247718185047384,
+      "boiler_kwh": 101.462139571296,
+      "co2_kg": 9.217024921237243,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 114.91958610533457
+      "heating_kwh": 70.36299018230794,
+      "measured_heating_kwh": 16.872,
+      "temp_mae_c": 1.2905504120720754
      },
      "2020-02-24": {
-      "boiler_kwh": 233.73228174072574,
-      "co2_kg": 5.616643779542463,
+      "boiler_kwh": 194.75148131875494,
+      "co2_kg": 5.496940300192681,
       "electricity_kwh": 198.01824045661937,
-      "heating_kwh": 177.71671115776533
+      "heating_kwh": 151.75996653102953,
+      "measured_heating_kwh": 91.65599999999999,
+      "temp_mae_c": 1.2084760321511157
      },
      "2020-02-26": {
-      "boiler_kwh": 280.11264336448164,
-      "co2_kg": 6.814371804144632,
+      "boiler_kwh": 248.51821235377807,
+      "co2_kg": 6.7892334196534705,
       "electricity_kwh": 198.40240045154582,
-      "heating_kwh": 207.60212200480393
+      "heating_kwh": 188.5973299479036,
+      "measured_heating_kwh": 119.60000000000001,
+      "temp_mae_c": 1.8787041041586134
      },
      "2020-02-27": {
-      "boiler_kwh": 262.176280670017,
-      "co2_kg": 4.731529758610156,
+      "boiler_kwh": 223.0402634791285,
+      "co2_kg": 4.676551590952685,
       "electricity_kwh": 198.40240045154582,
-      "heating_kwh": 195.34239260092718
+      "heating_kwh": 172.95129066204248,
+      "measured_heating_kwh": 129.048,
+      "temp_mae_c": 1.0891149587101405
      },
      "2020-02-28": {
-      "boiler_kwh": 249.9106408598274,
-      "co2_kg": 6.432306929433189,
+      "boiler_kwh": 221.515476547035,
+      "co2_kg": 6.520079885713518,
       "electricity_kwh": 197.63408046169292,
-      "heating_kwh": 188.9409680833215
+      "heating_kwh": 166.0374727044532,
+      "measured_heating_kwh": 98.784,
+      "temp_mae_c": 1.349304593933953
      },
      "2020-02-29": {
-      "boiler_kwh": 231.98212424492667,
-      "co2_kg": 8.882823762409043,
+      "boiler_kwh": 195.21121793251933,
+      "co2_kg": 8.94069048947155,
       "electricity_kwh": 196.67368047437677,
-      "heating_kwh": 174.40740658532854
+      "heating_kwh": 139.17819262232868,
+      "measured_heating_kwh": 55.767999999999994,
+      "temp_mae_c": 1.503696579403347
      },
      "2020-03-01": {
-      "boiler_kwh": 240.13747907469138,
-      "co2_kg": 8.338919683627395,
+      "boiler_kwh": 202.20226934850132,
+      "co2_kg": 8.398320185028453,
       "electricity_kwh": 198.86048035514835,
-      "heating_kwh": 182.17045572196528
+      "heating_kwh": 148.2157514350269,
+      "measured_heating_kwh": 43.583999999999996,
+      "temp_mae_c": 1.4454660058021542
      },
      "2020-03-09": {
-      "boiler_kwh": 207.57656257268522,
-      "co2_kg": 10.312198626111071,
+      "boiler_kwh": 172.3526577425722,
+      "co2_kg": 10.321701109309386,
       "electricity_kwh": 225.75167999999988,
-      "heating_kwh": 161.47038096464456
+      "heating_kwh": 116.13141340066913,
+      "measured_heating_kwh": 37.48799999999999,
+      "temp_mae_c": 1.841176320446862
      },
      "2020-03-10": {
-      "boiler_kwh": 201.75693122612103,
-      "co2_kg": 7.451643936952214,
+      "boiler_kwh": 161.49330810891072,
+      "co2_kg": 7.436139773713902,
       "electricity_kwh": 225.75167999999988,
-      "heating_kwh": 156.45215008209453
+      "heating_kwh": 121.02695259604205,
+      "measured_heating_kwh": 47.495999999999995,
+      "temp_mae_c": 0.8831349333127335
      },
      "2020-03-11": {
-      "boiler_kwh": 127.85429916770062,
-      "co2_kg": 11.721808871435293,
+      "boiler_kwh": 90.85546645690539,
+      "co2_kg": 11.507555380638216,
       "electricity_kwh": 177.86496010193815,
-      "heating_kwh": 105.30157966018574
+      "heating_kwh": 57.10510004117555,
+      "measured_heating_kwh": 17.791999999999998,
+      "temp_mae_c": 1.467440532313453
      },
      "2020-03-12": {
-      "boiler_kwh": 183.89780421011753,
-      "co2_kg": 13.03657496160758,
+      "boiler_kwh": 153.32321955521567,
+      "co2_kg": 12.87064131434859,
       "electricity_kwh": 164.18304010193816,
-      "heating_kwh": 144.28226549723635
+      "heating_kwh": 104.4198423539294,
+      "measured_heating_kwh": 38.583999999999996,
+      "temp_mae_c": 1.186002605491214
      },
      "2020-03-13": {
-      "boiler_kwh": 228.97362371981342,
-      "co2_kg": 7.900094427168681,
+      "boiler_kwh": 193.8757357288162,
+      "co2_kg": 7.963087760119072,
       "electricity_kwh": 164.18303999999992,
-      "heating_kwh": 174.59590348143928
+      "heating_kwh": 138.33306095468268,
+      "measured_heating_kwh": 53.88,
+      "temp_mae_c": 1.4069850246111553
      },
      "2020-03-14": {
-      "boiler_kwh": 153.10817058211913,
-      "co2_kg": 8.128486894463277,
+      "boiler_kwh": 115.45501653652279,
+      "co2_kg": 8.215499117282992,
       "electricity_kwh": 177.8649599999999,
-      "heating_kwh": 121.74584687697585
+      "heating_kwh": 80.14027750436952,
+      "measured_heating_kwh": 34.976,
+      "temp_mae_c": 1.1102202249897852
      },
      "2020-03-15": {
-      "boiler_kwh": 176.66847606942974,
-      "co2_kg": 8.393090730501259,
+      "boiler_kwh": 136.57728663673998,
+      "co2_kg": 8.630467212946737,
       "electricity_kwh": 225.75167999999988,
-      "heating_kwh": 139.1008068882717
+      "heating_kwh": 97.66810585143176,
+      "measured_heating_kwh": 30.799999999999997,
+      "temp_mae_c": 1.17628124554952
      },
      "2020-03-23": {
-      "boiler_kwh": 213.70475514958355,
-      "co2_kg": 12.573940281452813,
+      "boiler_kwh": 181.69483360216944,
+      "co2_kg": 12.669888347616999,
       "electricity_kwh": 109.45535999999996,
-      "heating_kwh": 165.26981926056513
+      "heating_kwh": 126.7597164983539,
+      "measured_heating_kwh": 70.78399999999999,
+      "temp_mae_c": 1.798714127143224
      },
      "2020-03-24": {
-      "boiler_kwh": 182.34685618818062,
-      "co2_kg": 12.57945521848563,
+      "boiler_kwh": 148.4194776626067,
+      "co2_kg": 12.592192361804162,
       "electricity_kwh": 109.45535999999996,
-      "heating_kwh": 140.99993517379752
+      "heating_kwh": 104.28788595972493,
+      "measured_heating_kwh": 57.19199999999999,
+      "temp_mae_c": 1.5111811902787953
      },
      "2020-03-25": {
-      "boiler_kwh": 181.9900952130576,
-      "co2_kg": 13.45198825582269,
+      "boiler_kwh": 151.0572263485514,
+      "co2_kg": 13.338788769108648,
       "electricity_kwh": 110.59552003397937,
-      "heating_kwh": 141.68826182012316
+      "heating_kwh": 100.80588812925555,
+      "measured_heating_kwh": 55.224,
+      "temp_mae_c": 1.55544673204422
      },
      "2020-03-26": {
-      "boiler_kwh": 179.74790764777634,
-      "co2_kg": 10.353998149780677,
+      "boiler_kwh": 147.00468064073385,
+      "co2_kg": 10.35664258298245,
       "electricity_kwh": 3.42048,
-      "heating_kwh": 138.51088819429143
+      "heating_kwh": 102.05855262897734,
+      "measured_heating_kwh": 71.016,
+      "temp_mae_c": 1.4164132959312863
      },
      "2020-03-27": {
-      "boiler_kwh": 146.95758828073548,
-      "co2_kg": 11.923073020351492,
+      "boiler_kwh": 112.2896662028516,
+      "co2_kg": 11.94237472444139,
       "electricity_kwh": 110.59552003397937,
-      "heating_kwh": 114.9456085751073
+      "heating_kwh": 80.3856790804455,
+      "measured_heating_kwh": 37.744,
+      "temp_mae_c": 1.1098469403054982
      },
      "2020-03-28": {
-      "boiler_kwh": 147.14933453847797,
-      "co2_kg": 12.463655438849623,
+      "boiler_kwh": 121.87918556555084,
+      "co2_kg": 12.43178080237854,
       "electricity_kwh": 75.24048054994584,
-      "heating_kwh": 115.45481029230427
+      "heating_kwh": 84.64841452263077,
+      "measured_heating_kwh": 49.74399999999999,
+      "temp_mae_c": 0.9985605239868164
      },
      "2020-04-06": {
-      "boiler_kwh": 114.61509062854913,
-      "co2_kg": 15.114899101336944,
+      "boiler_kwh": 74.6714800931224,
+      "co2_kg": 15.271641026451457,
       "electricity_kwh": 68.05232050935747,
-      "heating_kwh": 94.14909257574664
+      "heating_kwh": 58.80127731776988,
+      "measured_heating_kwh": 14.367999999999999,
+      "temp_mae_c": 1.4614582962459988
      },
      "2020-04-07": {
-      "boiler_kwh": 105.72401805721246,
-      "co2_kg": 17.403738494845825,
+      "boiler_kwh": 69.55848080301988,
+      "co2_kg": 17.380180084359335,
       "electricity_kwh": 80.60119790576933,
-      "heating_kwh": 87.7082135384262
+      "heating_kwh": 55.90990272596897,
+      "measured_heating_kwh": 14.2,
+      "temp_mae_c": 0.9964031855265296
      },
      "2020-04-08": {
-      "boiler_kwh": 88.59513369006348,
-      "co2_kg": 17.805850273483173,
+      "boiler_kwh": 54.26271847102825,
+      "co2_kg": 18.077217010621364,
       "electricity_kwh": 81.50143781295775,
-      "heating_kwh": 74.64423005830405
+      "heating_kwh": 42.02498403828766,
+      "measured_heating_kwh": 7.432,
+      "temp_mae_c": 1.0608541422420077
      },
      "2020-04-10": {
-      "boiler_kwh": 116.88543764306827,
-      "co2_kg": 15.712569412575528,
+      "boiler_kwh": 78.31154634519262,
+      "co2_kg": 15.931863863523464,
       "electricity_kwh": 81.50143781295775,
-      "heating_kwh": 95.7436710259927
+      "heating_kwh": 61.64799330114863,
+      "measured_heating_kwh": 17.656,
+      "temp_mae_c": 0.9532051218880553
      },
      "2020-04-11": {
-      "boiler_kwh": 101.1462694655815,
-      "co2_kg": 17.613845446805563,
+      "boiler_kwh": 63.5547098143299,
+      "co2_kg": 17.574108235152806,
       "electricity_kwh": 81.50143781295775,
-      "heating_kwh": 82.94358717912556
+      "heating_kwh": 50.854097130285,
+      "measured_heating_kwh": 14.000000000000002,
+      "temp_mae_c": 0.9980593932999496
      },
      "2020-04-12": {
-      "boiler_kwh": 98.49757584273,
-      "co2_kg": 15.163101893822809,
+      "boiler_kwh": 59.76553678856952,
+      "co2_kg": 15.330413998634805,
       "electricity_kwh": 82.64159784693716,
-      "heating_kwh": 81.77856578027848
+      "heating_kwh": 46.7858437996197,
+      "measured_heating_kwh": 10.959999999999999,
+      "temp_mae_c": 1.4257321794827786
      },
      "2020-04-20": {
-      "boiler_kwh": 113.1510120770227,
-      "co2_kg": 18.3041146551012,
+      "boiler_kwh": 84.72601430470318,
+      "co2_kg": 18.21880702501312,
       "electricity_kwh": 81.7413578378105,
-      "heating_kwh": 93.06942632417362
+      "heating_kwh": 61.302501738485375,
+      "measured_heating_kwh": 24.488,
+      "temp_mae_c": 1.1741437700059676
      },
      "2020-04-21": {
-      "boiler_kwh": 100.40502004514613,
-      "co2_kg": 18.955522130536725,
+      "boiler_kwh": 67.43770320368486,
+      "co2_kg": 19.067648715437997,
       "electricity_kwh": 81.7413578378105,
-      "heating_kwh": 84.71244097330833
+      "heating_kwh": 51.241534993380874,
+      "measured_heating_kwh": 13.456000000000001,
+      "temp_mae_c": 1.2357723222838506
      },
      "2020-04-22": {
-      "boiler_kwh": 92.61257027428366,
-      "co2_kg": 20.162922155876437,
+      "boiler_kwh": 59.10598332324414,
+      "co2_kg": 20.039130409218274,
       "electricity_kwh": 81.37531797803877,
-      "heating_kwh": 77.18166610009568
+      "heating_kwh": 43.653410781136955,
+      "measured_heating_kwh": 10.543999999999999,
+      "temp_mae_c": 1.2700051108996073
      },
      "2020-04-23": {
-      "boiler_kwh": 82.83882008380525,
-      "co2_kg": 19.050837508506167,
+      "boiler_kwh": 53.28603268525022,
+      "co2_kg": 19.25568499034248,
       "electricity_kwh": 71.83871814517018,
-      "heating_kwh": 68.75002522054567
+      "heating_kwh": 36.932720556598184,
+      "measured_heating_kwh": 9.728,
+      "temp_mae_c": 0.9396083818541628
      },
      "2020-04-24": {
-      "boiler_kwh": 89.18348418039047,
-      "co2_kg": 12.949736351880778,
+      "boiler_kwh": 58.305544942896724,
+      "co2_kg": 12.776791993677092,
       "electricity_kwh": 60.79591841855046,
-      "heating_kwh": 76.59194247386199
+      "heating_kwh": 39.69532922098816,
+      "measured_heating_kwh": 15.575999999999999,
+      "temp_mae_c": 1.9555318183369106
      },
      "2020-04-25": {
-      "boiler_kwh": 133.58954061599658,
-      "co2_kg": 7.549324151627129,
+      "boiler_kwh": 95.17209620547482,
+      "co2_kg": 7.406363167587862,
       "electricity_kwh": 60.79591841855046,
-      "heating_kwh": 106.29115137483244
+      "heating_kwh": 66.87137404612803,
+      "measured_heating_kwh": 35.488,
+      "temp_mae_c": 0.9285187085469561
      },
      "2020-04-26": {
-      "boiler_kwh": 112.52014746704681,
-      "co2_kg": 9.787140481695728,
+      "boiler_kwh": 77.28635294468961,
+      "co2_kg": 9.740232631980218,
       "electricity_kwh": 56.5346386016464,
-      "heating_kwh": 91.36177493417586
+      "heating_kwh": 59.63577267141788,
+      "measured_heating_kwh": 28.6,
+      "temp_mae_c": 0.8858663347032335
      },
      "2020-05-04": {
-      "boiler_kwh": 68.46197886536933,
-      "co2_kg": 11.203059542874238,
+      "boiler_kwh": 33.894182438412905,
+      "co2_kg": 11.137558751424384,
       "electricity_kwh": 0.0,
-      "heating_kwh": 60.55460674105349
+      "heating_kwh": 23.92319752692885,
+      "measured_heating_kwh": 5.248,
+      "temp_mae_c": 0.7986055387390985
      },
      "2020-05-05": {
-      "boiler_kwh": 112.88408614996861,
-      "co2_kg": 15.586891978675196,
+      "boiler_kwh": 84.03689714334745,
+      "co2_kg": 15.70479684947797,
       "electricity_kwh": 48.192558800468426,
-      "heating_kwh": 93.24769230405823
+      "heating_kwh": 61.080060390417756,
+      "measured_heating_kwh": 27.151999999999997,
+      "temp_mae_c": 0.9193580402268301
      },
      "2020-05-06": {
-      "boiler_kwh": 105.54934909121542,
-      "co2_kg": 17.072858802297535,
+      "boiler_kwh": 75.20971583759552,
+      "co2_kg": 17.217902501195603,
       "electricity_kwh": 47.71271875076292,
-      "heating_kwh": 86.95587597253825
+      "heating_kwh": 52.314744527966084,
+      "measured_heating_kwh": 23.423999999999996,
+      "temp_mae_c": 1.008534958627489
      },
      "2020-05-07": {
-      "boiler_kwh": 88.67044507968252,
-      "co2_kg": 15.437122679552404,
+      "boiler_kwh": 59.87857692191338,
+      "co2_kg": 15.506053583404269,
       "electricity_kwh": 0.0,
-      "heating_kwh": 75.92324497086913
+      "heating_kwh": 42.439103842806404,
+      "measured_heating_kwh": 26.823999999999998,
+      "temp_mae_c": 0.7783497293790179
      },
      "2020-05-08": {
-      "boiler_kwh": 72.17313603341101,
-      "co2_kg": 15.631246307258454,
+      "boiler_kwh": 43.335877065715636,
+      "co2_kg": 15.680312575448028,
       "electricity_kwh": 0.0,
-      "heating_kwh": 64.27021578642696
+      "heating_kwh": 31.230593726305504,
+      "measured_heating_kwh": 16.184,
+      "temp_mae_c": 0.9185776458846199
      },
      "2020-05-09": {
-      "boiler_kwh": 64.18833157714454,
-      "co2_kg": 17.501951349219482,
+      "boiler_kwh": 35.05391067549688,
+      "co2_kg": 17.32087410537772,
       "electricity_kwh": 0.0,
-      "heating_kwh": 58.473734858220695
+      "heating_kwh": 25.05963023821133,
+      "measured_heating_kwh": 11.328,
+      "temp_mae_c": 0.8184407048755223
      },
      "2020-05-10": {
-      "boiler_kwh": 102.34551257569615,
-      "co2_kg": 7.2723860279231705,
+      "boiler_kwh": 67.46461765253196,
+      "co2_kg": 7.277818256373984,
       "electricity_kwh": 0.0,
-      "heating_kwh": 86.51856583131809
+      "heating_kwh": 51.61964609638217,
+      "measured_heating_kwh": 25.264,
+      "temp_mae_c": 1.0920946359634398
      },
      "2020-05-18": {
-      "boiler_kwh": 92.08409241528439,
-      "co2_kg": 13.942190524875585,
+      "boiler_kwh": 64.9090979810858,
+      "co2_kg": 13.967876517470373,
       "electricity_kwh": 0.0,
-      "heating_kwh": 80.0681523552492
+      "heating_kwh": 43.410938713671094,
+      "measured_heating_kwh": 9.904,
+      "temp_mae_c": 1.2501052088207667
      },
      "2020-05-19": {
-      "boiler_kwh": 72.50179315057458,
-      "co2_kg": 13.553340051734137,
+      "boiler_kwh": 43.657996971790666,
+      "co2_kg": 13.6222091537097,
       "electricity_kwh": 0.0,
-      "heating_kwh": 65.37812191270912
+      "heating_kwh": 35.20945921091745,
+      "measured_heating_kwh": 7.160000000000001,
+      "temp_mae_c": 1.7124679340256588
      },
      "2020-05-20": {
-      "boiler_kwh": 61.18268942889906,
-      "co2_kg": 13.22294371169584,
+      "boiler_kwh": 33.901943258792215,
+      "co2_kg": 13.454576863645364,
       "electricity_kwh": 0.0,
-      "heating_kwh": 55.77845423575329
+      "heating_kwh": 26.24706362032422,
+      "measured_heating_kwh": 6.263999999999999,
+      "temp_mae_c": 1.3439292060004344
      },
      "2020-05-21": {
-      "boiler_kwh": 51.707473532000435,
-      "co2_kg": 13.665290284274864,
+      "boiler_kwh": 27.30578399858767,
+      "co2_kg": 14.042206007467279,
       "electricity_kwh": 0.0,
-      "heating_kwh": 48.51556133141063
+      "heating_kwh": 20.4530561160041,
+      "measured_heating_kwh": 4.4719999999999995,
+      "temp_mae_c": 1.3212953660223217
      },
      "2020-05-22": {
-      "boiler_kwh": 57.268062608618884,
-      "co2_kg": 1.116934281834885,
+      "boiler_kwh": 22.67406970902527,
+      "co2_kg": 1.075501078201727,
       "electricity_kwh": 0.0,
-      "heating_kwh": 51.18687177814198
+      "heating_kwh": 15.763949342545224,
+      "measured_heating_kwh": 0.0,
+      "temp_mae_c": 1.5091146522098111
      },
      "2020-05-23": {
-      "boiler_kwh": 104.64397598419322,
-      "co2_kg": 1.6812330585368862,
+      "boiler_kwh": 63.35448023221841,
+      "co2_kg": 1.6258997395272008,
       "electricity_kwh": 0.0,
-      "heating_kwh": 88.20692411671354
+      "heating_kwh": 43.28123463195336,
+      "measured_heating_kwh": 9.888,
+      "temp_mae_c": 1.2777490046289228
      },
      "2020-05-24": {
-      "boiler_kwh": 180.32501311286975,
-      "co2_kg": 0.4619866622786985,
+      "boiler_kwh": 130.76958174410802,
+      "co2_kg": 0.452918324959005,
       "electricity_kwh": 0.0,
-      "heating_kwh": 143.49375422271405
+      "heating_kwh": 95.91500020946097,
+      "measured_heating_kwh": 26.76,
+      "temp_mae_c": 1.3385963969760475
      }
     },
     "summary": {
      "co2_kg": {
-      "bias": 3.5037863058558805,
-      "mae": 3.5947526836704746,
-      "mean_abs_relative_error_pct": 65.96991133984251,
-      "simulated_over_measured_total": 1.5691088574928
+      "bias": 3.518708362883328,
+      "mae": 3.6193033755600412,
+      "mean_abs_relative_error_pct": 66.32024509734913,
+      "simulated_over_measured_total": 1.5715325997204972
      },
      "days": 80,
      "electricity_kwh": {
@@ -1162,21 +1837,64 @@
      },
      "failed_days": [],
      "heating_kwh": {
-      "bias": 93.13286008615425,
-      "mae": 93.13286008615425,
-      "mean_abs_relative_error_pct": 414.6950337123403,
-      "simulated_over_measured_total": 3.485836534139611
+      "bias": 58.394300349895715,
+      "mae": 58.394300349895715,
+      "mean_abs_relative_error_pct": 236.06064220608468,
+      "simulated_over_measured_total": 2.5586194288569097
+     },
+     "temp_c": {
+      "bias": -1.1966149031453657,
+      "mae": 1.3506417952809049,
+      "midday_bias": -1.0736702998479204
      }
+    }
+   },
+   "test_by_month": {
+    "2019-12": {
+     "days": 9,
+     "measured_heating_kwh": 44.87733333333333,
+     "simulated_heating_kwh": 106.77237671334349,
+     "temp_mae_c": 1.2581382089926871
+    },
+    "2020-01": {
+     "days": 16,
+     "measured_heating_kwh": 47.26299999999999,
+     "simulated_heating_kwh": 127.22028273814391,
+     "temp_mae_c": 1.5993407696071602
+    },
+    "2020-02": {
+     "days": 14,
+     "measured_heating_kwh": 55.318285714285715,
+     "simulated_heating_kwh": 140.5006465921028,
+     "temp_mae_c": 1.4899571384229358
+    },
+    "2020-03": {
+     "days": 14,
+     "measured_heating_kwh": 46.16457142857143,
+     "simulated_heating_kwh": 104.42761721119392,
+     "temp_mae_c": 1.3504906930147658
+    },
+    "2020-04": {
+     "days": 13,
+     "measured_heating_kwh": 16.65353846153846,
+     "simulated_heating_kwh": 51.95051864009348,
+     "temp_mae_c": 1.175781443485847
+    },
+    "2020-05": {
+     "days": 14,
+     "measured_heating_kwh": 14.27657142857143,
+     "simulated_heating_kwh": 40.56769129956389,
+     "temp_mae_c": 1.1490870730271414
     }
    }
   },
   "lamp_cooling_only": {
    "fit": {
     "co2_kg": {
-     "bias": 3.187710885068464,
-     "mae": 3.328038943265998,
-     "mean_abs_relative_error_pct": 59.94082190574576,
-     "simulated_over_measured_total": 1.571392716124567
+     "bias": 3.195365123295755,
+     "mae": 3.34717036759585,
+     "mean_abs_relative_error_pct": 60.288015695357466,
+     "simulated_over_measured_total": 1.5727647276175305
     },
     "days": 78,
     "electricity_kwh": {
@@ -1187,10 +1905,15 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 40.17856626080862,
-     "mae": 40.30392176726823,
-     "mean_abs_relative_error_pct": 156.26990367619572,
-     "simulated_over_measured_total": 1.944669029200126
+     "bias": 5.465986202530745,
+     "mae": 13.343800327516943,
+     "mean_abs_relative_error_pct": 50.61151939601655,
+     "simulated_over_measured_total": 1.128514985976557
+    },
+    "temp_c": {
+     "bias": -0.1863540870341818,
+     "mae": 1.2557092894346253,
+     "midday_bias": -0.19043893357627395
     }
    },
    "test": {
@@ -1199,489 +1922,649 @@
       "boiler_kwh": 25.275015335707465,
       "co2_kg": 2.0884211853419856,
       "electricity_kwh": 207.85480163640975,
-      "heating_kwh": 24.94571140299597
+      "heating_kwh": 17.080848306979682,
+      "measured_heating_kwh": 76.152,
+      "temp_mae_c": 0.9953663170337679
      },
      "2019-12-17": {
-      "boiler_kwh": 47.6211259172421,
-      "co2_kg": 1.827582023358759,
+      "boiler_kwh": 21.079323711320843,
+      "co2_kg": 1.842583132032056,
       "electricity_kwh": 110.61528239430422,
-      "heating_kwh": 46.137823344814045
+      "heating_kwh": 9.486272527296265,
+      "measured_heating_kwh": 30.208,
+      "temp_mae_c": 1.5261209468046824
      },
      "2019-12-18": {
-      "boiler_kwh": 65.52472064275482,
-      "co2_kg": 2.794108398036966,
+      "boiler_kwh": 49.53381238437572,
+      "co2_kg": 2.7155386230210974,
       "electricity_kwh": 187.52704428668963,
-      "heating_kwh": 54.56324325023987
+      "heating_kwh": 37.52320124511163,
+      "measured_heating_kwh": 30.48,
+      "temp_mae_c": 1.9327159808741678
      },
      "2019-12-19": {
-      "boiler_kwh": 18.93137208779448,
-      "co2_kg": 5.377538635378551,
+      "boiler_kwh": 7.231774907925351,
+      "co2_kg": 5.535873582430034,
       "electricity_kwh": 146.18560679268825,
-      "heating_kwh": 19.617603392861636
+      "heating_kwh": 1.7692442654529517,
+      "measured_heating_kwh": 3.184,
+      "temp_mae_c": 0.6047592143217722
      },
      "2019-12-20": {
-      "boiler_kwh": 34.66694614218308,
-      "co2_kg": 5.7321550670666594,
+      "boiler_kwh": 29.678835031902928,
+      "co2_kg": 5.781161468136686,
       "electricity_kwh": 185.99099881084425,
-      "heating_kwh": 23.937784165134417
+      "heating_kwh": 11.944788272209875,
+      "measured_heating_kwh": 15.271999999999998,
+      "temp_mae_c": 0.8868616428640149
      },
      "2019-12-21": {
-      "boiler_kwh": 125.61948546244373,
-      "co2_kg": 3.2666916366872187,
+      "boiler_kwh": 106.29675230945142,
+      "co2_kg": 3.288958847507087,
       "electricity_kwh": 168.8322332800484,
-      "heating_kwh": 100.45144121680495
+      "heating_kwh": 73.78042171003189,
+      "measured_heating_kwh": 65.872,
+      "temp_mae_c": 0.7675084650516512
      },
      "2019-12-22": {
-      "boiler_kwh": 95.50700822065943,
-      "co2_kg": 2.876176688101588,
+      "boiler_kwh": 77.7894829188907,
+      "co2_kg": 2.8409559590165605,
       "electricity_kwh": 161.8277135655213,
-      "heating_kwh": 75.40344373331466
+      "heating_kwh": 46.19515135831824,
+      "measured_heating_kwh": 48.848,
+      "temp_mae_c": 0.7705805851353539
      },
      "2019-12-30": {
-      "boiler_kwh": 156.12198629380046,
-      "co2_kg": 7.472275687799202,
+      "boiler_kwh": 129.75789203373935,
+      "co2_kg": 7.67082796547414,
       "electricity_kwh": 229.17216010193812,
-      "heating_kwh": 119.21607063831443
+      "heating_kwh": 82.75290656764969,
+      "measured_heating_kwh": 70.904,
+      "temp_mae_c": 1.3744793256123866
      },
      "2019-12-31": {
-      "boiler_kwh": 106.87008952336487,
-      "co2_kg": 6.419240602198006,
+      "boiler_kwh": 79.30936526657707,
+      "co2_kg": 6.320129795598639,
       "electricity_kwh": 217.51616083634366,
-      "heating_kwh": 81.94790291835423
+      "heating_kwh": 45.664995003820394,
+      "measured_heating_kwh": 62.976,
+      "temp_mae_c": 1.5227975368499758
      },
      "2020-01-01": {
-      "boiler_kwh": 125.34884203516849,
-      "co2_kg": 4.409143975855932,
+      "boiler_kwh": 100.76009560121933,
+      "co2_kg": 4.600644803577577,
       "electricity_kwh": 230.31232013591753,
-      "heating_kwh": 96.26666892728697
+      "heating_kwh": 58.55088727079911,
+      "measured_heating_kwh": 85.42399999999999,
+      "temp_mae_c": 1.3830010665787587
      },
      "2020-01-02": {
-      "boiler_kwh": 136.16417392937143,
-      "co2_kg": 4.796957701548709,
+      "boiler_kwh": 106.64943398402526,
+      "co2_kg": 4.753243920478203,
       "electricity_kwh": 230.31232013591753,
-      "heating_kwh": 105.02779652378834
+      "heating_kwh": 66.71159515818157,
+      "measured_heating_kwh": 94.88,
+      "temp_mae_c": 0.9833078132735357
      },
      "2020-01-03": {
-      "boiler_kwh": 124.88030586121351,
-      "co2_kg": 5.974191984344123,
+      "boiler_kwh": 94.33494093804836,
+      "co2_kg": 5.870534009270024,
       "electricity_kwh": 228.0320000679587,
-      "heating_kwh": 95.36830343592061
+      "heating_kwh": 58.198090465751676,
+      "measured_heating_kwh": 76.75200000000001,
+      "temp_mae_c": 0.989292344782087
      },
      "2020-01-04": {
-      "boiler_kwh": 140.728986156917,
-      "co2_kg": 7.17429378813255,
+      "boiler_kwh": 112.95260831804072,
+      "co2_kg": 7.204971999740396,
       "electricity_kwh": 230.3123200339793,
-      "heating_kwh": 106.78396511405643
+      "heating_kwh": 69.78849654880447,
+      "measured_heating_kwh": 55.51200000000001,
+      "temp_mae_c": 1.5093393630451626
      },
      "2020-01-05": {
-      "boiler_kwh": 110.1626304373451,
-      "co2_kg": 6.075055934680757,
+      "boiler_kwh": 77.49420562588527,
+      "co2_kg": 6.217145053241582,
       "electricity_kwh": 230.3123200339793,
-      "heating_kwh": 83.93469867748027
+      "heating_kwh": 47.990414754507476,
+      "measured_heating_kwh": 52.06399999999999,
+      "temp_mae_c": 0.9394645624690584
      },
      "2020-01-13": {
-      "boiler_kwh": 95.8454340694616,
-      "co2_kg": 6.851392148266737,
+      "boiler_kwh": 74.1752865868538,
+      "co2_kg": 6.774323710290284,
       "electricity_kwh": 220.65862557088838,
-      "heating_kwh": 71.70909806163887
+      "heating_kwh": 44.33253150521986,
+      "measured_heating_kwh": 40.888,
+      "temp_mae_c": 1.5726257522900895
      },
      "2020-01-14": {
-      "boiler_kwh": 74.95416727040791,
-      "co2_kg": 10.345439555688671,
+      "boiler_kwh": 56.401211701206385,
+      "co2_kg": 10.658867818370538,
       "electricity_kwh": 225.68198583944306,
-      "heating_kwh": 53.15422802426487
+      "heating_kwh": 34.89078709339721,
+      "measured_heating_kwh": 34.328,
+      "temp_mae_c": 1.1115225619739955
      },
      "2020-01-15": {
-      "boiler_kwh": 73.27006276231839,
-      "co2_kg": 9.140462014501502,
+      "boiler_kwh": 46.24065334597924,
+      "co2_kg": 9.323967412069486,
       "electricity_kwh": 228.71632202427844,
-      "heating_kwh": 54.46969230401601
+      "heating_kwh": 29.38578703723402,
+      "measured_heating_kwh": 28.104,
+      "temp_mae_c": 1.3043734709421793
      },
      "2020-01-17": {
-      "boiler_kwh": 97.14712406508478,
-      "co2_kg": 9.33922381171967,
+      "boiler_kwh": 74.22720133006484,
+      "co2_kg": 9.455489200113318,
       "electricity_kwh": 222.64368160637838,
-      "heating_kwh": 73.59670682283355
+      "heating_kwh": 40.564565755798505,
+      "measured_heating_kwh": 31.287999999999997,
+      "temp_mae_c": 1.5104734698931377
      },
      "2020-01-18": {
-      "boiler_kwh": 186.1069137031993,
-      "co2_kg": 5.840493926178784,
+      "boiler_kwh": 149.59077438128,
+      "co2_kg": 5.956469729959789,
       "electricity_kwh": 134.38032110406868,
-      "heating_kwh": 141.62460010738252
+      "heating_kwh": 103.18256755937175,
+      "measured_heating_kwh": 64.928,
+      "temp_mae_c": 1.3201276030805371
      },
      "2020-01-19": {
-      "boiler_kwh": 84.29466338465025,
-      "co2_kg": 6.689330326400042,
+      "boiler_kwh": 62.23469240869568,
+      "co2_kg": 6.711281117006801,
       "electricity_kwh": 228.04240215256672,
-      "heating_kwh": 62.829143932416706
+      "heating_kwh": 34.97180494285008,
+      "measured_heating_kwh": 40.239999999999995,
+      "temp_mae_c": 2.004143391715156
      },
      "2020-01-27": {
-      "boiler_kwh": 62.335133212653446,
-      "co2_kg": 6.4748597023876036,
+      "boiler_kwh": 42.951119780545035,
+      "co2_kg": 6.477561005741191,
       "electricity_kwh": 221.72032302206026,
-      "heating_kwh": 46.6842435668189
+      "heating_kwh": 28.14406952954681,
+      "measured_heating_kwh": 23.872,
+      "temp_mae_c": 2.200974975691901
      },
      "2020-01-28": {
-      "boiler_kwh": 120.65904814370055,
-      "co2_kg": 6.957028732436403,
+      "boiler_kwh": 86.32991497469517,
+      "co2_kg": 7.001953380295464,
       "electricity_kwh": 236.7900820086763,
-      "heating_kwh": 94.51293792959191
+      "heating_kwh": 53.34038638899849,
+      "measured_heating_kwh": 48.455999999999996,
+      "temp_mae_c": 1.2574852612283498
      },
      "2020-01-29": {
-      "boiler_kwh": 108.26124219135414,
-      "co2_kg": 8.47269739096945,
+      "boiler_kwh": 82.36973207422808,
+      "co2_kg": 8.453943465042041,
       "electricity_kwh": 237.93024194071748,
-      "heating_kwh": 84.6323582170275
+      "heating_kwh": 49.17366873416493,
+      "measured_heating_kwh": 32.128,
+      "temp_mae_c": 1.2993865503205195
      },
      "2020-01-30": {
-      "boiler_kwh": 61.373447630198726,
-      "co2_kg": 7.038513216024496,
+      "boiler_kwh": 42.351594838375654,
+      "co2_kg": 7.0199502813661985,
       "electricity_kwh": 238.88864200155237,
-      "heating_kwh": 42.76302612474247
+      "heating_kwh": 26.230247075347872,
+      "measured_heating_kwh": 22.4,
+      "temp_mae_c": 1.4391650213135616
      },
      "2020-01-31": {
-      "boiler_kwh": 68.67573379227036,
-      "co2_kg": 7.730484688375374,
+      "boiler_kwh": 39.96491007021214,
+      "co2_kg": 7.7343692490074325,
       "electricity_kwh": 238.70688202840785,
-      "heating_kwh": 52.59847950180527
+      "heating_kwh": 24.532624895497573,
+      "measured_heating_kwh": 24.944,
+      "temp_mae_c": 1.4531509333186676
      },
      "2020-02-01": {
-      "boiler_kwh": 65.25394206591584,
-      "co2_kg": 11.281973061572268,
+      "boiler_kwh": 35.49057889948514,
+      "co2_kg": 11.296971696190623,
       "electricity_kwh": 251.9753600679587,
-      "heating_kwh": 51.31261267440548
+      "heating_kwh": 20.305598873355983,
+      "measured_heating_kwh": 9.696,
+      "temp_mae_c": 1.33691478172938
      },
      "2020-02-02": {
-      "boiler_kwh": 63.62974865100977,
-      "co2_kg": 7.185413088621596,
+      "boiler_kwh": 40.18946856199141,
+      "co2_kg": 7.116626077909878,
       "electricity_kwh": 242.8540801019381,
-      "heating_kwh": 50.5848725876706
+      "heating_kwh": 22.565635121847848,
+      "measured_heating_kwh": 31.687999999999995,
+      "temp_mae_c": 1.432897879017724
      },
      "2020-02-10": {
-      "boiler_kwh": 117.59245971235322,
-      "co2_kg": 10.33710359520491,
+      "boiler_kwh": 84.68581306359881,
+      "co2_kg": 10.309506220770718,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 92.9165496502304
+      "heating_kwh": 47.97009204774444,
+      "measured_heating_kwh": 30.663999999999998,
+      "temp_mae_c": 0.9316469973988005
      },
      "2020-02-11": {
-      "boiler_kwh": 194.74811122052438,
-      "co2_kg": 11.043543568677666,
+      "boiler_kwh": 154.14182934372835,
+      "co2_kg": 10.983752479371057,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 151.64176278451356
+      "heating_kwh": 112.29162624970239,
+      "measured_heating_kwh": 58.91999999999999,
+      "temp_mae_c": 0.9537305580245125
      },
      "2020-02-12": {
-      "boiler_kwh": 158.43801877339143,
-      "co2_kg": 9.448882974153989,
+      "boiler_kwh": 118.68052992293767,
+      "co2_kg": 9.540288274885956,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 125.65287376071029
+      "heating_kwh": 84.90176623584877,
+      "measured_heating_kwh": 49.343999999999994,
+      "temp_mae_c": 0.9286639902326795
      },
      "2020-02-13": {
-      "boiler_kwh": 76.09743932919585,
-      "co2_kg": 6.007999184944356,
+      "boiler_kwh": 46.63013935774957,
+      "co2_kg": 5.881986800591712,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 59.68141585152318
+      "heating_kwh": 28.747259821389253,
+      "measured_heating_kwh": 55.04,
+      "temp_mae_c": 0.8171674344274739
      },
      "2020-02-14": {
-      "boiler_kwh": 64.21178098909932,
-      "co2_kg": 7.675202074343465,
+      "boiler_kwh": 40.854413383489174,
+      "co2_kg": 7.499949684815218,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 50.40461645874814
+      "heating_kwh": 26.2443121458025,
+      "measured_heating_kwh": 19.312,
+      "temp_mae_c": 0.6774937570095066
      },
      "2020-02-15": {
-      "boiler_kwh": 33.46192851018774,
-      "co2_kg": 7.292101684968218,
+      "boiler_kwh": 18.729866664921254,
+      "co2_kg": 7.327800294769558,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 27.971454013896334
+      "heating_kwh": 12.06482941140099,
+      "measured_heating_kwh": 8.064,
+      "temp_mae_c": 1.5862458480728987
      },
      "2020-02-16": {
-      "boiler_kwh": 48.661745923054546,
-      "co2_kg": 9.276010595572528,
+      "boiler_kwh": 36.81140574451195,
+      "co2_kg": 9.275029677317983,
       "electricity_kwh": 246.27455999999987,
-      "heating_kwh": 36.91562451799971
+      "heating_kwh": 21.633012049035358,
+      "measured_heating_kwh": 16.872,
+      "temp_mae_c": 1.8134140451749163
      },
      "2020-02-24": {
-      "boiler_kwh": 128.34983435486066,
-      "co2_kg": 5.586902203777949,
+      "boiler_kwh": 92.95653197833381,
+      "co2_kg": 5.6173409487582635,
       "electricity_kwh": 198.01824045661937,
-      "heating_kwh": 100.5798649623976
+      "heating_kwh": 60.87657323617944,
+      "measured_heating_kwh": 91.65599999999999,
+      "temp_mae_c": 1.2927225311597184
      },
      "2020-02-26": {
-      "boiler_kwh": 186.16627779830463,
-      "co2_kg": 6.738056265834448,
+      "boiler_kwh": 147.45073222396204,
+      "co2_kg": 6.863698762379399,
       "electricity_kwh": 198.40240045154582,
-      "heating_kwh": 143.22616789847862
+      "heating_kwh": 98.4927323517755,
+      "measured_heating_kwh": 119.60000000000001,
+      "temp_mae_c": 1.2091118070814344
      },
      "2020-02-27": {
-      "boiler_kwh": 146.52712629690345,
-      "co2_kg": 4.808730075506281,
+      "boiler_kwh": 104.31922480515142,
+      "co2_kg": 4.775815252797751,
       "electricity_kwh": 198.40240045154582,
-      "heating_kwh": 114.58285015703396
+      "heating_kwh": 70.50682227579311,
+      "measured_heating_kwh": 129.048,
+      "temp_mae_c": 0.8296216103765702
      },
      "2020-02-28": {
-      "boiler_kwh": 155.0397322382508,
-      "co2_kg": 6.3369625441035975,
+      "boiler_kwh": 114.7788822938329,
+      "co2_kg": 6.413285525939973,
       "electricity_kwh": 197.63408046169292,
-      "heating_kwh": 122.40078879308298
+      "heating_kwh": 78.498438414366,
+      "measured_heating_kwh": 98.784,
+      "temp_mae_c": 0.7717964794900688
      },
      "2020-02-29": {
-      "boiler_kwh": 135.9019948948299,
-      "co2_kg": 8.887366353797399,
+      "boiler_kwh": 110.5381832956482,
+      "co2_kg": 8.875237160792128,
       "electricity_kwh": 196.67368047437677,
-      "heating_kwh": 100.47752883678486
+      "heating_kwh": 72.17458229167299,
+      "measured_heating_kwh": 55.767999999999994,
+      "temp_mae_c": 1.2086507267422149
      },
      "2020-03-01": {
-      "boiler_kwh": 130.98805452834776,
-      "co2_kg": 8.388733783241578,
+      "boiler_kwh": 92.39900955327595,
+      "co2_kg": 8.367621336404765,
       "electricity_kwh": 198.86048035514835,
-      "heating_kwh": 103.70220109223686
+      "heating_kwh": 57.03947744334341,
+      "measured_heating_kwh": 43.583999999999996,
+      "temp_mae_c": 0.9553000741534762
      },
      "2020-03-09": {
-      "boiler_kwh": 93.69189506157112,
-      "co2_kg": 10.328488910458455,
+      "boiler_kwh": 65.7578708949656,
+      "co2_kg": 10.304538180618184,
       "electricity_kwh": 225.75167999999988,
-      "heating_kwh": 74.47242693643881
+      "heating_kwh": 33.58043679280566,
+      "measured_heating_kwh": 37.48799999999999,
+      "temp_mae_c": 1.0876368641853336
      },
      "2020-03-10": {
-      "boiler_kwh": 76.39481457817013,
-      "co2_kg": 7.257730193619884,
+      "boiler_kwh": 53.91567929551383,
+      "co2_kg": 7.388952944161629,
       "electricity_kwh": 225.75167999999988,
-      "heating_kwh": 59.98619383934905
+      "heating_kwh": 27.0529193819844,
+      "measured_heating_kwh": 47.495999999999995,
+      "temp_mae_c": 1.0925385740068225
      },
      "2020-03-11": {
-      "boiler_kwh": 62.12977036984768,
-      "co2_kg": 11.678003795893577,
+      "boiler_kwh": 45.621432799998075,
+      "co2_kg": 11.644071163683327,
       "electricity_kwh": 177.86496010193815,
-      "heating_kwh": 50.42507104900169
+      "heating_kwh": 19.082454818244063,
+      "measured_heating_kwh": 17.791999999999998,
+      "temp_mae_c": 1.4062367863125271
      },
      "2020-03-12": {
-      "boiler_kwh": 104.99741231100954,
-      "co2_kg": 13.059107708455903,
+      "boiler_kwh": 79.15337908645117,
+      "co2_kg": 12.92497867257031,
       "electricity_kwh": 164.18304010193816,
-      "heating_kwh": 85.27898029011422
+      "heating_kwh": 44.48487852863627,
+      "measured_heating_kwh": 38.583999999999996,
+      "temp_mae_c": 0.7440970288382641
      },
      "2020-03-13": {
-      "boiler_kwh": 140.2352549764279,
-      "co2_kg": 7.924701048928826,
+      "boiler_kwh": 108.15407686829117,
+      "co2_kg": 7.909450610888633,
       "electricity_kwh": 164.18303999999992,
-      "heating_kwh": 110.20002995033789
+      "heating_kwh": 62.494606227335666,
+      "measured_heating_kwh": 53.88,
+      "temp_mae_c": 0.9415425870153648
      },
      "2020-03-14": {
-      "boiler_kwh": 67.51399833837439,
-      "co2_kg": 8.16874897433002,
+      "boiler_kwh": 45.85415927275332,
+      "co2_kg": 8.230251989549917,
       "electricity_kwh": 177.8649599999999,
-      "heating_kwh": 54.93168926270081
+      "heating_kwh": 23.075580227158106,
+      "measured_heating_kwh": 34.976,
+      "temp_mae_c": 1.487291340695487
      },
      "2020-03-15": {
-      "boiler_kwh": 69.06071634706423,
-      "co2_kg": 8.569267771456916,
+      "boiler_kwh": 49.25302515863043,
+      "co2_kg": 8.575374402281609,
       "electricity_kwh": 225.75167999999988,
-      "heating_kwh": 54.15089073553173
+      "heating_kwh": 22.23446445179824,
+      "measured_heating_kwh": 30.799999999999997,
+      "temp_mae_c": 1.1282881312900122
      },
      "2020-03-23": {
-      "boiler_kwh": 173.98758652322,
-      "co2_kg": 12.42098954927759,
+      "boiler_kwh": 128.52119137079393,
+      "co2_kg": 12.715086460949445,
       "electricity_kwh": 109.45535999999996,
-      "heating_kwh": 137.57380191488812
+      "heating_kwh": 89.6817851741555,
+      "measured_heating_kwh": 70.78399999999999,
+      "temp_mae_c": 1.3023629777961305
      },
      "2020-03-24": {
-      "boiler_kwh": 125.90337456390277,
-      "co2_kg": 12.548656500339984,
+      "boiler_kwh": 85.6392947456743,
+      "co2_kg": 12.657440922335978,
       "electricity_kwh": 109.45535999999996,
-      "heating_kwh": 99.69638107103935
+      "heating_kwh": 54.382366409615585,
+      "measured_heating_kwh": 57.19199999999999,
+      "temp_mae_c": 1.3213958005110427
      },
      "2020-03-25": {
-      "boiler_kwh": 128.4494536835483,
-      "co2_kg": 13.467910248935475,
+      "boiler_kwh": 88.98024585228978,
+      "co2_kg": 13.42034214545738,
       "electricity_kwh": 110.59552003397937,
-      "heating_kwh": 102.85051893019188
+      "heating_kwh": 53.502634096363295,
+      "measured_heating_kwh": 55.224,
+      "temp_mae_c": 1.4170541948742332
      },
      "2020-03-26": {
-      "boiler_kwh": 178.70307318194207,
-      "co2_kg": 10.373886782753,
+      "boiler_kwh": 145.17991800754422,
+      "co2_kg": 10.371049742735376,
       "electricity_kwh": 3.42048,
-      "heating_kwh": 137.97985789323735
+      "heating_kwh": 100.89360344234625,
+      "measured_heating_kwh": 71.016,
+      "temp_mae_c": 1.3619655854172177
      },
      "2020-03-27": {
-      "boiler_kwh": 86.56965317395698,
-      "co2_kg": 11.88432182019422,
+      "boiler_kwh": 55.95544391785387,
+      "co2_kg": 11.865495425015215,
       "electricity_kwh": 110.59552003397937,
-      "heating_kwh": 69.5293315364394
+      "heating_kwh": 34.29239245283351,
+      "measured_heating_kwh": 37.744,
+      "temp_mae_c": 1.0833138969209457
      },
      "2020-03-28": {
-      "boiler_kwh": 111.083507045074,
-      "co2_kg": 12.035227397414959,
+      "boiler_kwh": 77.93972301842686,
+      "co2_kg": 12.07219763855828,
       "electricity_kwh": 75.24048054994584,
-      "heating_kwh": 90.2462753095314
+      "heating_kwh": 52.486601125818524,
+      "measured_heating_kwh": 49.74399999999999,
+      "temp_mae_c": 0.8965311606725056
      },
      "2020-04-06": {
-      "boiler_kwh": 75.91678123167007,
-      "co2_kg": 15.142742233209828,
+      "boiler_kwh": 40.736332854754316,
+      "co2_kg": 15.287369094229506,
       "electricity_kwh": 68.05232050935747,
-      "heating_kwh": 65.50512605900221
+      "heating_kwh": 25.46131169028048,
+      "measured_heating_kwh": 14.367999999999999,
+      "temp_mae_c": 1.490710923406813
      },
      "2020-04-07": {
-      "boiler_kwh": 58.869124966505936,
-      "co2_kg": 17.368311342997668,
+      "boiler_kwh": 32.60361043140939,
+      "co2_kg": 17.60193031265209,
       "electricity_kwh": 80.60119790576933,
-      "heating_kwh": 51.83078395447853
+      "heating_kwh": 20.752275830320436,
+      "measured_heating_kwh": 14.2,
+      "temp_mae_c": 1.0990573883056636
      },
      "2020-04-08": {
-      "boiler_kwh": 40.21665857317811,
-      "co2_kg": 18.16025168974267,
+      "boiler_kwh": 20.65389048855046,
+      "co2_kg": 18.278975838207025,
       "electricity_kwh": 81.50143781295775,
-      "heating_kwh": 37.10247877527016
+      "heating_kwh": 10.302920753395314,
+      "measured_heating_kwh": 7.432,
+      "temp_mae_c": 1.0411129991213484
      },
      "2020-04-10": {
-      "boiler_kwh": 67.24852127469072,
-      "co2_kg": 15.869389620900412,
+      "boiler_kwh": 35.34463838458538,
+      "co2_kg": 15.944295770240666,
       "electricity_kwh": 81.50143781295775,
-      "heating_kwh": 58.37884112790528
+      "heating_kwh": 21.551147591001772,
+      "measured_heating_kwh": 17.656,
+      "temp_mae_c": 0.9613529695404904
      },
      "2020-04-11": {
-      "boiler_kwh": 54.877509721764774,
-      "co2_kg": 17.666563170239385,
+      "boiler_kwh": 27.757775920083716,
+      "co2_kg": 17.812683576883526,
       "electricity_kwh": 81.50143781295775,
-      "heating_kwh": 47.53266752221287
+      "heating_kwh": 15.992573276603368,
+      "measured_heating_kwh": 14.000000000000002,
+      "temp_mae_c": 0.9308939284748502
      },
      "2020-04-12": {
-      "boiler_kwh": 56.33565686418539,
-      "co2_kg": 15.442867090253694,
+      "boiler_kwh": 30.13241845886472,
+      "co2_kg": 15.646305843817174,
       "electricity_kwh": 82.64159784693716,
-      "heating_kwh": 49.68963083433047
+      "heating_kwh": 18.009552775586513,
+      "measured_heating_kwh": 10.959999999999999,
+      "temp_mae_c": 1.4152242263158161
      },
      "2020-04-20": {
-      "boiler_kwh": 69.05297522038747,
-      "co2_kg": 18.404500593380877,
+      "boiler_kwh": 41.15727376765079,
+      "co2_kg": 18.30719392084528,
       "electricity_kwh": 81.7413578378105,
-      "heating_kwh": 61.21908170998127
+      "heating_kwh": 23.923441207214875,
+      "measured_heating_kwh": 24.488,
+      "temp_mae_c": 1.1890465630425344
      },
      "2020-04-21": {
-      "boiler_kwh": 56.64823869567394,
-      "co2_kg": 18.96309731217527,
+      "boiler_kwh": 29.5565694348684,
+      "co2_kg": 18.952805197473523,
       "electricity_kwh": 81.7413578378105,
-      "heating_kwh": 51.578989155281015
+      "heating_kwh": 16.181590110996527,
+      "measured_heating_kwh": 13.456000000000001,
+      "temp_mae_c": 1.2384239501423304
      },
      "2020-04-22": {
-      "boiler_kwh": 51.38511990077301,
-      "co2_kg": 20.130308620993404,
+      "boiler_kwh": 27.78763499984304,
+      "co2_kg": 19.768505833906456,
       "electricity_kwh": 81.37531797803877,
-      "heating_kwh": 45.50797559192889
+      "heating_kwh": 14.778017955292933,
+      "measured_heating_kwh": 10.543999999999999,
+      "temp_mae_c": 1.1150954153802661
      },
      "2020-04-23": {
-      "boiler_kwh": 44.4754192017945,
-      "co2_kg": 19.308090404006006,
+      "boiler_kwh": 24.383199340371107,
+      "co2_kg": 19.224110176388905,
       "electricity_kwh": 71.83871814517018,
-      "heating_kwh": 39.106725207065864
+      "heating_kwh": 12.849439256312774,
+      "measured_heating_kwh": 9.728,
+      "temp_mae_c": 1.0177084167798363
      },
      "2020-04-24": {
-      "boiler_kwh": 55.23177874196584,
-      "co2_kg": 13.082300426595719,
+      "boiler_kwh": 35.66698514823905,
+      "co2_kg": 12.871737979306692,
       "electricity_kwh": 60.79591841855046,
-      "heating_kwh": 50.06548625206091
+      "heating_kwh": 17.817735510857656,
+      "measured_heating_kwh": 15.575999999999999,
+      "temp_mae_c": 1.9757940967877705
      },
      "2020-04-25": {
-      "boiler_kwh": 98.31409151417621,
-      "co2_kg": 7.441151796428929,
+      "boiler_kwh": 71.75982768036918,
+      "co2_kg": 7.602143366025027,
       "electricity_kwh": 60.79591841855046,
-      "heating_kwh": 78.80844584557883
+      "heating_kwh": 40.38805649018072,
+      "measured_heating_kwh": 35.488,
+      "temp_mae_c": 0.9412099997202557
      },
      "2020-04-26": {
-      "boiler_kwh": 79.47863256361825,
-      "co2_kg": 9.807751755607473,
+      "boiler_kwh": 49.616687091059624,
+      "co2_kg": 9.8861689857111,
       "electricity_kwh": 56.5346386016464,
-      "heating_kwh": 67.2914671622421
+      "heating_kwh": 29.95077114943888,
+      "measured_heating_kwh": 28.6,
+      "temp_mae_c": 0.8511120425330269
      },
      "2020-05-04": {
-      "boiler_kwh": 68.46197886536933,
-      "co2_kg": 11.203059542874238,
+      "boiler_kwh": 33.894182438412905,
+      "co2_kg": 11.137558751424384,
       "electricity_kwh": 0.0,
-      "heating_kwh": 60.55460674105349
+      "heating_kwh": 23.92319752692885,
+      "measured_heating_kwh": 5.248,
+      "temp_mae_c": 0.7986055387390985
      },
      "2020-05-05": {
-      "boiler_kwh": 81.18710041042289,
-      "co2_kg": 15.71762329129059,
+      "boiler_kwh": 54.524970807297734,
+      "co2_kg": 15.7108077645753,
       "electricity_kwh": 48.192558800468426,
-      "heating_kwh": 70.6945598693784
+      "heating_kwh": 30.500345240401888,
+      "measured_heating_kwh": 27.151999999999997,
+      "temp_mae_c": 0.7421617799335053
      },
      "2020-05-06": {
-      "boiler_kwh": 78.35896529600899,
-      "co2_kg": 17.032971340153374,
+      "boiler_kwh": 49.928773593960756,
+      "co2_kg": 17.0715272034997,
       "electricity_kwh": 47.71271875076292,
-      "heating_kwh": 67.71097267560717
+      "heating_kwh": 28.939969157511335,
+      "measured_heating_kwh": 23.423999999999996,
+      "temp_mae_c": 0.818834682305654
      },
      "2020-05-07": {
-      "boiler_kwh": 88.67044507968252,
-      "co2_kg": 15.437122679552404,
+      "boiler_kwh": 59.87857692191338,
+      "co2_kg": 15.506053583404269,
       "electricity_kwh": 0.0,
-      "heating_kwh": 75.92324497086913
+      "heating_kwh": 42.439103842806404,
+      "measured_heating_kwh": 26.823999999999998,
+      "temp_mae_c": 0.7783497293790179
      },
      "2020-05-08": {
-      "boiler_kwh": 72.17313603341101,
-      "co2_kg": 15.631246307258454,
+      "boiler_kwh": 43.335877065715636,
+      "co2_kg": 15.680312575448028,
       "electricity_kwh": 0.0,
-      "heating_kwh": 64.27021578642696
+      "heating_kwh": 31.230593726305504,
+      "measured_heating_kwh": 16.184,
+      "temp_mae_c": 0.9185776458846199
      },
      "2020-05-09": {
-      "boiler_kwh": 64.18833157714454,
-      "co2_kg": 17.501951349219482,
+      "boiler_kwh": 35.05391067549688,
+      "co2_kg": 17.32087410537772,
       "electricity_kwh": 0.0,
-      "heating_kwh": 58.473734858220695
+      "heating_kwh": 25.05963023821133,
+      "measured_heating_kwh": 11.328,
+      "temp_mae_c": 0.8184407048755223
      },
      "2020-05-10": {
-      "boiler_kwh": 102.34551257569615,
-      "co2_kg": 7.2723860279231705,
+      "boiler_kwh": 67.46461765253196,
+      "co2_kg": 7.277818256373984,
       "electricity_kwh": 0.0,
-      "heating_kwh": 86.51856583131809
+      "heating_kwh": 51.61964609638217,
+      "measured_heating_kwh": 25.264,
+      "temp_mae_c": 1.0920946359634398
      },
      "2020-05-18": {
-      "boiler_kwh": 92.08409241528439,
-      "co2_kg": 13.942190524875585,
+      "boiler_kwh": 64.9090979810858,
+      "co2_kg": 13.967876517470373,
       "electricity_kwh": 0.0,
-      "heating_kwh": 80.0681523552492
+      "heating_kwh": 43.410938713671094,
+      "measured_heating_kwh": 9.904,
+      "temp_mae_c": 1.2501052088207667
      },
      "2020-05-19": {
-      "boiler_kwh": 72.50179315057458,
-      "co2_kg": 13.553340051734137,
+      "boiler_kwh": 43.657996971790666,
+      "co2_kg": 13.6222091537097,
       "electricity_kwh": 0.0,
-      "heating_kwh": 65.37812191270912
+      "heating_kwh": 35.20945921091745,
+      "measured_heating_kwh": 7.160000000000001,
+      "temp_mae_c": 1.7124679340256588
      },
      "2020-05-20": {
-      "boiler_kwh": 61.18268942889906,
-      "co2_kg": 13.22294371169584,
+      "boiler_kwh": 33.901943258792215,
+      "co2_kg": 13.454576863645364,
       "electricity_kwh": 0.0,
-      "heating_kwh": 55.77845423575329
+      "heating_kwh": 26.24706362032422,
+      "measured_heating_kwh": 6.263999999999999,
+      "temp_mae_c": 1.3439292060004344
      },
      "2020-05-21": {
-      "boiler_kwh": 51.707473532000435,
-      "co2_kg": 13.665290284274864,
+      "boiler_kwh": 27.30578399858767,
+      "co2_kg": 14.042206007467279,
       "electricity_kwh": 0.0,
-      "heating_kwh": 48.51556133141063
+      "heating_kwh": 20.4530561160041,
+      "measured_heating_kwh": 4.4719999999999995,
+      "temp_mae_c": 1.3212953660223217
      },
      "2020-05-22": {
-      "boiler_kwh": 57.268062608618884,
-      "co2_kg": 1.116934281834885,
+      "boiler_kwh": 22.67406970902527,
+      "co2_kg": 1.075501078201727,
       "electricity_kwh": 0.0,
-      "heating_kwh": 51.18687177814198
+      "heating_kwh": 15.763949342545224,
+      "measured_heating_kwh": 0.0,
+      "temp_mae_c": 1.5091146522098111
      },
      "2020-05-23": {
-      "boiler_kwh": 104.64397598419322,
-      "co2_kg": 1.6812330585368862,
+      "boiler_kwh": 63.35448023221841,
+      "co2_kg": 1.6258997395272008,
       "electricity_kwh": 0.0,
-      "heating_kwh": 88.20692411671354
+      "heating_kwh": 43.28123463195336,
+      "measured_heating_kwh": 9.888,
+      "temp_mae_c": 1.2777490046289228
      },
      "2020-05-24": {
-      "boiler_kwh": 180.32501311286975,
-      "co2_kg": 0.4619866622786985,
+      "boiler_kwh": 130.76958174410802,
+      "co2_kg": 0.452918324959005,
       "electricity_kwh": 0.0,
-      "heating_kwh": 143.49375422271405
+      "heating_kwh": 95.91500020946097,
+      "measured_heating_kwh": 26.76,
+      "temp_mae_c": 1.3385963969760475
      }
     },
     "summary": {
      "co2_kg": {
-      "bias": 3.5359234962486576,
-      "mae": 3.6220873820930835,
-      "mean_abs_relative_error_pct": 66.43243064563879,
-      "simulated_over_measured_total": 1.574328799039148
+      "bias": 3.5640520872424992,
+      "mae": 3.652886367542351,
+      "mean_abs_relative_error_pct": 67.09319717567615,
+      "simulated_over_measured_total": 1.5788976365440583
      },
      "days": 80,
      "electricity_kwh": {
@@ -1692,29 +2575,814 @@
      },
      "failed_days": [],
      "heating_kwh": {
-      "bias": 37.43386304969156,
-      "mae": 39.07564901069082,
-      "mean_abs_relative_error_pct": 199.0823152188778,
-      "simulated_over_measured_total": 1.9991582379926958
+      "bias": 3.905798204270016,
+      "mae": 14.089287867700275,
+      "mean_abs_relative_error_pct": 59.93575665031641,
+      "simulated_over_measured_total": 1.104250807525611
+     },
+     "temp_c": {
+      "bias": -0.14361593083375038,
+      "mae": 1.1957715376300928,
+      "midday_bias": -0.05572787960370386
      }
+    }
+   },
+   "test_by_month": {
+    "2019-12": {
+     "days": 9,
+     "measured_heating_kwh": 44.87733333333333,
+     "simulated_heating_kwh": 36.2442032507634,
+     "temp_mae_c": 1.1534655571719747
+    },
+    "2020-01": {
+     "days": 16,
+     "measured_heating_kwh": 47.26299999999999,
+     "simulated_heating_kwh": 48.124282794716954,
+     "temp_mae_c": 1.3923646338697937
+    },
+    "2020-02": {
+     "days": 14,
+     "measured_heating_kwh": 55.318285714285715,
+     "simulated_heating_kwh": 54.09094860899389,
+     "temp_mae_c": 1.1278627461384214
+    },
+    "2020-03": {
+     "days": 14,
+     "measured_heating_kwh": 46.16457142857143,
+     "simulated_heating_kwh": 48.16315718374561,
+     "temp_mae_c": 1.1589682144778115
+    },
+    "2020-04": {
+     "days": 13,
+     "measured_heating_kwh": 16.65353846153846,
+     "simulated_heating_kwh": 20.612217969037093,
+     "temp_mae_c": 1.1743648399654616
+    },
+    "2020-05": {
+     "days": 14,
+     "measured_heating_kwh": 14.27657142857143,
+     "simulated_heating_kwh": 36.71379911953028,
+     "temp_mae_c": 1.12288017755463
+    }
+   }
+  },
+  "previous_calibration": {
+   "fit": {
+    "co2_kg": {
+     "bias": 0.0985670884944422,
+     "mae": 0.8252121932988044,
+     "mean_abs_relative_error_pct": 15.41152900241666,
+     "simulated_over_measured_total": 1.017668012704395
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -13.105123433062046,
+     "mae": 17.059892203532932,
+     "mean_abs_relative_error_pct": 43.43167017416469,
+     "simulated_over_measured_total": 0.691875410618263
+    },
+    "temp_c": {
+     "bias": 1.3781307864817447,
+     "mae": 1.935716194126678,
+     "midday_bias": 2.1217103099007883
+    }
+   },
+   "test": {
+    "per_day": {
+     "2019-12-16": {
+      "boiler_kwh": 9.218004390034725,
+      "co2_kg": 1.8594863407872073,
+      "electricity_kwh": 207.85480163640975,
+      "heating_kwh": 5.105201938694346,
+      "measured_heating_kwh": 76.152,
+      "temp_mae_c": 1.1563144154018827
+     },
+     "2019-12-17": {
+      "boiler_kwh": 6.8025521326575555,
+      "co2_kg": 1.3122077517068955,
+      "electricity_kwh": 110.61528239430422,
+      "heating_kwh": 2.420163541103312,
+      "measured_heating_kwh": 30.208,
+      "temp_mae_c": 1.7661786463525562
+     },
+     "2019-12-18": {
+      "boiler_kwh": 33.03842763643871,
+      "co2_kg": 2.247274752064516,
+      "electricity_kwh": 187.52704428668963,
+      "heating_kwh": 24.543484092431264,
+      "measured_heating_kwh": 30.48,
+      "temp_mae_c": 2.9008311059739857
+     },
+     "2019-12-19": {
+      "boiler_kwh": 2.842477948768313,
+      "co2_kg": 3.161754474886812,
+      "electricity_kwh": 146.18560679268825,
+      "heating_kwh": 0.40553024436612134,
+      "measured_heating_kwh": 3.184,
+      "temp_mae_c": 1.3196218795246548
+     },
+     "2019-12-20": {
+      "boiler_kwh": 24.787129019170095,
+      "co2_kg": 3.7414109049279807,
+      "electricity_kwh": 185.99099881084425,
+      "heating_kwh": 9.520334285751588,
+      "measured_heating_kwh": 15.271999999999998,
+      "temp_mae_c": 1.444821088181601
+     },
+     "2019-12-21": {
+      "boiler_kwh": 75.17455537668404,
+      "co2_kg": 2.2316805135384787,
+      "electricity_kwh": 168.8322332800484,
+      "heating_kwh": 51.3012470729924,
+      "measured_heating_kwh": 65.872,
+      "temp_mae_c": 0.6641331003771889
+     },
+     "2019-12-22": {
+      "boiler_kwh": 62.12395831107438,
+      "co2_kg": 1.956205348992237,
+      "electricity_kwh": 161.8277135655213,
+      "heating_kwh": 34.944641684066504,
+      "measured_heating_kwh": 48.848,
+      "temp_mae_c": 1.1353718757629396
+     },
+     "2019-12-30": {
+      "boiler_kwh": 84.29442279721489,
+      "co2_kg": 5.156196490714129,
+      "electricity_kwh": 229.17216010193812,
+      "heating_kwh": 52.039367133479864,
+      "measured_heating_kwh": 70.904,
+      "temp_mae_c": 1.2809802174568181
+     },
+     "2019-12-31": {
+      "boiler_kwh": 54.12333540453742,
+      "co2_kg": 4.237376609359975,
+      "electricity_kwh": 217.51616083634366,
+      "heating_kwh": 34.31428401112912,
+      "measured_heating_kwh": 62.976,
+      "temp_mae_c": 2.124590941270193
+     },
+     "2020-01-01": {
+      "boiler_kwh": 65.96861206561218,
+      "co2_kg": 3.0815753496247567,
+      "electricity_kwh": 230.31232013591753,
+      "heating_kwh": 40.720253622795965,
+      "measured_heating_kwh": 85.42399999999999,
+      "temp_mae_c": 1.7045505947536892
+     },
+     "2020-01-02": {
+      "boiler_kwh": 66.18452090903511,
+      "co2_kg": 3.1412070171582496,
+      "electricity_kwh": 230.31232013591753,
+      "heating_kwh": 40.443976390119424,
+      "measured_heating_kwh": 94.88,
+      "temp_mae_c": 1.3227541592386032
+     },
+     "2020-01-03": {
+      "boiler_kwh": 58.509512488837565,
+      "co2_kg": 3.9063553264762754,
+      "electricity_kwh": 228.0320000679587,
+      "heating_kwh": 35.17576293327471,
+      "measured_heating_kwh": 76.75200000000001,
+      "temp_mae_c": 1.251276820235782
+     },
+     "2020-01-04": {
+      "boiler_kwh": 68.23168195689098,
+      "co2_kg": 4.481117866504918,
+      "electricity_kwh": 230.3123200339793,
+      "heating_kwh": 43.202798269543806,
+      "measured_heating_kwh": 55.51200000000001,
+      "temp_mae_c": 1.7304753038618295
+     },
+     "2020-01-05": {
+      "boiler_kwh": 47.391535484051474,
+      "co2_kg": 3.6752337127731045,
+      "electricity_kwh": 230.3123200339793,
+      "heating_kwh": 30.663533024764558,
+      "measured_heating_kwh": 52.06399999999999,
+      "temp_mae_c": 2.1893266969256935
+     },
+     "2020-01-13": {
+      "boiler_kwh": 42.049073092573934,
+      "co2_kg": 4.267268744246717,
+      "electricity_kwh": 220.65862557088838,
+      "heating_kwh": 27.588624492678758,
+      "measured_heating_kwh": 40.888,
+      "temp_mae_c": 3.504616169134776
+     },
+     "2020-01-14": {
+      "boiler_kwh": 32.33406658718179,
+      "co2_kg": 5.061674212719031,
+      "electricity_kwh": 225.68198583944306,
+      "heating_kwh": 21.097224240712606,
+      "measured_heating_kwh": 34.328,
+      "temp_mae_c": 4.671513705783419
+     },
+     "2020-01-15": {
+      "boiler_kwh": 24.68660294582628,
+      "co2_kg": 4.607080698638684,
+      "electricity_kwh": 228.71632202427844,
+      "heating_kwh": 16.612372539739184,
+      "measured_heating_kwh": 28.104,
+      "temp_mae_c": 4.496854559580485
+     },
+     "2020-01-17": {
+      "boiler_kwh": 34.554028402409045,
+      "co2_kg": 4.724576883125995,
+      "electricity_kwh": 222.64368160637838,
+      "heating_kwh": 21.536814994628013,
+      "measured_heating_kwh": 31.287999999999997,
+      "temp_mae_c": 3.7097589280870227
+     },
+     "2020-01-18": {
+      "boiler_kwh": 94.47998584241164,
+      "co2_kg": 3.6929813889951126,
+      "electricity_kwh": 134.38032110406868,
+      "heating_kwh": 67.80258241172984,
+      "measured_heating_kwh": 64.928,
+      "temp_mae_c": 1.4010356042120196
+     },
+     "2020-01-19": {
+      "boiler_kwh": 39.56230684004155,
+      "co2_kg": 4.530137964205209,
+      "electricity_kwh": 228.04240215256672,
+      "heating_kwh": 24.706714706701792,
+      "measured_heating_kwh": 40.239999999999995,
+      "temp_mae_c": 3.939784148004321
+     },
+     "2020-01-27": {
+      "boiler_kwh": 27.762973859366035,
+      "co2_kg": 3.6086716002461867,
+      "electricity_kwh": 221.72032302206026,
+      "heating_kwh": 19.114074435230286,
+      "measured_heating_kwh": 23.872,
+      "temp_mae_c": 5.259495910008748
+     },
+     "2020-01-28": {
+      "boiler_kwh": 46.54384797943636,
+      "co2_kg": 4.3047424582611,
+      "electricity_kwh": 236.7900820086763,
+      "heating_kwh": 31.29125334478018,
+      "measured_heating_kwh": 48.455999999999996,
+      "temp_mae_c": 2.1889270875189033
+     },
+     "2020-01-29": {
+      "boiler_kwh": 45.5929228153137,
+      "co2_kg": 4.789943336571223,
+      "electricity_kwh": 237.93024194071748,
+      "heating_kwh": 28.06233054610423,
+      "measured_heating_kwh": 32.128,
+      "temp_mae_c": 2.7317211243841384
+     },
+     "2020-01-30": {
+      "boiler_kwh": 24.954240809508786,
+      "co2_kg": 4.299110411662582,
+      "electricity_kwh": 238.88864200155237,
+      "heating_kwh": 16.137465569416694,
+      "measured_heating_kwh": 22.4,
+      "temp_mae_c": 3.844043787320455
+     },
+     "2020-01-31": {
+      "boiler_kwh": 13.960394367222927,
+      "co2_kg": 4.324527028014562,
+      "electricity_kwh": 238.70688202840785,
+      "heating_kwh": 7.502008322356322,
+      "measured_heating_kwh": 24.944,
+      "temp_mae_c": 3.4722610155741367
+     },
+     "2020-02-01": {
+      "boiler_kwh": 13.639890266638975,
+      "co2_kg": 6.787443120150041,
+      "electricity_kwh": 251.9753600679587,
+      "heating_kwh": 8.152614447915587,
+      "measured_heating_kwh": 9.696,
+      "temp_mae_c": 2.0512341168191695
+     },
+     "2020-02-02": {
+      "boiler_kwh": 27.042890921207093,
+      "co2_kg": 4.483361466058597,
+      "electricity_kwh": 242.8540801019381,
+      "heating_kwh": 13.866623143146253,
+      "measured_heating_kwh": 31.687999999999995,
+      "temp_mae_c": 2.426279311709934
+     },
+     "2020-02-10": {
+      "boiler_kwh": 48.88144343328919,
+      "co2_kg": 6.981474190807461,
+      "electricity_kwh": 246.27455999999987,
+      "heating_kwh": 24.49920061906242,
+      "measured_heating_kwh": 30.663999999999998,
+      "temp_mae_c": 0.9267378952768112
+     },
+     "2020-02-11": {
+      "boiler_kwh": 77.70287009668887,
+      "co2_kg": 7.20116199247329,
+      "electricity_kwh": 246.27455999999987,
+      "heating_kwh": 51.420535133582845,
+      "measured_heating_kwh": 58.91999999999999,
+      "temp_mae_c": 0.5822508454322813
+     },
+     "2020-02-12": {
+      "boiler_kwh": 58.95087852564774,
+      "co2_kg": 6.447606069507219,
+      "electricity_kwh": 246.27455999999987,
+      "heating_kwh": 34.82309002089147,
+      "measured_heating_kwh": 49.343999999999994,
+      "temp_mae_c": 0.4706904086801744
+     },
+     "2020-02-13": {
+      "boiler_kwh": 24.8256314721893,
+      "co2_kg": 4.210879487207522,
+      "electricity_kwh": 246.27455999999987,
+      "heating_kwh": 14.561621735318628,
+      "measured_heating_kwh": 55.04,
+      "temp_mae_c": 1.7605303254392421
+     },
+     "2020-02-14": {
+      "boiler_kwh": 25.772128737064193,
+      "co2_kg": 5.370933248247729,
+      "electricity_kwh": 246.27455999999987,
+      "heating_kwh": 13.745187697032883,
+      "measured_heating_kwh": 19.312,
+      "temp_mae_c": 1.8503978636529723
+     },
+     "2020-02-15": {
+      "boiler_kwh": 9.320851313665335,
+      "co2_kg": 4.686504640155335,
+      "electricity_kwh": 246.27455999999987,
+      "heating_kwh": 2.8441942750581646,
+      "measured_heating_kwh": 8.064,
+      "temp_mae_c": 2.6818132758140565
+     },
+     "2020-02-16": {
+      "boiler_kwh": 21.717383304287363,
+      "co2_kg": 6.071518060990368,
+      "electricity_kwh": 246.27455999999987,
+      "heating_kwh": 11.609041019479506,
+      "measured_heating_kwh": 16.872,
+      "temp_mae_c": 2.952562737464904
+     },
+     "2020-02-24": {
+      "boiler_kwh": 60.67116098243387,
+      "co2_kg": 3.6350805049129296,
+      "electricity_kwh": 198.01824045661937,
+      "heating_kwh": 34.125840409142455,
+      "measured_heating_kwh": 91.65599999999999,
+      "temp_mae_c": 1.64974719815784
+     },
+     "2020-02-26": {
+      "boiler_kwh": 102.02450609188155,
+      "co2_kg": 4.683295786090022,
+      "electricity_kwh": 198.40240045154582,
+      "heating_kwh": 60.57186288959487,
+      "measured_heating_kwh": 119.60000000000001,
+      "temp_mae_c": 1.2427483903037175
+     },
+     "2020-02-27": {
+      "boiler_kwh": 70.16276384130849,
+      "co2_kg": 3.2708486722762,
+      "electricity_kwh": 198.40240045154582,
+      "heating_kwh": 42.93641780788301,
+      "measured_heating_kwh": 129.048,
+      "temp_mae_c": 1.1410528805520805
+     },
+     "2020-02-28": {
+      "boiler_kwh": 70.86407130757823,
+      "co2_kg": 4.363779685663409,
+      "electricity_kwh": 197.63408046169292,
+      "heating_kwh": 43.10599898710154,
+      "measured_heating_kwh": 98.784,
+      "temp_mae_c": 0.8190352837244674
+     },
+     "2020-02-29": {
+      "boiler_kwh": 76.44522739765796,
+      "co2_kg": 5.38040575929109,
+      "electricity_kwh": 196.67368047437677,
+      "heating_kwh": 42.70748166083564,
+      "measured_heating_kwh": 55.767999999999994,
+      "temp_mae_c": 1.788459083769057
+     },
+     "2020-03-01": {
+      "boiler_kwh": 59.91929140259885,
+      "co2_kg": 5.652142424988634,
+      "electricity_kwh": 198.86048035514835,
+      "heating_kwh": 30.917258098789116,
+      "measured_heating_kwh": 43.583999999999996,
+      "temp_mae_c": 0.8958739929729035
+     },
+     "2020-03-09": {
+      "boiler_kwh": 45.25780026317717,
+      "co2_kg": 6.312652371946393,
+      "electricity_kwh": 225.75167999999988,
+      "heating_kwh": 20.466133694362174,
+      "measured_heating_kwh": 37.48799999999999,
+      "temp_mae_c": 1.4137430283758377
+     },
+     "2020-03-10": {
+      "boiler_kwh": 41.80286809910346,
+      "co2_kg": 4.823127366681853,
+      "electricity_kwh": 225.75167999999988,
+      "heating_kwh": 16.993146873291455,
+      "measured_heating_kwh": 47.495999999999995,
+      "temp_mae_c": 2.077757914861044
+     },
+     "2020-03-11": {
+      "boiler_kwh": 26.356687571778593,
+      "co2_kg": 7.280759810946248,
+      "electricity_kwh": 177.86496010193815,
+      "heating_kwh": 11.246456594703321,
+      "measured_heating_kwh": 17.791999999999998,
+      "temp_mae_c": 2.2984300812085467
+     },
+     "2020-03-12": {
+      "boiler_kwh": 53.96386483756285,
+      "co2_kg": 8.487677180468188,
+      "electricity_kwh": 164.18304010193816,
+      "heating_kwh": 26.00056942081292,
+      "measured_heating_kwh": 38.583999999999996,
+      "temp_mae_c": 1.328024088011848
+     },
+     "2020-03-13": {
+      "boiler_kwh": 84.64092926212803,
+      "co2_kg": 4.973781552612866,
+      "electricity_kwh": 164.18303999999992,
+      "heating_kwh": 42.92741612894334,
+      "measured_heating_kwh": 53.88,
+      "temp_mae_c": 1.1247802350256182
+     },
+     "2020-03-14": {
+      "boiler_kwh": 33.050661682050716,
+      "co2_kg": 5.45846380997728,
+      "electricity_kwh": 177.8649599999999,
+      "heating_kwh": 13.478738175983562,
+      "measured_heating_kwh": 34.976,
+      "temp_mae_c": 2.5956244508425397
+     },
+     "2020-03-15": {
+      "boiler_kwh": 34.227493129356404,
+      "co2_kg": 5.238162484608078,
+      "electricity_kwh": 225.75167999999988,
+      "heating_kwh": 13.802201660786244,
+      "measured_heating_kwh": 30.799999999999997,
+      "temp_mae_c": 2.5265580852826437
+     },
+     "2020-03-23": {
+      "boiler_kwh": 71.21776142726517,
+      "co2_kg": 8.007921301013653,
+      "electricity_kwh": 109.45535999999996,
+      "heating_kwh": 44.15059003834446,
+      "measured_heating_kwh": 70.78399999999999,
+      "temp_mae_c": 0.7066169275177847
+     },
+     "2020-03-24": {
+      "boiler_kwh": 53.3193142231864,
+      "co2_kg": 7.82231902727042,
+      "electricity_kwh": 109.45535999999996,
+      "heating_kwh": 30.01677567702131,
+      "measured_heating_kwh": 57.19199999999999,
+      "temp_mae_c": 1.278720083501604
+     },
+     "2020-03-25": {
+      "boiler_kwh": 49.14989825939886,
+      "co2_kg": 8.437082322788608,
+      "electricity_kwh": 110.59552003397937,
+      "heating_kwh": 27.01474109832293,
+      "measured_heating_kwh": 55.224,
+      "temp_mae_c": 1.1820634762446087
+     },
+     "2020-03-26": {
+      "boiler_kwh": 105.04251418150828,
+      "co2_kg": 6.386572640565822,
+      "electricity_kwh": 3.42048,
+      "heating_kwh": 72.25586854565915,
+      "measured_heating_kwh": 71.016,
+      "temp_mae_c": 1.158442256185744
+     },
+     "2020-03-27": {
+      "boiler_kwh": 37.61207843759356,
+      "co2_kg": 7.948254177776218,
+      "electricity_kwh": 110.59552003397937,
+      "heating_kwh": 18.955385556277403,
+      "measured_heating_kwh": 37.744,
+      "temp_mae_c": 1.8228416032261319
+     },
+     "2020-03-28": {
+      "boiler_kwh": 44.48070127622249,
+      "co2_kg": 7.984082494885923,
+      "electricity_kwh": 75.24048054994584,
+      "heating_kwh": 28.031266988598578,
+      "measured_heating_kwh": 49.74399999999999,
+      "temp_mae_c": 1.3301805244551763
+     },
+     "2020-04-06": {
+      "boiler_kwh": 22.406387576314426,
+      "co2_kg": 8.960927253853022,
+      "electricity_kwh": 68.05232050935747,
+      "heating_kwh": 11.759128345623107,
+      "measured_heating_kwh": 14.367999999999999,
+      "temp_mae_c": 2.6277860575252103
+     },
+     "2020-04-07": {
+      "boiler_kwh": 20.291891640516223,
+      "co2_kg": 10.784051512734687,
+      "electricity_kwh": 80.60119790576933,
+      "heating_kwh": 9.59737669809466,
+      "measured_heating_kwh": 14.2,
+      "temp_mae_c": 2.247565189997355
+     },
+     "2020-04-08": {
+      "boiler_kwh": 15.082913836380815,
+      "co2_kg": 12.483238237053799,
+      "electricity_kwh": 81.50143781295775,
+      "heating_kwh": 6.475767997852801,
+      "measured_heating_kwh": 7.432,
+      "temp_mae_c": 2.6690783222516377
+     },
+     "2020-04-10": {
+      "boiler_kwh": 20.66968490848026,
+      "co2_kg": 9.220792256382687,
+      "electricity_kwh": 81.50143781295775,
+      "heating_kwh": 10.222978963952421,
+      "measured_heating_kwh": 17.656,
+      "temp_mae_c": 2.1830422586864895
+     },
+     "2020-04-11": {
+      "boiler_kwh": 17.98856914971358,
+      "co2_kg": 10.393906798484865,
+      "electricity_kwh": 81.50143781295775,
+      "heating_kwh": 8.292515879058072,
+      "measured_heating_kwh": 14.000000000000002,
+      "temp_mae_c": 2.2473174519009063
+     },
+     "2020-04-12": {
+      "boiler_kwh": 16.514281721597914,
+      "co2_kg": 9.243193235966352,
+      "electricity_kwh": 82.64159784693716,
+      "heating_kwh": 7.863851249465962,
+      "measured_heating_kwh": 10.959999999999999,
+      "temp_mae_c": 2.615016546514299
+     },
+     "2020-04-20": {
+      "boiler_kwh": 21.900346056131088,
+      "co2_kg": 10.704115278004526,
+      "electricity_kwh": 81.7413578378105,
+      "heating_kwh": 10.837614039840568,
+      "measured_heating_kwh": 24.488,
+      "temp_mae_c": 1.7055140680736962
+     },
+     "2020-04-21": {
+      "boiler_kwh": 17.20635946735374,
+      "co2_kg": 11.291627439541696,
+      "electricity_kwh": 81.7413578378105,
+      "heating_kwh": 7.994444412474582,
+      "measured_heating_kwh": 13.456000000000001,
+      "temp_mae_c": 1.8554250518480944
+     },
+     "2020-04-22": {
+      "boiler_kwh": 17.339584461977562,
+      "co2_kg": 12.336765441814089,
+      "electricity_kwh": 81.37531797803877,
+      "heating_kwh": 8.010071213385004,
+      "measured_heating_kwh": 10.543999999999999,
+      "temp_mae_c": 2.032799210813311
+     },
+     "2020-04-23": {
+      "boiler_kwh": 18.027461359330225,
+      "co2_kg": 12.747493991881871,
+      "electricity_kwh": 71.83871814517018,
+      "heating_kwh": 8.536800741299265,
+      "measured_heating_kwh": 9.728,
+      "temp_mae_c": 2.241163359747993
+     },
+     "2020-04-24": {
+      "boiler_kwh": 21.486174499118498,
+      "co2_kg": 8.265347819349554,
+      "electricity_kwh": 60.79591841855046,
+      "heating_kwh": 11.436735514417935,
+      "measured_heating_kwh": 15.575999999999999,
+      "temp_mae_c": 3.923444965150621
+     },
+     "2020-04-25": {
+      "boiler_kwh": 47.88572884344588,
+      "co2_kg": 4.6349437414252534,
+      "electricity_kwh": 60.79591841855046,
+      "heating_kwh": 25.602675092419283,
+      "measured_heating_kwh": 35.488,
+      "temp_mae_c": 1.3396876666280964
+     },
+     "2020-04-26": {
+      "boiler_kwh": 28.731432620008103,
+      "co2_kg": 7.000818680604913,
+      "electricity_kwh": 56.5346386016464,
+      "heating_kwh": 15.934932957038763,
+      "measured_heating_kwh": 28.6,
+      "temp_mae_c": 1.9267140759362114
+     },
+     "2020-05-04": {
+      "boiler_kwh": 12.906501425970228,
+      "co2_kg": 6.385700106238119,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 10.626527263058984,
+      "measured_heating_kwh": 5.248,
+      "temp_mae_c": 2.2717648466428124
+     },
+     "2020-05-05": {
+      "boiler_kwh": 37.0985695279644,
+      "co2_kg": 9.470968977138007,
+      "electricity_kwh": 48.192558800468426,
+      "heating_kwh": 19.676425716176357,
+      "measured_heating_kwh": 27.151999999999997,
+      "temp_mae_c": 2.165693692366282
+     },
+     "2020-05-06": {
+      "boiler_kwh": 32.01740050199776,
+      "co2_kg": 10.253561440226395,
+      "electricity_kwh": 47.71271875076292,
+      "heating_kwh": 16.712964251913657,
+      "measured_heating_kwh": 23.423999999999996,
+      "temp_mae_c": 2.1307030240694687
+     },
+     "2020-05-07": {
+      "boiler_kwh": 44.615888240031246,
+      "co2_kg": 9.601930345041607,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 33.611334901217916,
+      "measured_heating_kwh": 26.823999999999998,
+      "temp_mae_c": 1.966586110326978
+     },
+     "2020-05-08": {
+      "boiler_kwh": 33.21567392277376,
+      "co2_kg": 9.726396995434605,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 23.60925926684934,
+      "measured_heating_kwh": 16.184,
+      "temp_mae_c": 2.041480984952715
+     },
+     "2020-05-09": {
+      "boiler_kwh": 28.42546173726044,
+      "co2_kg": 10.725069648460039,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 19.968519759442298,
+      "measured_heating_kwh": 11.328,
+      "temp_mae_c": 1.832688355445862
+     },
+     "2020-05-10": {
+      "boiler_kwh": 44.81987123371972,
+      "co2_kg": 4.918219083677902,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 35.53644125844537,
+      "measured_heating_kwh": 25.264,
+      "temp_mae_c": 1.737970901860132
+     },
+     "2020-05-18": {
+      "boiler_kwh": 39.25170050882262,
+      "co2_kg": 9.70742313880799,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 27.075908875100772,
+      "measured_heating_kwh": 9.904,
+      "temp_mae_c": 1.3146200511190627
+     },
+     "2020-05-19": {
+      "boiler_kwh": 26.815797015484197,
+      "co2_kg": 9.585844348784612,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 19.9421909558813,
+      "measured_heating_kwh": 7.160000000000001,
+      "temp_mae_c": 0.9251852591832481
+     },
+     "2020-05-20": {
+      "boiler_kwh": 21.76012630928986,
+      "co2_kg": 10.270418720406237,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 15.724392220061882,
+      "measured_heating_kwh": 6.263999999999999,
+      "temp_mae_c": 1.6392593065897625
+     },
+     "2020-05-21": {
+      "boiler_kwh": 21.327415586704007,
+      "co2_kg": 9.210586531680839,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 14.838831671177111,
+      "measured_heating_kwh": 4.4719999999999995,
+      "temp_mae_c": 1.565655223528544
+     },
+     "2020-05-22": {
+      "boiler_kwh": 5.512645512228576,
+      "co2_kg": 1.6061675209064268,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 3.9356598476149687,
+      "measured_heating_kwh": 0.0,
+      "temp_mae_c": 1.4962097989188299
+     },
+     "2020-05-23": {
+      "boiler_kwh": 32.61115434413155,
+      "co2_kg": 2.7149354816261275,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 20.95085314714655,
+      "measured_heating_kwh": 9.888,
+      "temp_mae_c": 1.4921048005421957
+     },
+     "2020-05-24": {
+      "boiler_kwh": 91.28731677448812,
+      "co2_kg": 0.5078346437768072,
+      "electricity_kwh": 0.0,
+      "heating_kwh": 63.04472426756489,
+      "measured_heating_kwh": 26.76,
+      "temp_mae_c": 1.1580590936872697
+     }
+    },
+    "summary": {
+     "co2_kg": {
+      "bias": 0.012623268223329653,
+      "mae": 1.3622704795968574,
+      "mean_abs_relative_error_pct": 28.500173916649523,
+      "simulated_over_measured_total": 1.0020503572790371
+     },
+     "days": 80,
+     "electricity_kwh": {
+      "bias": 6.666439119699113,
+      "mae": 6.686397150130041,
+      "mean_abs_relative_error_pct": 8.518192402621024,
+      "simulated_over_measured_total": 1.0483994537430772
+     },
+     "failed_days": [],
+     "heating_kwh": {
+      "bias": -13.09918464058617,
+      "mae": 16.691262000359924,
+      "mean_abs_relative_error_pct": 49.801090404777355,
+      "simulated_over_measured_total": 0.6503658137752117
+     },
+     "temp_c": {
+      "bias": 1.449069450365171,
+      "mae": 1.9830871365467742,
+      "midday_bias": 2.4554021588961277
+     }
+    }
+   },
+   "test_by_month": {
+    "2019-12": {
+     "days": 9,
+     "measured_heating_kwh": 44.87733333333333,
+     "simulated_heating_kwh": 23.843806000446055,
+     "temp_mae_c": 1.5325381411446466
+    },
+    "2020-01": {
+     "days": 16,
+     "measured_heating_kwh": 47.26299999999999,
+     "simulated_heating_kwh": 29.478611865286023,
+     "temp_mae_c": 2.963649725914001
+    },
+    "2020-02": {
+     "days": 14,
+     "measured_heating_kwh": 55.318285714285715,
+     "simulated_heating_kwh": 28.497836417574664,
+     "temp_mae_c": 1.5959671154854789
+    },
+    "2020-03": {
+     "days": 14,
+     "measured_heating_kwh": 46.16457142857143,
+     "simulated_heating_kwh": 28.30403918227828,
+     "temp_mae_c": 1.5528326248365736
+    },
+    "2020-04": {
+     "days": 13,
+     "measured_heating_kwh": 16.65353846153846,
+     "simulated_heating_kwh": 10.966530238840186,
+     "temp_mae_c": 2.278042632697994
+    },
+    "2020-05": {
+     "days": 14,
+     "measured_heating_kwh": 14.27657142857143,
+     "simulated_heating_kwh": 23.232430957260814,
+     "temp_mae_c": 1.6955701035166548
     }
    }
   }
  },
+ "score": "heat MAE / 50 kWh + CO2 MAE / 3 kg + hourly temperature MAE / 2 K",
  "search": [
   {
    "calibration": {
-    "aCov": 156.0,
-    "aRoof": 7.2,
-    "cLeakage": 1e-05,
-    "etaLampCool": 0.0
+    "aCov": 140.0,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
    },
    "fit": {
     "co2_kg": {
-     "bias": -1.1893864370788747,
-     "mae": 1.2797503677106714,
-     "mean_abs_relative_error_pct": 21.261186173723097,
-     "simulated_over_measured_total": 0.7868041452606124
+     "bias": 0.07227194144889328,
+     "mae": 0.8204018853061229,
+     "mean_abs_relative_error_pct": 15.363597065314808,
+     "simulated_over_measured_total": 1.0129546443868267
     },
     "days": 78,
     "electricity_kwh": {
@@ -1725,89 +3393,35 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 11.940125999789606,
-     "mae": 16.437843387222635,
-     "mean_abs_relative_error_pct": 79.37977338547803,
-     "simulated_over_measured_total": 1.280733442889195
+     "bias": -17.389440191618963,
+     "mae": 20.085199881019456,
+     "mean_abs_relative_error_pct": 48.44813419004914,
+     "simulated_over_measured_total": 0.5911435595407488
+    },
+    "temp_c": {
+     "bias": 2.0072086192773586,
+     "mae": 2.4262374626095786,
+     "midday_bias": 3.2414489889552476
     }
    },
-   "score": 0.7553403236480098
-  },
-  {
-   "calibration": {
-    "aCov": 156.0,
-    "aRoof": 7.2,
-    "cLeakage": 3e-05,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": -0.7859955748582428,
-     "mae": 0.9447132779645964,
-     "mean_abs_relative_error_pct": 15.822942190843746,
-     "simulated_over_measured_total": 0.8591113929171476
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 13.421398585226335,
-     "mae": 17.061278399102004,
-     "mean_abs_relative_error_pct": 81.70655985161147,
-     "simulated_over_measured_total": 1.3155607766019506
-    }
-   },
-   "score": 0.6561299939702389
-  },
-  {
-   "calibration": {
-    "aCov": 156.0,
-    "aRoof": 7.2,
-    "cLeakage": 0.0001,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 0.5207230765906882,
-     "mae": 1.0143408389770643,
-     "mean_abs_relative_error_pct": 19.725356950463496,
-     "simulated_over_measured_total": 1.0933388829192716
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 18.85647587870729,
-     "mae": 20.941078499465,
-     "mean_abs_relative_error_pct": 92.58626903087793,
-     "simulated_over_measured_total": 1.4433490395561845
-    }
-   },
-   "score": 0.7569351829816547
+   "score": 1.8882900240272193
   },
   {
    "calibration": {
     "aCov": 156.0,
     "aRoof": 17.4,
-    "cLeakage": 1e-05,
-    "etaLampCool": 0.0
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
    },
    "fit": {
     "co2_kg": {
-     "bias": -0.0054460958211289285,
-     "mae": 0.7994490796846956,
-     "mean_abs_relative_error_pct": 14.746337427049392,
-     "simulated_over_measured_total": 0.9990237949438616
+     "bias": 0.08927060975978936,
+     "mae": 0.81357917109413,
+     "mean_abs_relative_error_pct": 15.237507379497714,
+     "simulated_over_measured_total": 1.016001631898197
     },
     "days": 78,
     "electricity_kwh": {
@@ -1818,275 +3432,35 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 15.290586222885162,
-     "mae": 18.447681618890996,
-     "mean_abs_relative_error_pct": 87.85249999237024,
-     "simulated_over_measured_total": 1.3595086780675745
+     "bias": -15.766426065750037,
+     "mae": 18.963608532984587,
+     "mean_abs_relative_error_pct": 46.541075747428636,
+     "simulated_over_measured_total": 0.6293034871178121
+    },
+    "temp_c": {
+     "bias": 1.7362665045380217,
+     "mae": 2.207587206762738,
+     "midday_bias": 2.760730208780011
     }
    },
-   "score": 0.6354366589393852
-  },
-  {
-   "calibration": {
-    "aCov": 156.0,
-    "aRoof": 17.4,
-    "cLeakage": 3e-05,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 0.38499353278474036,
-     "mae": 0.7975551448060324,
-     "mean_abs_relative_error_pct": 15.458788580113842,
-     "simulated_over_measured_total": 1.0690095520954188
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 16.83781543876469,
-     "mae": 19.422659622758346,
-     "mean_abs_relative_error_pct": 90.7284035571878,
-     "simulated_over_measured_total": 1.3958867686103595
-    }
-   },
-   "score": 0.6543049073905111
-  },
-  {
-   "calibration": {
-    "aCov": 156.0,
-    "aRoof": 17.4,
-    "cLeakage": 0.0001,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 1.5537831384473162,
-     "mae": 1.6356707598816849,
-     "mean_abs_relative_error_pct": 31.420260652777333,
-     "simulated_over_measured_total": 1.278513453621092
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 22.318295873269506,
-     "mae": 23.72055239940285,
-     "mean_abs_relative_error_pct": 102.39808702504284,
-     "simulated_over_measured_total": 1.5247425395706091
-    }
-   },
-   "score": 1.0196346346152854
-  },
-  {
-   "calibration": {
-    "aCov": 156.0,
-    "aRoof": 52.2,
-    "cLeakage": 1e-05,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 2.8635822077411217,
-     "mae": 3.0090423494641274,
-     "mean_abs_relative_error_pct": 54.108245611959916,
-     "simulated_over_measured_total": 1.5132931042120032
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 26.78019678117095,
-     "mae": 27.816889782852456,
-     "mean_abs_relative_error_pct": 122.22940955511366,
-     "simulated_over_measured_total": 1.6296497075291105
-    }
-   },
-   "score": 1.5593519121450914
-  },
-  {
-   "calibration": {
-    "aCov": 156.0,
-    "aRoof": 52.2,
-    "cLeakage": 3e-05,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 3.179713639505934,
-     "mae": 3.3250626919870947,
-     "mean_abs_relative_error_pct": 59.871661726255226,
-     "simulated_over_measured_total": 1.5699592210466755
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 28.582976655491464,
-     "mae": 29.44750841779778,
-     "mean_abs_relative_error_pct": 126.72454358764594,
-     "simulated_over_measured_total": 1.6720362452338426
-    }
-   },
-   "score": 1.6973043990183205
-  },
-  {
-   "calibration": {
-    "aCov": 156.0,
-    "aRoof": 52.2,
-    "cLeakage": 0.0001,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 4.176031106248736,
-     "mae": 4.325384238772417,
-     "mean_abs_relative_error_pct": 78.36549043694815,
-     "simulated_over_measured_total": 1.7485477329820331
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 34.759069500145756,
-     "mae": 35.17869397453051,
-     "mean_abs_relative_error_pct": 142.64750932933333,
-     "simulated_over_measured_total": 1.817247092080323
-    }
-   },
-   "score": 2.1453686257480826
-  },
-  {
-   "calibration": {
-    "aCov": 180.0,
-    "aRoof": 7.2,
-    "cLeakage": 1e-05,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": -1.1665128953757147,
-     "mae": 1.2597468554236706,
-     "mean_abs_relative_error_pct": 20.80781373634474,
-     "simulated_over_measured_total": 0.7909041956078304
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 15.778656231245222,
-     "mae": 18.372389899016085,
-     "mean_abs_relative_error_pct": 85.87207499926662,
-     "simulated_over_measured_total": 1.3709840656656855
-    }
-   },
-   "score": 0.7873634164548786
-  },
-  {
-   "calibration": {
-    "aCov": 180.0,
-    "aRoof": 7.2,
-    "cLeakage": 3e-05,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": -0.7570152015211653,
-     "mae": 0.9184504769134756,
-     "mean_abs_relative_error_pct": 15.451142886244655,
-     "simulated_over_measured_total": 0.8643060842904907
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 17.330585544208905,
-     "mae": 19.37946726044838,
-     "mean_abs_relative_error_pct": 88.77630141654797,
-     "simulated_over_measured_total": 1.4074726637890758
-    }
-   },
-   "score": 0.6937395041801262
-  },
-  {
-   "calibration": {
-    "aCov": 180.0,
-    "aRoof": 7.2,
-    "cLeakage": 0.0001,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 0.5438291349526916,
-     "mae": 1.0153812673396152,
-     "mean_abs_relative_error_pct": 19.722694273850642,
-     "simulated_over_measured_total": 1.0974806115522668
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 23.060877514924417,
-     "mae": 24.044106321834736,
-     "mean_abs_relative_error_pct": 101.06456563208508,
-     "simulated_over_measured_total": 1.5422019450150555
-    }
-   },
-   "score": 0.8193425488832331
+   "score": 1.7542588310724374
   },
   {
    "calibration": {
     "aCov": 180.0,
     "aRoof": 17.4,
-    "cLeakage": 1e-05,
-    "etaLampCool": 0.0
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
    },
    "fit": {
     "co2_kg": {
-     "bias": 0.02298704937239337,
-     "mae": 0.779759678992243,
-     "mean_abs_relative_error_pct": 14.453798214099553,
-     "simulated_over_measured_total": 1.0041203964381162
+     "bias": 0.0985670884944422,
+     "mae": 0.8252121932988044,
+     "mean_abs_relative_error_pct": 15.41152900241666,
+     "simulated_over_measured_total": 1.017668012704395
     },
     "days": 78,
     "electricity_kwh": {
@@ -2097,27 +3471,35 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 19.209302033878473,
-     "mae": 20.930159092030653,
-     "mean_abs_relative_error_pct": 95.15632405617073,
-     "simulated_over_measured_total": 1.4516446053889325
+     "bias": -13.105123433062046,
+     "mae": 17.059892203532932,
+     "mean_abs_relative_error_pct": 43.43167017416469,
+     "simulated_over_measured_total": 0.691875410618263
+    },
+    "temp_c": {
+     "bias": 1.3781307864817447,
+     "mae": 1.935716194126678,
+     "midday_bias": 2.1217103099007883
     }
    },
-   "score": 0.6785230748380273
+   "score": 1.5841266722335992
   },
   {
    "calibration": {
-    "aCov": 180.0,
+    "aCov": 216.6,
     "aRoof": 17.4,
-    "cLeakage": 3e-05,
-    "etaLampCool": 0.0
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
    },
    "fit": {
     "co2_kg": {
-     "bias": 0.383058141211462,
-     "mae": 0.7994550934320926,
-     "mean_abs_relative_error_pct": 15.489956913021333,
-     "simulated_over_measured_total": 1.068662635863774
+     "bias": 0.12822829838604047,
+     "mae": 0.8169343831092174,
+     "mean_abs_relative_error_pct": 15.399025896269695,
+     "simulated_over_measured_total": 1.0229847430775572
     },
     "days": 78,
     "electricity_kwh": {
@@ -2128,151 +3510,35 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 20.773395256689245,
-     "mae": 22.209502183504753,
-     "mean_abs_relative_error_pct": 98.52122503900789,
-     "simulated_over_measured_total": 1.4884191985085584
+     "bias": -9.145847844466905,
+     "mae": 14.707353171522845,
+     "mean_abs_relative_error_pct": 40.449043787812286,
+     "simulated_over_measured_total": 0.7849649699204884
+    },
+    "temp_c": {
+     "bias": 0.9290475257356637,
+     "mae": 1.6347832391489587,
+     "midday_bias": 1.329142406333206
     }
    },
-   "score": 0.710675074814126
-  },
-  {
-   "calibration": {
-    "aCov": 180.0,
-    "aRoof": 17.4,
-    "cLeakage": 0.0001,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 1.5765014880182024,
-     "mae": 1.6465249233196317,
-     "mean_abs_relative_error_pct": 31.583145055507195,
-     "simulated_over_measured_total": 1.282585685995735
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 26.606580245825352,
-     "mae": 27.3888871674089,
-     "mean_abs_relative_error_pct": 112.17561052434834,
-     "simulated_over_measured_total": 1.6255676762581743
-    }
-   },
-   "score": 1.0966193844547218
-  },
-  {
-   "calibration": {
-    "aCov": 180.0,
-    "aRoof": 52.2,
-    "cLeakage": 1e-05,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 2.8715219277587387,
-     "mae": 3.020255913013964,
-     "mean_abs_relative_error_pct": 54.3150851166889,
-     "simulated_over_measured_total": 1.5147162879164553
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 31.271039245266856,
-     "mae": 31.790485216830476,
-     "mean_abs_relative_error_pct": 133.14919198729248,
-     "simulated_over_measured_total": 1.7352373425708896
-    }
-   },
-   "score": 1.6425616753412642
-  },
-  {
-   "calibration": {
-    "aCov": 180.0,
-    "aRoof": 52.2,
-    "cLeakage": 3e-05,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 3.176968847206632,
-     "mae": 3.320481684118488,
-     "mean_abs_relative_error_pct": 59.67381290498412,
-     "simulated_over_measured_total": 1.5694672208673486
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 33.03635431423216,
-     "mae": 33.444676565489104,
-     "mean_abs_relative_error_pct": 137.67472758339153,
-     "simulated_over_measured_total": 1.776743016556535
-    }
-   },
-   "score": 1.775720759349278
-  },
-  {
-   "calibration": {
-    "aCov": 180.0,
-    "aRoof": 52.2,
-    "cLeakage": 0.0001,
-    "etaLampCool": 0.0
-   },
-   "fit": {
-    "co2_kg": {
-     "bias": 4.179541574726991,
-     "mae": 4.325567887304589,
-     "mean_abs_relative_error_pct": 78.43588400239534,
-     "simulated_over_measured_total": 1.749176979545155
-    },
-    "days": 78,
-    "electricity_kwh": {
-     "bias": 3.2846173806350865,
-     "mae": 3.352005950899769,
-     "mean_abs_relative_error_pct": 1.8788563598160872,
-     "simulated_over_measured_total": 1.023472919457886
-    },
-    "failed_days": [],
-    "heating_kwh": {
-     "bias": 39.56229310519638,
-     "mae": 39.80549145769716,
-     "mean_abs_relative_error_pct": 155.22617477211128,
-     "simulated_over_measured_total": 1.930179359263792
-    }
-   },
-   "score": 2.237965791588806
+   "score": 1.3838501440413422
   },
   {
    "calibration": {
     "aCov": 216.6,
     "aRoof": 7.2,
-    "cLeakage": 1e-05,
-    "etaLampCool": 0.0
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
    },
    "fit": {
     "co2_kg": {
-     "bias": -1.1495370982095248,
-     "mae": 1.2515059114383738,
-     "mean_abs_relative_error_pct": 20.636784368696997,
-     "simulated_over_measured_total": 0.7939470834985126
+     "bias": -0.9613112104601691,
+     "mae": 1.099632099854179,
+     "mean_abs_relative_error_pct": 18.43945436198795,
+     "simulated_over_measured_total": 0.8276863105249787
     },
     "days": 78,
     "electricity_kwh": {
@@ -2283,27 +3549,35 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 21.944386393862413,
-     "mae": 22.772336515383966,
-     "mean_abs_relative_error_pct": 97.97934234799554,
-     "simulated_over_measured_total": 1.515951267561862
+     "bias": -11.349809844527108,
+     "mae": 15.448620933449806,
+     "mean_abs_relative_error_pct": 40.65435289695331,
+     "simulated_over_measured_total": 0.7331459321410912
+    },
+    "temp_c": {
+     "bias": 1.5401374797450846,
+     "mae": 2.0850110955812275,
+     "midday_bias": 2.5628537333724823
     }
    },
-   "score": 0.8726153674538039
+   "score": 1.7180219997443362
   },
   {
    "calibration": {
     "aCov": 216.6,
-    "aRoof": 7.2,
-    "cLeakage": 3e-05,
-    "etaLampCool": 0.0
+    "aRoof": 12.0,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
    },
    "fit": {
     "co2_kg": {
-     "bias": -0.7213332277842658,
-     "mae": 0.8999959675167413,
-     "mean_abs_relative_error_pct": 15.167955111107835,
-     "simulated_over_measured_total": 0.870702028159087
+     "bias": -0.4088852201703399,
+     "mae": 0.7888615008803423,
+     "mean_abs_relative_error_pct": 14.410747710113123,
+     "simulated_over_measured_total": 0.9267078963683039
     },
     "days": 78,
     "electricity_kwh": {
@@ -2314,27 +3588,35 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 23.645813281644088,
-     "mae": 24.317303555309415,
-     "mean_abs_relative_error_pct": 101.91594952984893,
-     "simulated_over_measured_total": 1.5559548176114686
+     "bias": -10.290740546551302,
+     "mae": 15.116137252649256,
+     "mean_abs_relative_error_pct": 40.58415628787811,
+     "simulated_over_measured_total": 0.7580465211536548
+    },
+    "temp_c": {
+     "bias": 1.2197750476096079,
+     "mae": 1.8308682757480161,
+     "midday_bias": 1.9166331434657413
     }
    },
-   "score": 0.786344726945102
+   "score": 1.4807107165537738
   },
   {
    "calibration": {
     "aCov": 216.6,
-    "aRoof": 7.2,
-    "cLeakage": 0.0001,
-    "etaLampCool": 0.0
+    "aRoof": 26.0,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
    },
    "fit": {
     "co2_kg": {
-     "bias": 0.5765369150857834,
-     "mae": 1.0070499171213219,
-     "mean_abs_relative_error_pct": 19.554637442699548,
-     "simulated_over_measured_total": 1.1033434353786664
+     "bias": 0.877143541205865,
+     "mae": 1.202156687056247,
+     "mean_abs_relative_error_pct": 21.918942113779522,
+     "simulated_over_measured_total": 1.1572267525227515
     },
     "days": 78,
     "electricity_kwh": {
@@ -2345,27 +3627,113 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 29.761881781418463,
-     "mae": 30.14215852636071,
-     "mean_abs_relative_error_pct": 116.9571244074442,
-     "simulated_over_measured_total": 1.6997543861351234
+     "bias": -6.937372913502984,
+     "mae": 14.292513744360631,
+     "mean_abs_relative_error_pct": 41.59777656568389,
+     "simulated_over_measured_total": 0.8368901146731397
+    },
+    "temp_c": {
+     "bias": 0.5668985500210044,
+     "mae": 1.4520707128818866,
+     "midday_bias": 0.5938407650156915
     }
    },
-   "score": 0.9385264762343215
+   "score": 1.4126045270135716
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 52.2,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 2.812526106194018,
+     "mae": 2.9799269705959475,
+     "mean_abs_relative_error_pct": 52.590025906068746,
+     "simulated_over_measured_total": 1.5041413694438412
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -0.2559385069047313,
+     "mae": 14.177140289472694,
+     "mean_abs_relative_error_pct": 49.685673677755645,
+     "simulated_over_measured_total": 0.993982433835911
+    },
+    "temp_c": {
+     "bias": -0.12652529848267155,
+     "mae": 1.3785564504797287,
+     "midday_bias": -0.7978770723913464
+    }
+   },
+   "score": 1.9661300212279675
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 5e-06,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": -0.14693864287876182,
+     "mae": 0.8822226809294179,
+     "mean_abs_relative_error_pct": 16.230118347422763,
+     "simulated_over_measured_total": 0.9736614538503386
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -9.917013299510536,
+     "mae": 15.20620209333692,
+     "mean_abs_relative_error_pct": 41.28611871607571,
+     "simulated_over_measured_total": 0.766833508557733
+    },
+    "temp_c": {
+     "bias": 1.0049491134124622,
+     "mae": 1.6760178202577443,
+     "midday_bias": 1.4677896728678643
+    }
+   },
+   "score": 1.4362071789720832
   },
   {
    "calibration": {
     "aCov": 216.6,
     "aRoof": 17.4,
     "cLeakage": 1e-05,
-    "etaLampCool": 0.0
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
    },
    "fit": {
     "co2_kg": {
-     "bias": 0.024143768519492213,
-     "mae": 0.8048397381905876,
-     "mean_abs_relative_error_pct": 14.898181894486266,
-     "simulated_over_measured_total": 1.0043277367268324
+     "bias": -0.06737056497259641,
+     "mae": 0.8274371748417452,
+     "mean_abs_relative_error_pct": 15.333170380479606,
+     "simulated_over_measured_total": 0.9879239204888831
     },
     "days": 78,
     "electricity_kwh": {
@@ -2376,27 +3744,35 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 25.477755458956242,
-     "mae": 26.07629182506135,
-     "mean_abs_relative_error_pct": 108.788742821645,
-     "simulated_over_measured_total": 1.5990270125464159
+     "bias": -9.64585676908239,
+     "mae": 15.034940303810881,
+     "mean_abs_relative_error_pct": 41.0210260956313,
+     "simulated_over_measured_total": 0.7732088773227133
+    },
+    "temp_c": {
+     "bias": 0.9793226718053536,
+     "mae": 1.6615746939453961,
+     "midday_bias": 1.42142272329738
     }
    },
-   "score": 0.7898057492314228
+   "score": 1.4072985446628308
   },
   {
    "calibration": {
     "aCov": 216.6,
     "aRoof": 17.4,
     "cLeakage": 3e-05,
-    "etaLampCool": 0.0
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
    },
    "fit": {
     "co2_kg": {
-     "bias": 0.39978247513986503,
-     "mae": 0.7895664489898833,
-     "mean_abs_relative_error_pct": 15.246617429648799,
-     "simulated_over_measured_total": 1.0716604493209123
+     "bias": 0.3119040725142558,
+     "mae": 0.8090215530113465,
+     "mean_abs_relative_error_pct": 15.425211237508664,
+     "simulated_over_measured_total": 1.055908368603637
     },
     "days": 78,
     "electricity_kwh": {
@@ -2407,27 +3783,35 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 27.211655099667833,
-     "mae": 27.72964791278753,
-     "mean_abs_relative_error_pct": 113.07323992979812,
-     "simulated_over_measured_total": 1.6397940543489806
+     "bias": -8.591297520047995,
+     "mae": 14.505077984625377,
+     "mean_abs_relative_error_pct": 40.37973987655563,
+     "simulated_over_measured_total": 0.7980034271220441
+    },
+    "temp_c": {
+     "bias": 0.8795682547608691,
+     "mae": 1.6105139384412335,
+     "midday_bias": 1.2393720024467534
     }
    },
-   "score": 0.8177817745857117
+   "score": 1.3650323799169066
   },
   {
    "calibration": {
     "aCov": 216.6,
     "aRoof": 17.4,
-    "cLeakage": 0.0001,
-    "etaLampCool": 0.0
+    "cLeakage": 5e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
    },
    "fit": {
     "co2_kg": {
-     "bias": 1.5985639727361236,
-     "mae": 1.6584180022258654,
-     "mean_abs_relative_error_pct": 31.79814425169484,
-     "simulated_over_measured_total": 1.2865403555131236
+     "bias": 0.6539008332093693,
+     "mae": 0.9405183507029091,
+     "mean_abs_relative_error_pct": 18.158244897946677,
+     "simulated_over_measured_total": 1.1172108094600912
     },
     "days": 78,
     "electricity_kwh": {
@@ -2438,27 +3822,737 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 33.50271716435951,
-     "mae": 33.7317022563371,
-     "mean_abs_relative_error_pct": 128.91359811865564,
-     "simulated_over_measured_total": 1.7877080305399868
+     "bias": -7.286989233587014,
+     "mae": 13.815272031308956,
+     "mean_abs_relative_error_pct": 39.34499434088111,
+     "simulated_over_measured_total": 0.8286700177303461
+    },
+    "temp_c": {
+     "bias": 0.7849959712422487,
+     "mae": 1.569208188749784,
+     "midday_bias": 1.066885604287824
     }
    },
-   "score": 1.2274400458686974
+   "score": 1.3744156519020407
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.45,
+    "tauThScrFir": 0.05
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.24516577456205005,
+     "mae": 0.8174905179610559,
+     "mean_abs_relative_error_pct": 15.739770516407717,
+     "simulated_over_measured_total": 1.0439456220713015
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -11.235914712845876,
+     "mae": 14.893197957570642,
+     "mean_abs_relative_error_pct": 38.778886942492335,
+     "simulated_over_measured_total": 0.7358238077720314
+    },
+    "temp_c": {
+     "bias": 1.503906266599299,
+     "mae": 2.0520771568741867,
+     "midday_bias": 2.800380222287952
+    }
+   },
+   "score": 1.5963993769088582
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.57,
+    "tauThScrFir": 0.05
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.26613233862479785,
+     "mae": 0.8130539671498768,
+     "mean_abs_relative_error_pct": 15.612793409575639,
+     "simulated_over_measured_total": 1.047703849344587
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -10.54693006197762,
+     "mae": 14.735582364273128,
+     "mean_abs_relative_error_pct": 38.93535225981735,
+     "simulated_over_measured_total": 0.752023053336062
+    },
+    "temp_c": {
+     "bias": 1.3212818335688685,
+     "mae": 1.9083002550224946,
+     "midday_bias": 2.343011304333677
+    }
+   },
+   "score": 1.5198797638466688
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.7,
+    "tauThScrFir": 0.05
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.29100013143237274,
+     "mae": 0.8194608637788271,
+     "mean_abs_relative_error_pct": 15.588837201142574,
+     "simulated_over_measured_total": 1.0521613664120535
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -9.697616023243954,
+     "mae": 14.593683911435669,
+     "mean_abs_relative_error_pct": 39.317442797880226,
+     "simulated_over_measured_total": 0.7719919258749303
+    },
+    "temp_c": {
+     "bias": 1.1189691489748133,
+     "mae": 1.7600796131836356,
+     "midday_bias": 1.8379200577532104
+    }
+   },
+   "score": 1.44506710608014
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.00025,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.3492028188814103,
+     "mae": 0.794530732892589,
+     "mean_abs_relative_error_pct": 15.121852353109716,
+     "simulated_over_measured_total": 1.0625941167041308
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -6.324066452382445,
+     "mae": 13.455974193203932,
+     "mean_abs_relative_error_pct": 39.17839859883443,
+     "simulated_over_measured_total": 0.8513100323841921
+    },
+    "temp_c": {
+     "bias": 0.7683766794170762,
+     "mae": 1.548071860774628,
+     "midday_bias": 1.2016241767263822
+    }
+   },
+   "score": 1.3079989918822557
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.0005,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.413000327711261,
+     "mae": 0.7866125203262219,
+     "mean_abs_relative_error_pct": 15.191788832610415,
+     "simulated_over_measured_total": 1.0740297309008326
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -3.1294552073691904,
+     "mae": 12.449119219364736,
+     "mean_abs_relative_error_pct": 39.030826632785924,
+     "simulated_over_measured_total": 0.9264209829320259
+    },
+    "temp_c": {
+     "bias": 0.6263487563598542,
+     "mae": 1.4939944320169933,
+     "midday_bias": 1.1582539714095939
+    }
+   },
+   "score": 1.2581837738378654
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.001,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.45487184149988324,
+     "mae": 0.8074157922315236,
+     "mean_abs_relative_error_pct": 15.668416294710369,
+     "simulated_over_measured_total": 1.0815351411637253
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -0.4457882681081881,
+     "mae": 12.216957416653525,
+     "mean_abs_relative_error_pct": 41.65592712746565,
+     "simulated_over_measured_total": 0.9895187307648318
+    },
+    "temp_c": {
+     "bias": 0.5473186034083033,
+     "mae": 1.4834778285434091,
+     "midday_bias": 1.1190714160397521
+    }
+   },
+   "score": 1.255216660015283
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.4683909109200465,
+     "mae": 0.8154998175613376,
+     "mean_abs_relative_error_pct": 15.840247847217157,
+     "simulated_over_measured_total": 1.0839584154423456
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 1.1863133740308955,
+     "mae": 12.094691351596232,
+     "mean_abs_relative_error_pct": 44.15279223983681,
+     "simulated_over_measured_total": 1.0278923218936762
+    },
+    "temp_c": {
+     "bias": 0.4949740955123198,
+     "mae": 1.4694973138153031,
+     "midday_bias": 1.0866067369575179
+    }
+   },
+   "score": 1.2484757564600222
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.15
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.454293918895217,
+     "mae": 0.82340485010795,
+     "mean_abs_relative_error_pct": 16.009587460562386,
+     "simulated_over_measured_total": 1.0814315493454283
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 2.5474881250453687,
+     "mae": 12.01820419178002,
+     "mean_abs_relative_error_pct": 45.007928769277875,
+     "simulated_over_measured_total": 1.059895943483002
+    },
+    "temp_c": {
+     "bias": 0.4403733074070722,
+     "mae": 1.4557424237670384,
+     "midday_bias": 1.0700731885535089
+    }
+   },
+   "score": 1.2427035790884364
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.46631015018644933,
+     "mae": 0.815362282923441,
+     "mean_abs_relative_error_pct": 15.87435365607913,
+     "simulated_over_measured_total": 1.0835854419921043
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 4.387890653256603,
+     "mae": 12.287832519570939,
+     "mean_abs_relative_error_pct": 47.01539264263967,
+     "simulated_over_measured_total": 1.1031670562045781
+    },
+    "temp_c": {
+     "bias": 0.3662915572821242,
+     "mae": 1.4409388898444653,
+     "midday_bias": 1.0521037049578812
+    }
+   },
+   "score": 1.2380135229547984
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.5
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.46641674246738607,
+     "mae": 0.8109288486982573,
+     "mean_abs_relative_error_pct": 15.739898793865054,
+     "simulated_over_measured_total": 1.0836045485093257
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 6.545665865302267,
+     "mae": 13.017487471367438,
+     "mean_abs_relative_error_pct": 50.41700596432829,
+     "simulated_over_measured_total": 1.153900161053658
+    },
+    "temp_c": {
+     "bias": 0.27688439920587093,
+     "mae": 1.4272054368359404,
+     "midday_bias": 1.0282620426732256
+    }
+   },
+   "score": 1.2442620840780716
+  },
+  {
+   "calibration": {
+    "aCov": 140.0,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.427783380529704,
+     "mae": 0.8042287249759356,
+     "mean_abs_relative_error_pct": 15.600382771713234,
+     "simulated_over_measured_total": 1.0766795724351168
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -6.280046309839334,
+     "mae": 14.866287086623789,
+     "mean_abs_relative_error_pct": 44.46503092979303,
+     "simulated_over_measured_total": 0.8523450236542018
+    },
+    "temp_c": {
+     "bias": 1.417773137022966,
+     "mae": 2.1131033740916463,
+     "midday_bias": 2.871705067137368
+    }
+   },
+   "score": 1.6219536704369442
+  },
+  {
+   "calibration": {
+    "aCov": 156.0,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.44273552929722076,
+     "mae": 0.8065155777452031,
+     "mean_abs_relative_error_pct": 15.713056596142279,
+     "simulated_over_measured_total": 1.0793597241816844
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -4.305361915593228,
+     "mae": 14.002923719120503,
+     "mean_abs_relative_error_pct": 44.02905574475061,
+     "simulated_over_measured_total": 0.898773340124735
+    },
+    "temp_c": {
+     "bias": 1.1517155282942315,
+     "mae": 1.9181472538118676,
+     "midday_bias": 2.410473037051339
+    }
+   },
+   "score": 1.5079706272034117
+  },
+  {
+   "calibration": {
+    "aCov": 180.0,
+    "aRoof": 17.4,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.44197585171127457,
+     "mae": 0.8007269396568335,
+     "mean_abs_relative_error_pct": 15.618111200091503,
+     "simulated_over_measured_total": 1.0792235530372918
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -1.009384049238743,
+     "mae": 12.94191824207729,
+     "mean_abs_relative_error_pct": 44.614293814255156,
+     "simulated_over_measured_total": 0.9762675989059723
+    },
+    "temp_c": {
+     "bias": 0.7997893524645413,
+     "mae": 1.6817104010160822,
+     "midday_bias": 1.7963977969405978
+    }
+   },
+   "score": 1.3666025452351982
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 7.2,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": -0.6796015555155728,
+     "mae": 0.8949464290019992,
+     "mean_abs_relative_error_pct": 15.191996420487875,
+     "simulated_over_measured_total": 0.8781823720251892
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 0.7051001361406019,
+     "mae": 11.571212105459786,
+     "mean_abs_relative_error_pct": 41.377398561226556,
+     "simulated_over_measured_total": 1.0165781490751333
+    },
+    "temp_c": {
+     "bias": 0.9689468510045638,
+     "mae": 1.8225388427490514,
+     "midday_bias": 2.2618652817326717
+    }
+   },
+   "score": 1.4410091398177212
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 12.0,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": -0.09956020000843566,
+     "mae": 0.6764848838573577,
+     "mean_abs_relative_error_pct": 12.730878681527846,
+     "simulated_over_measured_total": 0.9821539734462134
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 2.504152798747549,
+     "mae": 11.749575217134888,
+     "mean_abs_relative_error_pct": 43.84190381761849,
+     "simulated_over_measured_total": 1.0588770534519814
+    },
+    "temp_c": {
+     "bias": 0.6508585322022106,
+     "mae": 1.6020907029382174,
+     "midday_bias": 1.6247309204655829
+    }
+   },
+   "score": 1.2615318170975924
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 26.0,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 1.242470117303096,
+     "mae": 1.3603102741183928,
+     "mean_abs_relative_error_pct": 25.56988465701507,
+     "simulated_over_measured_total": 1.2227110301485757
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 7.312612062422,
+     "mae": 13.576649779353447,
+     "mean_abs_relative_error_pct": 53.42898769894093,
+     "simulated_over_measured_total": 1.1719324202134007
+    },
+    "temp_c": {
+     "bias": 0.01469438673763888,
+     "mae": 1.3044201717417439,
+     "midday_bias": 0.33248042905432557
+    }
+   },
+   "score": 1.377179839497405
   },
   {
    "calibration": {
     "aCov": 216.6,
     "aRoof": 52.2,
+    "cLeakage": 3e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 3.2963967795843088,
+     "mae": 3.42871805601461,
+     "mean_abs_relative_error_pct": 61.9947533893131,
+     "simulated_over_measured_total": 1.5908745106507676
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 16.0242589603843,
+     "mae": 19.237034407971496,
+     "mean_abs_relative_error_pct": 77.71721756257567,
+     "simulated_over_measured_total": 1.3767586194463926
+    },
+    "temp_c": {
+     "bias": -0.6621989120869886,
+     "mae": 1.3251090264133558,
+     "midday_bias": -1.0267462953746829
+    }
+   },
+   "score": 2.1902012200376446
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 5e-06,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": -0.019291932327989095,
+     "mae": 0.8457899920818235,
+     "mean_abs_relative_error_pct": 15.536147131032095,
+     "simulated_over_measured_total": 0.996541948122141
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 2.594591253837544,
+     "mae": 12.085826871163999,
+     "mean_abs_relative_error_pct": 45.836486822066874,
+     "simulated_over_measured_total": 1.061003421202828
+    },
+    "temp_c": {
+     "bias": 0.4871034524549446,
+     "mae": 1.4897134456709225,
+     "midday_bias": 1.2773748761364538
+    }
+   },
+   "score": 1.268503257619349
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
     "cLeakage": 1e-05,
-    "etaLampCool": 0.0
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
    },
    "fit": {
     "co2_kg": {
-     "bias": 2.8685861636881222,
-     "mae": 3.0140210057862498,
-     "mean_abs_relative_error_pct": 54.239601044675815,
-     "simulated_over_measured_total": 1.5141900563143156
+     "bias": 0.07588080220511446,
+     "mae": 0.829816979412465,
+     "mean_abs_relative_error_pct": 15.449119942585662,
+     "simulated_over_measured_total": 1.0136015276281123
     },
     "days": 78,
     "electricity_kwh": {
@@ -2469,27 +4563,35 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 38.28476022953017,
-     "mae": 38.46572755267254,
-     "mean_abs_relative_error_pct": 151.10164774042005,
-     "simulated_over_measured_total": 1.9001423058360276
+     "bias": 2.9072127611112486,
+     "mae": 12.017087179285442,
+     "mean_abs_relative_error_pct": 45.86246315704861,
+     "simulated_over_measured_total": 1.06835370478105
+    },
+    "temp_c": {
+     "bias": 0.4623232213010815,
+     "mae": 1.4786449285144467,
+     "midday_bias": 1.2311521502437754
     }
    },
-   "score": 1.7739882196488672
+   "score": 1.2562698676470871
   },
   {
    "calibration": {
     "aCov": 216.6,
-    "aRoof": 52.2,
-    "cLeakage": 3e-05,
-    "etaLampCool": 0.0
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
    },
    "fit": {
     "co2_kg": {
-     "bias": 3.193620812938236,
-     "mae": 3.3339488060996736,
-     "mean_abs_relative_error_pct": 60.06462674584656,
-     "simulated_over_measured_total": 1.572452062426463
+     "bias": 0.26046832217554994,
+     "mae": 0.790493761359676,
+     "mean_abs_relative_error_pct": 15.017880204554157,
+     "simulated_over_measured_total": 1.0466885823207586
     },
     "days": 78,
     "electricity_kwh": {
@@ -2500,27 +4602,35 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 40.186673225221675,
-     "mae": 40.31217172107374,
-     "mean_abs_relative_error_pct": 156.28822242306418,
-     "simulated_over_measured_total": 1.9448596382465548
+     "bias": 3.5716715260744683,
+     "mae": 12.023531552040525,
+     "mean_abs_relative_error_pct": 46.11093431544638,
+     "simulated_over_measured_total": 1.0839763034662993
+    },
+    "temp_c": {
+     "bias": 0.4136163481959591,
+     "mae": 1.4584387610440916,
+     "midday_bias": 1.139600450238611
     }
    },
-   "score": 1.9175597031213658
+   "score": 1.2331879320160817
   },
   {
    "calibration": {
     "aCov": 216.6,
-    "aRoof": 52.2,
-    "cLeakage": 0.0001,
-    "etaLampCool": 0.0
+    "aRoof": 17.4,
+    "cLeakage": 5e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
    },
    "fit": {
     "co2_kg": {
-     "bias": 4.191092079951593,
-     "mae": 4.335852469080059,
-     "mean_abs_relative_error_pct": 78.55694252339374,
-     "simulated_over_measured_total": 1.7512473914460003
+     "bias": 0.831790275651582,
+     "mae": 0.9633681298766339,
+     "mean_abs_relative_error_pct": 18.992078270501434,
+     "simulated_over_measured_total": 1.1490972431272897
     },
     "days": 78,
     "electricity_kwh": {
@@ -2531,16 +4641,420 @@
     },
     "failed_days": [],
     "heating_kwh": {
-     "bias": 46.874634120885446,
-     "mae": 46.874634120885446,
-     "mean_abs_relative_error_pct": 174.80098527242203,
-     "simulated_over_measured_total": 2.102105406689959
+     "bias": 5.828271759916116,
+     "mae": 12.792703558785227,
+     "mean_abs_relative_error_pct": 48.85668401361746,
+     "simulated_over_measured_total": 1.1370329590562065
+    },
+    "temp_c": {
+     "bias": 0.2748540256947197,
+     "mae": 1.412984198705422,
+     "midday_bias": 0.8822584870330292
     }
    },
-   "score": 2.382776838777729
+   "score": 1.2834688804872934
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.45,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.20276525943591164,
+     "mae": 0.8011603179109446,
+     "mean_abs_relative_error_pct": 15.498405683645709,
+     "simulated_over_measured_total": 1.0363453890588008
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 0.4469602889080018,
+     "mae": 11.146795329734527,
+     "mean_abs_relative_error_pct": 41.0306858443003,
+     "simulated_over_measured_total": 1.0105088255134071
+    },
+    "temp_c": {
+     "bias": 1.033657370894045,
+     "mae": 1.895593191942258,
+     "midday_bias": 2.7100874653025557
+    }
+   },
+   "score": 1.4377859418694676
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.57,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.2338464275173819,
+     "mae": 0.7856270591860953,
+     "mean_abs_relative_error_pct": 15.007240255190364,
+     "simulated_over_measured_total": 1.0419166449507895
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 1.3718582786820779,
+     "mae": 11.38713823737876,
+     "mean_abs_relative_error_pct": 42.452151778848815,
+     "simulated_over_measured_total": 1.032254810186864
+    },
+    "temp_c": {
+     "bias": 0.8516116151612718,
+     "mae": 1.753960061124246,
+     "midday_bias": 2.2513438722822388
+    }
+   },
+   "score": 1.3665984817050634
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.002,
+    "tauRfNir": 0.7,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.2500922427096357,
+     "mae": 0.7975997051378122,
+     "mean_abs_relative_error_pct": 15.165639657051303,
+     "simulated_over_measured_total": 1.0448286845939834
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 2.288232135359401,
+     "mae": 11.551374867139698,
+     "mean_abs_relative_error_pct": 43.964531156427306,
+     "simulated_over_measured_total": 1.053800377441616
+    },
+    "temp_c": {
+     "bias": 0.651117141472649,
+     "mae": 1.6069436647868198,
+     "midday_bias": 1.7435728681189369
+    }
+   },
+   "score": 1.3003658981154746
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.000125,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.11599341687919071,
+     "mae": 0.8195346316750349,
+     "mean_abs_relative_error_pct": 15.433399191083144,
+     "simulated_over_measured_total": 1.0207916576856513
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -5.334928171562654,
+     "mae": 13.020705799024821,
+     "mean_abs_relative_error_pct": 38.73960517038022,
+     "simulated_over_measured_total": 0.874566419718206
+    },
+    "temp_c": {
+     "bias": 0.743267083057652,
+     "mae": 1.5397400655383038,
+     "midday_bias": 1.2707883391421062
+    }
+   },
+   "score": 1.3034623593079933
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.00025,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.17666125795436455,
+     "mae": 0.7765906189587013,
+     "mean_abs_relative_error_pct": 14.477502199465338,
+     "simulated_over_measured_total": 1.0316662833161416
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -3.3948103595282157,
+     "mae": 12.402035869621026,
+     "mean_abs_relative_error_pct": 38.67575946257283,
+     "simulated_over_measured_total": 0.9201820148126529
+    },
+    "temp_c": {
+     "bias": 0.6489138881280564,
+     "mae": 1.498567240708573,
+     "midday_bias": 1.2398163621038454
+    }
+   },
+   "score": 1.2561878773996074
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.0005,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.2245856091446933,
+     "mae": 0.7966274445695003,
+     "mean_abs_relative_error_pct": 15.047072874457516,
+     "simulated_over_measured_total": 1.04025665621458
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -0.3624507810797408,
+     "mae": 11.845308230404669,
+     "mean_abs_relative_error_pct": 40.009404223543946,
+     "simulated_over_measured_total": 0.991478142219589
+    },
+    "temp_c": {
+     "bias": 0.5280469597829379,
+     "mae": 1.4659604936668322,
+     "midday_bias": 1.2021414826874044
+    }
+   },
+   "score": 1.2354288929646762
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.001,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.3
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.25274208438802354,
+     "mae": 0.7885862250186901,
+     "mean_abs_relative_error_pct": 14.972416208692456,
+     "simulated_over_measured_total": 1.0453036650073597
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 2.1126383661804167,
+     "mae": 11.84795890666857,
+     "mean_abs_relative_error_pct": 42.89221002095839,
+     "simulated_over_measured_total": 1.0496718579123938
+    },
+    "temp_c": {
+     "bias": 0.45823202292803694,
+     "mae": 1.4644853112364755,
+     "midday_bias": 1.1681367540767051
+    }
+   },
+   "score": 1.2320639087578393
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.001,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.05
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.2456937260010185,
+     "mae": 0.7881100770102188,
+     "mean_abs_relative_error_pct": 14.954169161509748,
+     "simulated_over_measured_total": 1.0440402566280633
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": -1.0293081930904522,
+     "mae": 12.380497249362085,
+     "mean_abs_relative_error_pct": 41.746937960169056,
+     "simulated_over_measured_total": 0.9757991471073726
+    },
+    "temp_c": {
+     "bias": 0.5959912428149479,
+     "mae": 1.505470997621529,
+     "midday_bias": 1.2080784623235723
+    }
+   },
+   "score": 1.2630488028014124
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.001,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.15
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.25213427114409775,
+     "mae": 0.7861515048501312,
+     "mean_abs_relative_error_pct": 14.931612913321452,
+     "simulated_over_measured_total": 1.0451947153337964
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 0.318103373531287,
+     "mae": 12.094985522325734,
+     "mean_abs_relative_error_pct": 42.13186806943263,
+     "simulated_over_measured_total": 1.0074791719323293
+    },
+    "temp_c": {
+     "bias": 0.538184017367513,
+     "mae": 1.4868282669629795,
+     "midday_bias": 1.1914406663128454
+    }
+   },
+   "score": 1.2473643455447148
+  },
+  {
+   "calibration": {
+    "aCov": 216.6,
+    "aRoof": 17.4,
+    "cLeakage": 2e-05,
+    "etaLampCool": 0.0,
+    "kThScr": 0.001,
+    "tauRfNir": 0.85,
+    "tauThScrFir": 0.5
+   },
+   "fit": {
+    "co2_kg": {
+     "bias": 0.2601751663348465,
+     "mae": 0.7839193997470219,
+     "mean_abs_relative_error_pct": 14.860963363965812,
+     "simulated_over_measured_total": 1.0466360345464754
+    },
+    "days": 78,
+    "electricity_kwh": {
+     "bias": 3.2846173806350865,
+     "mae": 3.352005950899769,
+     "mean_abs_relative_error_pct": 1.8788563598160872,
+     "simulated_over_measured_total": 1.023472919457886
+    },
+    "failed_days": [],
+    "heating_kwh": {
+     "bias": 4.371426085660436,
+     "mae": 12.066708903853263,
+     "mean_abs_relative_error_pct": 45.282530037654254,
+     "simulated_over_measured_total": 1.1027799451517268
+    },
+    "temp_c": {
+     "bias": 0.3626006131413313,
+     "mae": 1.4435264942737727,
+     "midday_bias": 1.1398262167384483
+    }
+   },
+   "score": 1.224403891796292
   }
  ],
  "split": "even ISO weeks fit, odd ISO weeks test",
+ "start": {
+  "aCov": 180.0,
+  "aRoof": 17.4,
+  "cLeakage": 2e-05,
+  "kThScr": 0.000125,
+  "tauRfNir": 0.85,
+  "tauThScrFir": 0.05
+ },
+ "temperature_definition": "hourly mean of measured Tair against simulated air temperature",
  "test_days": [
   "2019-12-16",
   "2019-12-17",

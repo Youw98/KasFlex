@@ -1,5 +1,8 @@
 # KasFlex — Apple-style workspace
 
+> **Historical.** Early design notes, kept for reference. The current interface and
+> run steps are in the [README](../../README.md) and [USAGE.md](../USAGE.md).
+
 The interface follows the supplied apple-design_SKILL.md: platform typography, quiet translucent navigation, clear hierarchy, immediate press feedback, reversible spring motion, and reduced-motion/transparency/contrast preferences. The requirements Markdown defines the research scope.
 
 ## Run locally
@@ -40,11 +43,11 @@ UI source: `src/kasflex/ui/static/index.html`, `design.css`, and `app.js`. The W
 
 ## MVP functionality update
 
-See MVP-NEXT.md for the prioritized add/change/remove list and forecasting architecture. Configuration now has five sections, saves preferences locally, discards unsaved changes on close, exposes data mode/site/gas assumptions, and checks/downloads available real inputs. The browser can run cached external inputs without falling back to demo data. Full real-price acquisition needs an ENTSO-E token. A live Open-Meteo request succeeded; reliable future cost intervals and real-history training remain roadmap work.
+See [MVP_NEXT.md](MVP_NEXT.md) for the prioritized add/change/remove list and forecasting architecture. Configuration now has five sections, saves preferences locally, discards unsaved changes on close, exposes data mode/site/gas assumptions, and checks/downloads available real inputs. The browser can run cached external inputs without falling back to demo data. Full real-price acquisition needs an ENTSO-E token. A live Open-Meteo request succeeded; reliable future cost intervals and real-history training remain roadmap work.
 
 ## API configuration and saved reviews
 
-Configuration now includes a sixth section, APIs. It lists the implemented ENTSO-E and Open-Meteo connectors, their endpoints and key requirements. ENTSO-E keys can be saved, replaced or removed in the interface and are kept in the local `.env` file. See API-SETUP.md. Browser checks cover key controls, clearing secret inputs, exclusion from localStorage and mobile layout. UI mutation checks use fixtures rather than overwriting user credentials; they do not validate a live ENTSO-E token.
+Configuration now includes a sixth section, APIs. It lists the implemented ENTSO-E and Open-Meteo connectors, their endpoints and key requirements. ENTSO-E keys can be saved, replaced or removed in the interface and are kept in the local `.env` file. See [API_SETUP.md](../API_SETUP.md). Browser checks cover key controls, clearing secret inputs, exclusion from localStorage and mobile layout. UI mutation checks use fixtures rather than overwriting user credentials; they do not validate a live ENTSO-E token.
 
 History reopens saved simulated plans and review decisions. The local SQLite store at `results/reviews.sqlite3` retains immutable input snapshots, plan revisions and decisions. Approval is bound to the latest saved revision and plan hash; stale references and conflicting decisions are rejected. Editing and re-verifying creates a new revision with explicit checking enabled. Research timing is recorded only when the user opts in. This records review of simulated previews; it does not yet gate physical or simulation execution. Local results and credentials are excluded from the distribution archive.
 

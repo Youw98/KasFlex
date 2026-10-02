@@ -75,7 +75,13 @@ async function unlock(event) {
   }
 }
 async function start() {
-  try { await api("/api/site-settings"); } catch { return; }
+  let settings;
+  try { settings = await api("/api/site-settings"); } catch { return; }
+  // The default password is published: anyone who read the README can open settings.
+  $("default-password").hidden = !settings.default_password;
+  $("default-password").textContent = T(
+    "The settings password is still the default (admin99). Before a workshop, set KASFLEX_ADMIN_PASSWORD to your own and restart KasFlex.",
+    "Het wachtwoord is nog het standaardwachtwoord (admin99). Stel vóór een workshop KASFLEX_ADMIN_PASSWORD in op een eigen wachtwoord en start KasFlex opnieuw.");
   $("login-main").hidden = true;
   $("workspace").hidden = false;
   await load();

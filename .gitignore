@@ -21,3 +21,6 @@ data/raw/
 traces/*.jsonl
 .env
 .claude/
+
+# axe-core for the browser tests (npm install --no-save axe-core@4)
+node_modules

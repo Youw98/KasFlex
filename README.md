@@ -8,689 +8,334 @@
 
 **AI-assisted greenhouse energy planning with an independent safety check and a human-in-the-loop.**
 
-KasFlex creates a checked 24-hour greenhouse energy plan and then **negotiates it
-with the grower dimension by dimension**: money, crop protection, grid impact and
-practical fit. A disagreement gets a specific alternative rather than a silent
-whole-plan regeneration.
+KasFlex makes a checked 24-hour energy plan for a Dutch greenhouse and then
+**negotiates it with the grower part by part**: money, crop, grid and practical fit.
+A disagreement needs a short reason, and KasFlex answers with a specific alternative
+and remembers the reason for later plans. Nothing is approved until a person agrees
+and a deterministic checker passes the plan. It is a research testbed for studying
+how growers work with an AI advisor in workshops.
 
-> **Simulation only — alpha research software.** The demo can use real historical
-> Dutch electricity prices and weather. Greenhouse climate, heat demand, crop
-> response, and asset behavior are simulated and **not validated for operational use**.
-
-[**Download the latest release**](https://github.com/Youw98/KasFlex/releases/latest)
-· [Usage guide](docs/USAGE.md)
-· [Architecture](docs/ARCHITECTURE.md)
-· [Data & provenance](docs/DATA.md)
-· [Parameters](docs/PARAMETERS.md)
-· [Validation](docs/VALIDATION.md)
-· [Calibration](docs/CALIBRATION.md)
-· [Grower usability test](docs/USABILITY_TEST.md)
-· [MCP integration](docs/MCP.md)
-
----
-
-## Try the team demo
-
-1. Download the file for your operating system from
-   [Releases](https://github.com/Youw98/KasFlex/releases).
-2. Start KasFlex. The browser opens the grower workspace at `/`.
-3. KasFlex opens on a **workshop scenario**: a fixed day with a short story
-   ("It's Monday morning in January…"), no network needed. Behind ⚙ (password),
-   **Demo data** also offers **Showcase (offline)**, a fixed synthetic winter day,
-   and **Real historical**, a cached or downloaded Dutch market and weather day.
-4. **KasFlex goes first.** It plans tomorrow four ways (balanced, lowest cost,
-   crop first, grid relief), compares them with normal control, and suggests one
-   with its reasons in numbers. Click **Plan with this suggestion**, or **I choose
-   differently** to set the priority, battery reserve and operating preferences
-   yourself.
-5. Optionally open **Your own targets and goals**: a maximum grid import (a hard
-   limit the check enforces), heating temperatures for day and night (the heat the
-   plan must deliver, so a warmer target costs more), a light target, a day budget,
-   and up to five named goals such as "at most 6 equipment switches".
-6. The plan appears as charts: price, grid import against the contract limit,
-   battery and heat buffer, heat source, lamps and CHP, hour by hour (point at an
-   hour for the details), plus a cost donut. The grid contract is a badge, not a
-   question: a plan over the limit is never approved.
-7. Respond to **saves money**, **protects the crop**, **fits how I work** (equipment
-   switches, CHP hours and night hours, hours that differ from normal) and, if you
-   set any, **meets my goals**. **Disagree** needs a short reason ("CHP maintenance
-   8–14", "max 1.5 MW from 16 to 20", "we always have few staff"). KasFlex turns it
-   into a plan change, shows the trade-off, and remembers it; a reason phrased as a
-   rule comes back in later plans. A one-off reason ("only two staff tomorrow") is
-   offered again with one click (↻) in the next suggestion, first when the day looks
-   alike: the same weekday, a cold night again, or a lowered grid limit again.
-8. **Why this plan?** shows which inputs the plan leans on (a what-if graph);
-   **Week outlook** estimates a week of such days; in the chat version **Ask
-   KasFlex** answers questions about the plan, with or without an AI model.
-9. Approval unlocks once every part has your view and the plan passes the check.
-   In a scenario, KasFlex then tells you how the day really went, and whether there
-   was a trap.
+> **Simulation only — alpha research software.** KasFlex never switches equipment.
+> It can use real historical Dutch electricity prices and weather, but greenhouse
+> climate, heat demand, crop response and asset behaviour are simulated and **not
+> validated for operational use**.
 
 ![KasFlex grower workspace: the scenario story, tomorrow's prices and weather, and KasFlex's suggestion](docs/ui-grower-prepare.png)
 
-_Step 1: the scenario story, tomorrow's prices, temperature and grid contract, and
-KasFlex's suggestion compared with the other options and normal control._
+---
 
-![KasFlex decision screen: cost, crop, grid peak and work; the 24-hour plan as charts; the cost donut; and the grower's view on each part](docs/ui-grower-decision.png)
+## Quick start
 
-_Step 2: the checked plan as charts, with the grower's view on money, crop, work and
-own goals. A disagreement needs a reason; KasFlex adjusts the plan and remembers._
+**Downloaded app.** Get `KasFlex-windows.exe`, `KasFlex-macos` or `KasFlex-linux`
+from [Releases](https://github.com/Youw98/KasFlex/releases/latest). On macOS and
+Linux, run `chmod +x <filename>` once. Start it and the browser opens the grower
+workspace.
 
-The default showcase is intentionally synthetic and deterministic so a team
-presentation cannot fail because of Wi-Fi or an external API. It is labelled as
-showcase data in the interface. The **Real historical** option keeps the stricter
-research behaviour: prepared input data is cached with provenance and checksums,
-and missing real data is never silently replaced. A separate badge reports the
-greenhouse-model validation state.
-
-The greenhouse model is now calibrated against measured AGC2 compartment data and
-tested on 80 held-out days. Heat error fell from 93 to 22 kWh per day and CO₂ error
-from 3.6 to 1.3 kg per day; heat is close in winter but still about three times too
-high in April–May. The model is therefore still **not validated for operational
-use**. See [validation](docs/VALIDATION.md) and [calibration](docs/CALIBRATION.md).
-
-| Platform | Release file |
-|---|---|
-| Windows | `KasFlex-windows.exe` |
-| macOS | `KasFlex-macos` |
-| Linux | `KasFlex-linux` |
-
-On macOS/Linux, make the downloaded file executable once with
-`chmod +x <filename>`.
-
-### Run from source instead
+**From source** (Python 3.11 or later):
 
 ```bash
 git clone https://github.com/Youw98/KasFlex.git
 cd KasFlex
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-kasflex ui
+kasflex doctor                     # checks the installation
+kasflex ui                         # http://127.0.0.1:8765
 ```
 
-Windows PowerShell:
+No API key or network is needed for the default workshop scenarios.
 
-```powershell
-git clone https://github.com/Youw98/KasFlex.git
-cd KasFlex
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
-kasflex ui
-```
+### API keys
 
----
+All optional. Save them under ⚙ → APIs, or put them in `.env` (copy
+[.env.example](.env.example)). Details: [docs/API_SETUP.md](docs/API_SETUP.md).
 
-## What KasFlex does
-
-```text
-real/synthetic inputs
-        │
-        ▼
- AI suggestion (4 options compared)
-        │
-        ▼
- grower priorities, targets, goals
-        │
-        ▼
- collaborative planner
-        │
-        ▼
- proposed 24h plan
-        │
-        ▼
- deterministic checker
-        │
-        ▼
- dimension-level negotiation (a reason is required to disagree)
-        │
-        ▼
- targeted alternative / keep plan  →  reason remembered
-        │
-        ▼
- re-check + final plan
-        │
-        ▼
- simulated outcome
-```
-
-In practice:
-
-- KasFlex compares four ways to plan tomorrow and suggests one, with reasons;
-- the grower accepts it or chooses the priority, targets and own goals;
-- the collaborative planner proposes when to use lighting, battery, CHP, boiler,
-  heat storage, and other flexible assets;
-- a deterministic checker independently verifies limits, including the grid
-  contract (firm, CBC, time-block, duration or non-firm) as an hourly hard limit;
-- the grower responds separately on money, crop, practical fit and own goals;
-- a disagreement needs a short reason, which KasFlex turns into a specific
-  alternative with a visible trade-off and remembers for later plans;
-- every changed plan is checked again before it can become the final plan;
-- the run records provenance, model identity, timing and deliberation data when
-  research consent allows it.
-
-The planner does **not** get to redefine the constraints that judge its own plan.
-
----
-
-## What is real and what is simulated?
-
-This distinction is central to KasFlex.
-
-| Layer | Current status |
-|---|---|
-| Dutch day-ahead electricity price | **Real data supported** |
-| Weather forecast | **Real data supported** |
-| Realised weather | **Real data supported separately** |
-| Human approve/reject/edit decision | **Observed directly** |
-| Battery / CHP / boiler / buffer dispatch | Simulated |
-| Greenhouse temperature / RH / CO₂ | Simulated |
-| Heat demand | Simulated |
-| Crop response / growth | Simulated |
-
-Using real inputs does **not** make a simulated greenhouse result a measured result.
-
----
-
-## Why this project exists
-
-Dutch greenhouses can contain exactly the kinds of flexible assets that are useful
-during grid congestion: CHP, batteries, heat buffers, controllable lighting, boilers,
-and sometimes PV.
-
-The interesting question is not only:
-
-> Can an AI find a cheaper or more flexible schedule?
-
-It is also:
-
-> Can that schedule be checked independently, explained to a person, changed by that
-> person, and still remain inside the constraints?
-
-KasFlex is a research testbed for that second question.
-
----
-
-## Demo mode vs research-data mode
-
-### Team demo
-
-The grower workspace has two data modes, chosen with **Demo data** in the header:
-
-| Mode | What it uses | Network |
+| What for | Key | Where to get it |
 |---|---|---|
-| **Showcase (offline)**, the default | a fixed, deterministic winter day, labelled as showcase data | none |
-| **Real historical** | a real Dutch day: day-ahead prices from a public mirror of ENTSO-E data, plus Open-Meteo historical forecast weather | Open-Meteo and GitHub, once |
+| AI advice, chat and reading free-text reasons (one is enough) | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `OPENAI_COMPATIBLE_API_KEY` with `OPENAI_COMPATIBLE_BASE_URL` | [Anthropic](https://console.anthropic.com/), [OpenAI](https://platform.openai.com/api-keys), [Google AI Studio](https://aistudio.google.com/app/apikey), or your own server |
+| AI without an account or key | `OLLAMA_BASE_URL` (default `http://localhost:11434`) | [Ollama](https://ollama.com/) on your own machine |
+| Real day-ahead electricity prices | `ENTSOE_API_KEY` | [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/) account |
+| Weather | none | Open-Meteo is public |
 
-Before making a plan, the interface shows the input story: cheap and expensive
-hours, temperature range, daylight and grid limits. Grower priorities then become
-structured planner policy rather than decorative UI settings.
+### A session in the grower workspace
 
-A prepared real day is cached with source metadata and checksums. Reopening it
-reuses the cache; **Refresh** downloads it again. If KasFlex has no cached day and
-cannot reach the source, it stops with an error. It does **not** quietly replace
-real inputs with synthetic ones.
+1. KasFlex opens on a **workshop scenario**: a fixed day with a short story, offline.
+2. **KasFlex goes first.** It plans tomorrow four ways (balanced, lowest cost, crop
+   first, grid relief), compares them with normal control and suggests one with its
+   reasons in numbers. The grower takes it, or chooses the priority, battery reserve,
+   targets and own goals.
+3. The plan appears as hour-by-hour charts (price, grid import against the contract,
+   battery and heat buffer, heat source, lamps and CHP) and a cost donut. Every chart
+   has a "Show as table" twin.
+4. The grower answers **saves money**, **protects the crop**, **fits how I work** and,
+   if set, **meets my goals**. **Disagree** needs a reason ("CHP maintenance 8–14",
+   "max 1.5 MW from 16 to 20"); KasFlex turns it into a plan change and shows the
+   trade-off.
+5. Approval unlocks once every part has an answer and the plan passes the check. In a
+   scenario, KasFlex then tells how the day really went, and whether there was a trap.
 
-### Direct ENTSO-E workflow
-
-For a research run, fetch prices straight from ENTSO-E. This needs two things:
-
-1. **An ENTSO-E token.** Register at
-   [transparency.entsoe.eu](https://transparency.entsoe.eu/), then email
-   transparency@entsoe.eu with the subject "Restful API access". Put the token in
-   `.env` as `ENTSOE_API_KEY`, or save it under **Configuration → APIs** in `/advanced`.
-   Keys stay on your computer and are never shown back.
-2. **Network access** to `web-api.tp.entsoe.eu`, `api.open-meteo.com`,
-   `historical-forecast-api.open-meteo.com` and `archive-api.open-meteo.com`.
-   Sandboxes and company proxies often block these.
-
-`kasflex doctor --network` checks both and names whatever is missing.
-
-```bash
-kasflex doctor --network
-kasflex fetch --date 2026-09-21
-kasflex run --data-source cache --date 2026-09-21
-```
-
-The fetch date and run date must match. After the fetch, the run is cache-only and
-can be replayed offline. `kasflex daily` does fetch, plan and record in one step for
-an unattended job.
-
-### Synthetic mode
-
-Synthetic data still exists intentionally for:
-
-- deterministic tests;
-- controlled experiments;
-- reproducing scenarios without network dependencies.
-
-It is not what the normal team-demo workspace uses.
+![KasFlex decision screen: cost, crop, grid peak and work; the 24-hour plan as charts; the cost donut; and the grower's view on each part](docs/ui-grower-decision.png)
 
 ---
 
-## Safety and human oversight
+## Running a workshop
 
-KasFlex separates planning from checking.
+### Before a study with real participants
 
-The checker can verify constraints such as:
+Work through the checklist at the top of
+[docs/privacy/PARTICIPANT_INFORMATION.md](docs/privacy/PARTICIPANT_INFORMATION.md).
+In short:
 
-- grid import/export limits;
-- congestion-window limits;
-- battery state and power bounds;
-- CHP behavior;
-- projected greenhouse/crop envelopes.
+- [ ] **Set your own password.** Settings, the admin page and all research data sit
+      behind one password. It is `admin99` unless `KASFLEX_ADMIN_PASSWORD` is set,
+      and that default is public. Put your own in `.env` (see
+      [.env.example](.env.example)).
+- [ ] **Approve the information sheet.** The template (English and Dutch) is in
+      `docs/privacy/`. Your institution fills in the brackets and approves it.
+- [ ] **Cloud AI needs a data-processing agreement.** If the chat uses Claude,
+      OpenAI or Gemini, arrange one with that provider. A local Ollama model needs
+      none.
+- [ ] **Make participant codes** on the admin page and tick **Only accept these
+      codes**.
 
-A human can then approve, reject, or edit the plan.
+### The pages
 
-If a person edits an interval, the old verdict is invalidated and the plan must be
-checked again before approval.
+`kasflex ui` serves these pages on `http://127.0.0.1:8765`, to this computer only.
 
-If the checker is disabled, KasFlex reports **not verified** rather than pretending
-the plan was accepted.
+| Page | For | What it does |
+|---|---|---|
+| `/` (also `/grower`) | the grower | the workspace above |
+| ⚙ in the top bar | the researcher | **AI** (service, model, key, Test), **Data** (scenario, showcase or real historical day, ENTSO-E key), **Site** (grid contract, limits, battery, CHP, gas price) |
+| `/admin` | the researcher | study version, scenarios, chat documents, remembered reasons, participant codes |
+| `/advanced` (also `/research`) | the researcher | editable 24-hour plan, planner comparison, history, configuration and API keys |
+| `/setup` | the researcher | participants, reliance measurement, experiment batches, exports (CSV, JSON-LD) |
+| `/legacy-grower` | comparison only | the earlier grower screen |
 
----
+Changing settings, the admin page, API keys, documents and all research data need
+the password, and the server checks it, not only the page. Five wrong guesses pause that browser tab; all tabs together
+are capped at 30 wrong guesses per 5 minutes.
 
-## Interfaces
+### Study versions
 
-`kasflex ui` serves five pages on `http://127.0.0.1:8765`, to this computer only.
-For a workshop with tablets on the same network, start it with
-`KASFLEX_ADMIN_PASSWORD=<your own> kasflex ui --host 0.0.0.0 --allow-network`;
-KasFlex refuses a network address without both, because anyone on that network can
-then use it.
+Set on `/admin`. All three use the same planner and checker, so a study can compare
+them on the same days (ADR-0015 in [docs/DECISIONS.md](docs/DECISIONS.md)).
 
-### Grower workspace — `/`
-
-The default page, shown above. It focuses on the decision:
-
-- What does KasFlex suggest for tomorrow, and why (in numbers)?
-- What does the plan do, hour by hour (charts, not a table)?
-- Does it stay within the grid contract and my own limits?
-- Do I agree, part by part, and if not, why?
-
-What the grower sees depends on the study version set on the admin page:
-
-| Version | Suggestion first | Agree/disagree with reason | Why-this-plan graph | Chat |
+| Version (`workshop.json`) | Suggestion first | Agree / disagree with a reason | "Why this plan?" graph | Chat |
 |---|---|---|---|---|
-| 1 · No advisor | – | – | – | – |
-| 2 · AI suggests | ✓ | ✓ | ✓ | – |
-| 3 · AI + chat | ✓ | ✓ | ✓ | ✓ |
+| `manual` · No advisor | – | – | – | – |
+| `ai` · AI suggests | ✓ | ✓ | ✓ | – |
+| `collab` · AI + chat (default) | ✓ | ✓ | ✓ | ✓ |
 
-In version 1 the grower sets priority and targets, and KasFlex calculates and checks
-the plan without suggesting, arguing or explaining. All versions use the same
-planner and checker (ADR-0015 in [DECISIONS.md](docs/DECISIONS.md)).
+The chat uses the AI model set under ⚙ (Claude, OpenAI, Gemini, Ollama or any
+OpenAI-compatible server). Without one, an offline assistant answers from the plan's
+own numbers. Answers and the suggestion are labelled as AI (EU AI Act art. 50), and
+the chat says whether questions leave the computer.
 
-The chat uses the configured AI model (Claude, OpenAI, Gemini, a local Ollama model
-or any OpenAI-compatible server). Without one, an offline assistant answers from the
-plan's own numbers. Both draw on the documents added on the admin page and name
-the document they used. The chat and the suggestion are labelled as AI (EU AI Act,
-art. 50), and the chat says whether questions go to an outside AI service or stay
-on this computer.
+### Scenarios
 
-The charts follow one set of rules: price and temperature are drawn as small
-multiples rather than on two y-axes; each piece of equipment keeps one colour,
-from a palette validated for colour-vision deficiency, in every chart; and every
-chart has a "Show as table" twin. Position and grid exposure have their own screen. A research
-consent dialog decides whether interaction data is recorded; the demo works fully
-without it.
+Four built-in scenarios, two good days and two with a deliberate error the planner
+cannot see:
 
-### Settings — the ⚙ button
-
-The cogwheel in the top bar opens the settings, behind a password (`admin99`
-unless `KASFLEX_ADMIN_PASSWORD` is set). Inside:
-
-- **AI**: service (Claude, OpenAI, Gemini, Ollama, any OpenAI-compatible server),
-  model, server address, API key, and a **Test** button;
-- **Data**: workshop scenario, showcase or real historical data, and the ENTSO-E key;
-- **Site**: grid contract type, import and export limits, battery and CHP size, gas
-  price and the value of a lower peak.
-
-Saved settings apply to every session until changed. The same password guards the
-workshop admin page, API keys, documents, clearing remembered reasons, and all
-research data (exports, deliberations, other participants' reasons); the password
-is checked on the server, not only in the page. A participant withdraws their own
-consent with a key their browser received when they consented. See the audit in
-[docs/audits/2026-10-01](docs/audits/2026-10-01/REPORT.md) and the review in
-[docs/audits/2026-10-02](docs/audits/2026-10-02/REPORT.md). It stops a participant
-from changing the set-up, not someone with access to the computer itself.
-
-### Workshop admin — `/admin`
-
-For the researcher running a workshop:
-
-1. **Study version**: no advisor, AI suggests, or AI + chat.
-2. **Scenario for participants**, and whether to lock it so participants cannot
-   switch day or data. The server enforces the lock and the study version, not only
-   the page.
-3. **Scenarios**: four built in, two good and two with a deliberate error the
-   planner cannot see (a grid operator's curtailment notice; a CHP maintenance
-   visit). Edit, duplicate or create scenarios: the story and debrief in English and
-   Dutch, 24 prices and temperatures, the grid contract type, installation changes,
-   and the error (type, hours, limit). Edited built-ins can be reset.
-4. **Documents for the chat**: load a Word (.docx), .txt or .md file, or paste
-   text (for a PDF, copy its text). Large Word files with pictures work: the browser
-   sends only the text part. The chat answers from the plan and these documents and names the one it
-   used. KasFlex ships one itself: the Dutch grid contract types.
-5. **Remembered reasons**: what participants said when they disagreed. Clear them
-   between workshop groups. On a shared laptop, tick **keep each anonymous tab's
-   reasons apart** so people without a participant id do not see each other's
-   reasons. A participant id and withdrawal key are kept only for the open tab.
-6. **Participant codes**: make random codes to print and hand out, and tick
-   **Only accept these codes** so nobody can type someone else's id.
-
-Before a study with real participants, go through the checklist in
-[docs/privacy/PARTICIPANT_INFORMATION.md](docs/privacy/PARTICIPANT_INFORMATION.md):
-an information sheet (template in English and Dutch), a data-processing agreement
-if the chat uses a cloud AI, participant codes and your own password.
-
-The admin page asks for the settings password before it shows anything.
-
-### Research workspace — `/advanced`
-
-![KasFlex research workspace overview](docs/ui.png)
-
-| View | What it does |
-|---|---|
-| **Overview** | generate a daily plan; cost breakdown, crop growth, hard-limit violations, prices, weather, battery state and what each asset does |
-| **Plan & review** | all 24 hourly intervals, editable; every edit must be re-verified before **Approve** or **Reject**; export as PDF or JSON |
-| **Experiments** | compare rule-based, learned and naive planners on one scenario |
-| **History** | earlier plans and decisions |
-| **Research notes** | the boundaries of the simulation |
-
-**Configuration** (top right) holds every adjustable setting: site location, prices
-and contract, grid limits, battery, CHP, heat buffer, PV, crop light target, the
-planner, the safety checker, grid relief's value per kW, and the **APIs** section
-for the ENTSO-E key and the AI model key. AI models: Anthropic Claude, OpenAI,
-Google Gemini, Ollama on your own computer, or any OpenAI-compatible server. The
-AI layer only explains; planning and checking work without it.
-
-### Study setup — `/setup`
-
-For researchers running a study: participants, reliance measurement, experiment
-condition, all settings, experiment batches, and exports (summary CSV, a JSON-LD
-research bundle, and the disagreements CSV).
-
-### Previous grower screen — `/legacy-grower`
-
-The earlier grower interface, kept for comparison. Its onboarding sets the site
-location from either a **street address** (looked up to coordinates) or **latitude
-and longitude**, for remote greenhouses without an address.
-
----
-
-## Architecture
-
-KasFlex keeps external models and verification logic behind explicit interfaces.
-
-![KasFlex architecture](docs/architecture.png)
-
-At a high level:
-
-```text
-data acquisition ──► cache/provenance
-                         │
-                         ▼
-                     planner
-                         │
-                         ▼
-                  structured intent
-                         │
-              ┌──────────┴──────────┐
-              ▼                     ▼
-        safety checker       greenhouse model
-              │                     │
-              └──────────┬──────────┘
-                         ▼
-                    human review
-                         │
-                         ▼
-                 audit / experiment
-```
-
-More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
----
-
-## Greenhouse model
-
-KasFlex currently supports two greenhouse paths.
-
-### Surrogate model
-
-Fast, deterministic, and dependency-light.
-
-It is useful for application development and experiment plumbing, but it is **not a
-scientifically validated greenhouse model**.
-
-### GreenLight-Gym2
-
-GreenLight-Gym2 runs in a separate worker environment because its dependency and
-licensing surface is deliberately isolated from the KasFlex core.
-
-```bash
-python3 -m venv .venv-greenlight
-./.venv-greenlight/bin/pip install -r workers/greenlight/requirements.txt
-kasflex run --greenhouse greenlight
-```
-
-Its use does not automatically make the KasFlex scenario validated against measured
-greenhouse operation. The AGC2 calibration (lamp cooling, cover area, vent area,
-leakage) applies to the measured-data replay, not to the 5 ha planning scenario.
-
----
-
-## Validation
-
-KasFlex contains a measured-data validation workflow based on the Autonomous
-Greenhouse Challenge dataset.
-
-```bash
-kasflex prepare-agc2 --all-days --compartment AICU
-kasflex validate --greenhouse greenlight
-```
-
-The validation target is a measured 96 m² research compartment, **not** the 5 ha
-commercial scenario.
-
-| Quantity, 80 held-out days | gl-gym defaults | Calibrated |
-|---|---:|---:|
-| Heat, mean error per day | 93.1 kWh | 21.6 kWh |
-| CO₂, mean error per day | 3.59 kg | 1.31 kg |
-| Lamp electricity, mean error per day | 6.7 kWh | 6.7 kWh |
-
-Two of the original errors were in the comparison, not the model: AGC2's heat is
-computed from pipe temperatures, not metered, and the LEDs were replayed at full
-power. Both are fixed. The remaining gap is spring heat. See
-[docs/VALIDATION.md](docs/VALIDATION.md) and [docs/CALIBRATION.md](docs/CALIBRATION.md).
-
-The calibration has not passed an operational threshold. Model-derived greenhouse
-performance numbers must therefore still be treated as **apparatus, not findings**.
-
----
-
-## Planners
-
-| Planner | Role |
-|---|---|
-| `collaborative` | current-day optimisation driven by explicit grower priorities |
-| `rule-based` | conventional baseline |
-| `learned` | demand forecast + schedule optimisation |
-| `naive` | deliberately simple comparison |
-| `llm` | language-model planner |
-| `mpc` | extension point, not implemented |
-
-Examples:
-
-```bash
-kasflex run --planner rule-based
-kasflex run --planner learned
-kasflex experiment --days 3
-```
-
-The conversational AI layer is optional. Planning, checking, and human review can
-operate without an LLM.
-
----
-
-## Common commands
-
-```bash
-# Open the browser UI (add --anonymous to keep operator identity out of the audit log)
-kasflex ui
-
-# Check the installation and optional components
-kasflex doctor
-
-# Also check what real mode needs: the ENTSO-E key and reachable price/weather hosts
-kasflex doctor --network
-
-# Run the default reproducible scenario
-kasflex run
-
-# Fetch a real-data day
-kasflex fetch --date 2026-09-21
-
-# Run that cached day
-kasflex run --data-source cache --date 2026-09-21
-
-# Unattended daily job: fetch, plan, record
-kasflex daily
-
-# Verify an existing plan file against the safety checker
-kasflex verify --plan plan.json
-
-# Compare experiment conditions
-kasflex experiment --days 3
-
-# Optional agent-framework integration
-pip install -e ".[mcp]"
-kasflex mcp
-
-# Prepare measured AGC2 days (any compartment) and validate against them
-kasflex prepare-agc2 --all-days --compartment AICU
-kasflex validate --greenhouse greenlight
-
-# Show registered datasets and provenance
-kasflex datasets
-```
-
-For the full workflow, see [docs/USAGE.md](docs/USAGE.md).
-
----
-
-## What is still open
-
-| Topic | Status | What it needs |
+| Id | Title | Kind |
 |---|---|---|
-| Greenhouse model accuracy | Calibrated; heat close in winter, about 3× too high in April–May; CO₂ and lamp electricity close | Fit on indoor temperature too and free the screen and cover radiation parameters; confirm on the Reference compartment from the official 4TU archive |
-| Grid relief trade-off | Done: a lower peak is bought only when each kW costs less than `grid_peak_value_eur_per_kw` (default €3.57, Liander 2026 kWmax) | Set your own network operator's tariff |
-| Real data | Works; `kasflex doctor --network` reports what is missing | An ENTSO-E token, and network access to ENTSO-E and Open-Meteo |
-| MPC reference planner | Interface only | A mixed-integer formulation; see `src/kasflex/controllers/mpc.py` |
-| Text on screen | Kept to what a chart, number or icon cannot say; the reasons in words sit behind "Why, in words" | – |
-| Reasons in free text | Rules recognise maintenance hours, staff, frost, light, buffer, grid limits (Dutch and English); other text is kept but changes nothing | An AI model could read more, but its reading would need the same checker-backed effects |
-| Week plan | Deliberately not: KasFlex plans one day ahead, the week outlook is an estimate (ADR-0013) | – |
+| `evening-peak` | Evening price spike | good |
+| `spring-sun` | Sunny spring day | good |
+| `grid-notice` | Grid operator notice (curtailment the planner is not told about) | flawed |
+| `chp-maintenance` | CHP maintenance visit | flawed |
 
----
+On `/admin` you can edit, duplicate or create scenarios (story and debrief in English
+and Dutch, 24 prices and temperatures, grid contract, installation changes, the
+error) and reset an edited built-in. **Lock the scenario** so participants cannot
+switch day or data; the server enforces the lock and the study version. Built-ins are
+defined in `src/kasflex/scenarios.py`; your edits are stored in `results/scenarios/`.
 
-## Data provenance
+Under ⚙ → **Data** the grower page can also use **Showcase (offline)**, a fixed
+synthetic winter day, or **Real historical**, a real Dutch day (prices from a public
+ENTSO-E mirror, weather from Open-Meteo) that is downloaded once and cached.
 
-Downloaded series are stored under `data/cache/` with provenance and checksums.
+### Between groups
 
-```text
-data/cache/
-├── entsoe_da_YYYY-MM-DD.*
-├── weather_forecast_YYYY-MM-DD_LAT_LON.*
-├── weather_actual_YYYY-MM-DD_LAT_LON.*
-└── MANIFEST.json
+On `/admin`, clear **Remembered reasons** so the next group starts fresh. On a shared
+laptop, tick **keep each anonymous tab's reasons apart**. A participant's id and
+withdrawal key live only in the open browser tab.
+
+### Tablets on the same network
+
+```bash
+KASFLEX_ADMIN_PASSWORD=<your own> kasflex ui --host 0.0.0.0 --allow-network
 ```
 
-KasFlex keeps forecast weather and realised weather separate on purpose. A planner
-must not receive future observations during planning.
-
-See [docs/DATA.md](docs/DATA.md) and
-[docs/PROVENANCE.md](docs/PROVENANCE.md).
+KasFlex refuses a network address without both, because anyone on that network can
+then reach it.
 
 ---
 
-## Research safeguards
+## Where data lives
 
-KasFlex intentionally fails loudly rather than taking convenient shortcuts:
+Everything stays on the computer that runs KasFlex, under `KASFLEX_HOME` (default:
+the current folder).
 
-- missing real data does not silently become synthetic data;
-- forecast and realised weather are separate;
-- cached data are checksum-verified;
-- clock-change days are refused instead of being squeezed into an incorrect
-  24-hour representation;
-- edited plans must be re-verified;
-- checker-disabled plans are labelled **not verified**;
-- measured replay and operational calibration are reported separately; a completed
-  comparison never silently becomes an operational approval.
+| Path | Contents |
+|---|---|
+| `.env` | API keys and the password (file mode 0600, git-ignored) |
+| `results/` | private to the user (0700): consent, deliberations, remembered reasons, reviews, audit log, participant codes, workshop settings, edited scenarios, chat documents |
+| `data/cache/` | downloaded prices and weather, with checksums in `MANIFEST.json` |
 
-Found a security problem? Please report it privately, as described in
-[SECURITY.md](SECURITY.md).
+Research data is recorded only with the participant's consent. Withdrawing consent
+erases it. Exports are on `/setup`.
 
 ---
 
-## Repository layout
+## What is real and what is simulated
+
+| Layer | Status |
+|---|---|
+| Dutch day-ahead electricity price | real data supported |
+| Weather forecast and realised weather | real data supported, kept separate |
+| The grower's approve, reject or edit decision | observed directly |
+| Battery, CHP, boiler and buffer dispatch | simulated |
+| Greenhouse temperature, humidity, CO₂ and heat demand | simulated |
+| Crop response | simulated |
+
+Using real inputs does not make a simulated greenhouse result a measured one.
+
+The greenhouse model (GreenLight-Gym2, in an isolated worker) is calibrated on
+measured AGC2 data from the official 4TU archive: fitted on one compartment, tested
+on 80 held-out days and confirmed on a second compartment. On the held-out days heat
+is off by about 14 kWh per day, CO₂ by 1.2 kg and indoor temperature by 1.4 K, and
+heat is close from December to April, but May heat is still about 2.5 times too high. Model-derived greenhouse numbers are therefore
+**apparatus, not findings**. See [docs/VALIDATION.md](docs/VALIDATION.md) and
+[docs/CALIBRATION.md](docs/CALIBRATION.md).
+
+### Safeguards
+
+- The planner never defines the limits that judge its own plan; a separate checker
+  enforces the grid contract and asset limits every hour.
+- An edited plan must be checked again before approval. With the checker off, a plan
+  is labelled **not verified**.
+- Missing real data never silently becomes synthetic data, and clock-change days are
+  refused rather than squeezed into 24 hours.
+- Forecast and realised weather stay separate, so a planner never sees the future.
+
+---
+
+## Command line
+
+```bash
+kasflex ui                                   # the browser interface (--anonymous keeps operator identity out of the audit log)
+kasflex doctor --network                     # also checks the ENTSO-E key and the price and weather hosts
+kasflex fetch --date 2026-09-21              # download and cache a real day (needs ENTSOE_API_KEY)
+kasflex run --data-source cache --date 2026-09-21
+kasflex daily                                # unattended: fetch, plan, record (see deploy/)
+kasflex verify --plan plan.json              # check a plan file
+kasflex experiment --days 3                  # compare planners
+kasflex validate --greenhouse greenlight     # compare the model with measured AGC2 data
+kasflex datasets                             # data provenance registry
+kasflex mcp                                  # optional MCP server (pip install -e ".[mcp]")
+```
+
+The full workflow, including the ENTSO-E token and the GreenLight worker, is in
+[docs/USAGE.md](docs/USAGE.md).
+
+---
+
+## Maintaining KasFlex
+
+### Day to day
+
+```bash
+make test          # pytest
+make lint          # ruff
+make test-browser  # the grower page in headless Chromium, with axe-core (not in CI)
+make audit         # known vulnerabilities in the dependencies (not in CI)
+```
+
+CI runs ruff, a JavaScript syntax check and the test suite on Python 3.11 and 3.12,
+plus separate jobs for the grid, MCP and GreenLight extras. Pushing a `v*` tag builds
+and smoke-tests the Windows, macOS and Linux apps and publishes a release
+([release.yml](.github/workflows/release.yml), [packaging/](packaging/README.md)).
+
+### Read before changing anything
+
+- [CONTRIBUTING.md](CONTRIBUTING.md): two rules that keep working when broken. Above
+  all, **never import `gl_gym` in `src/kasflex/`**; it is AGPL-3.0 and would relicense
+  the Apache-2.0 core. It runs as a subprocess worker.
+- [docs/DECISIONS.md](docs/DECISIONS.md): the architecture decision records.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): components and the module map (a test
+  fails if the map drifts from the code).
+- The README and docs are tested too: the simulation and "apparatus, not findings"
+  notices must stay, and no document may state a test count.
+
+### Where the code is
 
 ```text
-configs/                 reproducible scenarios
-data/cache/              downloaded, checksummed input series
-docs/                    architecture, data, validation, usage
 src/kasflex/
-├── adapters/            greenhouse and grid seams
-├── checker/             deterministic verification
-├── controllers/         planners
-├── data/                acquisition, cache, provenance
-├── energy/              assets and dispatch
-├── forecast/            forecasting
-└── ui/                  grower + research interfaces
-workers/greenlight/      isolated GreenLight-Gym2 worker and calibration harness
+├── ui/server.py         the API: planning, checking, data; serve()
+├── ui/http.py           request handler: Host, Origin and password checks, routing
+├── ui/deliberation_api.py, ui/research_api.py   negotiation and research endpoints
+├── ui/workshop_api.py   admin page API: study version, scenarios, codes
+├── ui/static/           plain HTML, CSS and JavaScript (no build step); demo.* is the grower page
+├── checker/             deterministic plan checker
+├── controllers/         planners (collaborative, rule-based, learned, naive, llm)
+├── deliberation.py      part-by-part negotiation
+├── reasons.py, memory.py   reading and remembering the grower's reasons
+├── consent.py           research consent and withdrawal
+├── scenarios.py         built-in workshop scenarios
+├── workshop.py          study version and scenario lock
+├── data/                price and weather acquisition, cache, provenance
+└── adapters/            greenhouse model and grid seams
+workers/greenlight/      isolated GreenLight-Gym2 worker (AGPL)
 tests/                   offline test suite
 ```
 
-### Documentation
+### Security and privacy
+
+- Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
+- Audits: [2026-10-01](docs/audits/2026-10-01/REPORT.md) and
+  [2026-10-02](docs/audits/2026-10-02/REPORT.md). Neither left an open high or
+  critical finding.
+- Still open, outside the code: a data-processing agreement with any cloud AI
+  provider, institutional approval of the information sheet, and whether the
+  workshops fall under the AI Act research exemption (art. 2(6)).
+
+### What is still open in the code
+
+| Topic | Status |
+|---|---|
+| Greenhouse model accuracy | Calibrated on heat, CO₂ and indoor temperature, confirmed on the Reference compartment. May heat is still about 2.5× too high and Reference January about 45% too low (docs/CALIBRATION.md) |
+| MPC reference planner | Interface only (`controllers/mpc.py`) |
+| Free-text reasons | Rules recognise maintenance hours, staff, frost, light, buffer and grid limits (Dutch and English). With an AI model set, text the rules miss is read by the model, limited to the same effects, range-checked, labelled "KasFlex (AI)" and checked like any plan (`reasons.read_with_model`). Offline, such text is kept but changes nothing |
+| Week plan | Deliberately not: one day ahead, the week view is an estimate (ADR-0013) |
+| Parameter citations | [docs/PROVENANCE.md](docs/PROVENANCE.md) names the sources for battery, CHP, buffer and crop values, but the full references are not yet in the repository |
+
+---
+
+## Documentation
 
 | Document | Purpose |
 |---|---|
-| [Usage](docs/USAGE.md) | install and run KasFlex |
-| [Guide](docs/GUIDE.md) | conceptual walkthrough |
-| [Architecture](docs/ARCHITECTURE.md) | components and boundaries |
-| [Data](docs/DATA.md) | datasets and acquisition |
-| [Provenance](docs/PROVENANCE.md) | engineering provenance notes |
-| [Parameters](docs/PARAMETERS.md) | every shipped parameter: source or explicit **ASSUMPTION** |
-| [Validation](docs/VALIDATION.md) | measured-data validation status |
-| [Calibration](docs/CALIBRATION.md) | how the GreenLight parameters were fitted and tested |
-| [MCP](docs/MCP.md) | optional agent-agnostic integration surface |
+| [Usage](docs/USAGE.md) | install, run, real data, daily job, GreenLight, MCP |
+| [Guide](docs/GUIDE.md) | how KasFlex works, in plain words and in depth |
+| [Architecture](docs/ARCHITECTURE.md) | components, boundaries and module map |
 | [Decisions](docs/DECISIONS.md) | architecture decision records |
-| [FAIR](docs/FAIR.md) | research-data principles |
+| [Data](docs/DATA.md) · [Provenance](docs/PROVENANCE.md) | datasets, acquisition and sources |
+| [Parameters](docs/PARAMETERS.md) | every shipped parameter, sourced or marked **ASSUMPTION** |
+| [Validation](docs/VALIDATION.md) · [Calibration](docs/CALIBRATION.md) | measured-data validation and fitting |
+| [Usability test](docs/USABILITY_TEST.md) | a ten-minute grower usability test |
+| [Participant information](docs/privacy/PARTICIPANT_INFORMATION.md) | privacy checklist and information sheet template |
+| [API setup](docs/API_SETUP.md) | ENTSO-E and Open-Meteo connections |
+| [MVP plan](docs/MVP_PLAN.md) | requirements and status |
+| [FAIR](docs/FAIR.md) · [WUR licence check](docs/WUR_LICENCE_CHECK.md) | research-data principles and licences |
+| [MCP](docs/MCP.md) | optional agent integration |
+| [docs/history/](docs/history/) | earlier design notes and roadmap, kept for reference |
 
----
+## How to cite
 
-## Development
-
-```bash
-pip install -e ".[dev]"
-pytest
-python -m ruff check src/ tests/
-```
-
-Or use:
-
-```bash
-make test
-make lint
-```
-
-The release workflow builds and smoke-tests native applications on Windows, macOS,
-and Linux.
-
----
+Citation metadata is in [CITATION.cff](CITATION.cff) and [codemeta.json](codemeta.json);
+GitHub's "Cite this repository" button uses it.
 
 ## License
 
-KasFlex core is licensed under [Apache-2.0](LICENSE).
-
-The isolated GreenLight integration has its own AGPL-compatible licensing surface.
-Third-party datasets and services retain their own terms; see
-[docs/DATA.md](docs/DATA.md).
+KasFlex core is licensed under [Apache-2.0](LICENSE). The isolated GreenLight worker
+runs GreenLight-Gym2, which is AGPL-3.0, in its own environment. Third-party datasets and services keep their
+own terms; see [docs/DATA.md](docs/DATA.md).

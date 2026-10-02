@@ -750,3 +750,20 @@ def test_dot_env_is_never_served(server):
         with pytest.raises(urllib.error.HTTPError) as exc:
             urllib.request.urlopen(server.root + path, timeout=10)
         assert exc.value.code in (403, 404)
+
+
+def test_settings_report_whether_the_published_default_password_is_in_use(server, monkeypatch):
+    """The admin page warns while admin99 still opens it."""
+    assert get(server, "/api/site-settings")["default_password"] is True
+    monkeypatch.setenv("KASFLEX_ADMIN_PASSWORD", "a-password-of-our-own")
+    server.admin_token = None  # type: ignore[attr-defined]
+    request = urllib.request.Request(
+        server.root + "/api/admin/login",
+        json.dumps({"password": "a-password-of-our-own"}).encode(),
+        {"Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=10) as response:
+        session = json.load(response)
+    request = urllib.request.Request(server.root + "/api/site-settings",
+                                     headers={session["header"]: session["token"]})
+    with urllib.request.urlopen(request, timeout=10) as response:
+        assert json.load(response)["default_password"] is False
