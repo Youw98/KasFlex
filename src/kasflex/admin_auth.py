@@ -22,6 +22,7 @@ import hmac
 import json
 import os
 import secrets
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -49,38 +50,54 @@ def admin_password() -> str:
     return os.environ.get("KASFLEX_ADMIN_PASSWORD") or DEFAULT_PASSWORD
 
 
-#: Wrong passwords allowed within :data:`LOCKOUT_SECONDS` before logins pause.
+#: Wrong passwords one browser tab may try within :data:`LOCKOUT_SECONDS`.
 MAX_FAILURES = 5
+#: Wrong passwords from everyone together within the window. This caps guessing by
+#: a script that invents a new tab id for every attempt.
+MAX_FAILURES_TOTAL = 30
 LOCKOUT_SECONDS = 300
 
 
 class AdminGate:
     """Hands out tokens for the right password and checks them.
 
-    After :data:`MAX_FAILURES` wrong passwords within :data:`LOCKOUT_SECONDS`, every
-    login is refused until the window passes: a short password otherwise falls to
-    a script in minutes, since the server answers requests in parallel.
+    Wrong passwords pause logins for five minutes, so a short password does not
+    fall to a script (the server answers requests in parallel). The pause is per
+    browser tab: a participant who tries five passwords locks only their own tab,
+    not the researcher's. A tab is the random id the page sends with each request;
+    a script can invent ids, so all tabs together get :data:`MAX_FAILURES_TOTAL`.
+    A researcher who is already logged in keeps their token either way.
     """
 
     def __init__(self) -> None:
         self._tokens: dict[str, float] = {}
-        self._failures: list[float] = []
+        self._failures: list[tuple[float, str]] = []
+        self._lock = threading.Lock()
 
-    def locked_out(self) -> bool:
+    def _recent(self) -> list[tuple[float, str]]:
         now = time.time()
-        self._failures = [t for t in self._failures if now - t < LOCKOUT_SECONDS]
-        return len(self._failures) >= MAX_FAILURES
+        self._failures = [(t, who) for t, who in self._failures if now - t < LOCKOUT_SECONDS]
+        return self._failures
 
-    def login(self, password: str) -> str | None:
-        if self.locked_out():
+    def locked_out(self, who: str = "") -> bool:
+        """Whether logins from this tab (or from everyone) are paused right now."""
+        with self._lock:
+            recent = self._recent()
+            mine = sum(1 for _, by in recent if by == who)
+            return mine >= MAX_FAILURES or len(recent) >= MAX_FAILURES_TOTAL
+
+    def login(self, password: str, who: str = "") -> str | None:
+        if self.locked_out(who):
             return None
         if not hmac.compare_digest(str(password or "").encode(), admin_password().encode()):
-            self._failures.append(time.time())
+            with self._lock:
+                self._failures.append((time.time(), who))
             return None
         now = time.time()
-        self._tokens = {t: exp for t, exp in self._tokens.items() if exp > now}
-        token = secrets.token_urlsafe(24)
-        self._tokens[token] = now + TOKEN_SECONDS
+        with self._lock:
+            self._tokens = {t: exp for t, exp in self._tokens.items() if exp > now}
+            token = secrets.token_urlsafe(24)
+            self._tokens[token] = now + TOKEN_SECONDS
         return token
 
     def check(self, token: str | None) -> bool:

@@ -70,7 +70,7 @@
         </article>
 
         <article id="recommend-panel" class="panel recommend-panel" hidden>
-          <span class="tag ai" data-i18n="recommend.tag">KasFlex suggests</span>
+          <span class="tag ai" data-i18n="recommend.tag">KasFlex suggests · AI</span>
           <h2 id="recommend-title">—</h2>
           <div id="recommend-facts" class="facts"></div>
           <div id="recommend-options" class="option-chart"></div>
@@ -236,6 +236,7 @@
       <small id="chat-model"></small>
       <button id="chat-close" type="button" class="ghost" aria-label="Close">×</button>
     </div>
+    <p class="chat-notice"><span data-i18n="chat.ai_notice">AI assistant. Answers can be wrong: check them against the plan.</span> <span id="chat-destination"></span></p>
     <div id="chat-log" class="chat-log" aria-live="polite"></div>
     <div class="chat-suggestions" id="chat-suggestions"></div>
     <form id="chat-form" class="chat-form">
@@ -294,7 +295,8 @@
   <dialog id="consent-dialog" class="consent-dialog">
     <div class="dialog-head"><div><h2 data-i18n="consent.title">Choose how this session is recorded</h2></div></div>
     <p data-i18n="consent.copy">The demo works fully without research consent. Identifiable interaction data is recorded only when you explicitly choose to participate.</p>
-    <label><span data-i18n="consent.participant">Participant ID</span><input id="participant-id" type="text" placeholder="P001"></label>
+    <p id="consent-ai" class="hint"></p>
+    <label><span data-i18n="consent.participant">Participant ID</span><input id="participant-id" type="text" placeholder="P001" autocomplete="off"></label>
     <div class="consent-actions">
       <button id="consent-anonymous" class="ghost" type="button" data-i18n="consent.anonymous">Continue anonymously</button>
       <button id="consent-study" class="primary dark" type="button" data-i18n="consent.study">Consent & continue</button>

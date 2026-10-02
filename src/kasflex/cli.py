@@ -317,17 +317,27 @@ def cmd_ui(args: argparse.Namespace) -> int:
 
     from kasflex.ui.server import serve
 
-    httpd = serve(
-        config_path=args.config, host=args.host, port=args.port, anonymous=args.anonymous
-    )
+    try:
+        httpd = serve(
+            config_path=args.config, host=args.host, port=args.port,
+            anonymous=args.anonymous, allow_network=args.allow_network,
+        )
+    except ValueError as exc:
+        print(f"kasflex ui: {exc}", file=sys.stderr)
+        return 2
     url = f"http://{args.host}:{args.port}/"
     print(f"KasFlex interface on {url}")
     print(f"  scenario   {args.config}")
     print(f"  audit log  {resolve_output(ScenarioConfig.from_yaml(args.config).audit_path)}")
     if args.anonymous:
         print("  operator identity is not recorded (anonymous mode)")
-    print("\nLocalhost only. Settings and research data need the settings password "
-          "(KASFLEX_ADMIN_PASSWORD, default admin99). Ctrl-C to stop.")
+    if httpd.RequestHandlerClass.network:
+        print("\nOPEN TO THE NETWORK: anyone on this network can use KasFlex. Use it only "
+              "on a network you trust. Settings and research data need your settings "
+              "password. Ctrl-C to stop.")
+    else:
+        print("\nThis computer only. Settings and research data need the settings password "
+              "(KASFLEX_ADMIN_PASSWORD, default admin99). Ctrl-C to stop.")
     if not args.no_browser:
         try:
             webbrowser.open(url)
@@ -550,7 +560,10 @@ def main(argv: list[str] | None = None) -> int:
 
     p_ui = sub.add_parser("ui", help="open the browser interface")
     p_ui.add_argument("--config", default=DEFAULT_CONFIG)
-    p_ui.add_argument("--host", default="127.0.0.1")
+    p_ui.add_argument("--host", default="127.0.0.1",
+                      help="address to listen on; only 127.0.0.1 unless --allow-network")
+    p_ui.add_argument("--allow-network", action="store_true",
+                      help="let other computers connect (needs KASFLEX_ADMIN_PASSWORD)")
     p_ui.add_argument("--port", type=int, default=8765)
     p_ui.add_argument("--no-browser", action="store_true")
     p_ui.add_argument("--anonymous", action="store_true",

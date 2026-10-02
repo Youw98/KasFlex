@@ -293,7 +293,11 @@ the plan was accepted.
 
 ## Interfaces
 
-`kasflex ui` serves five pages on `http://127.0.0.1:8765`.
+`kasflex ui` serves five pages on `http://127.0.0.1:8765`, to this computer only.
+For a workshop with tablets on the same network, start it with
+`KASFLEX_ADMIN_PASSWORD=<your own> kasflex ui --host 0.0.0.0 --allow-network`;
+KasFlex refuses a network address without both, because anyone on that network can
+then use it.
 
 ### Grower workspace — `/`
 
@@ -319,7 +323,9 @@ planner and checker (ADR-0015 in [DECISIONS.md](docs/DECISIONS.md)).
 The chat uses the configured AI model (Claude, OpenAI, Gemini, a local Ollama model
 or any OpenAI-compatible server). Without one, an offline assistant answers from the
 plan's own numbers. Both draw on the documents added on the admin page and name
-the document they used.
+the document they used. The chat and the suggestion are labelled as AI (EU AI Act,
+art. 50), and the chat says whether questions go to an outside AI service or stay
+on this computer.
 
 The charts follow one set of rules: price and temperature are drawn as small
 multiples rather than on two y-axes; each piece of equipment keeps one colour,
@@ -344,7 +350,8 @@ workshop admin page, API keys, documents, clearing remembered reasons, and all
 research data (exports, deliberations, other participants' reasons); the password
 is checked on the server, not only in the page. A participant withdraws their own
 consent with a key their browser received when they consented. See the audit in
-[docs/audits/2026-10-01](docs/audits/2026-10-01/REPORT.md). It stops a participant
+[docs/audits/2026-10-01](docs/audits/2026-10-01/REPORT.md) and the review in
+[docs/audits/2026-10-02](docs/audits/2026-10-02/REPORT.md). It stops a participant
 from changing the set-up, not someone with access to the computer itself.
 
 ### Workshop admin — `/admin`
@@ -353,7 +360,8 @@ For the researcher running a workshop:
 
 1. **Study version**: no advisor, AI suggests, or AI + chat.
 2. **Scenario for participants**, and whether to lock it so participants cannot
-   switch day or data.
+   switch day or data. The server enforces the lock and the study version, not only
+   the page.
 3. **Scenarios**: four built in, two good and two with a deliberate error the
    planner cannot see (a grid operator's curtailment notice; a CHP maintenance
    visit). Edit, duplicate or create scenarios: the story and debrief in English and
@@ -364,7 +372,16 @@ For the researcher running a workshop:
    sends only the text part. The chat answers from the plan and these documents and names the one it
    used. KasFlex ships one itself: the Dutch grid contract types.
 5. **Remembered reasons**: what participants said when they disagreed. Clear them
-   between workshop groups.
+   between workshop groups. On a shared laptop, tick **keep each anonymous tab's
+   reasons apart** so people without a participant id do not see each other's
+   reasons. A participant id and withdrawal key are kept only for the open tab.
+6. **Participant codes**: make random codes to print and hand out, and tick
+   **Only accept these codes** so nobody can type someone else's id.
+
+Before a study with real participants, go through the checklist in
+[docs/privacy/PARTICIPANT_INFORMATION.md](docs/privacy/PARTICIPANT_INFORMATION.md):
+an information sheet (template in English and Dutch), a data-processing agreement
+if the chat uses a cloud AI, participant codes and your own password.
 
 The admin page asks for the settings password before it shows anything.
 
@@ -608,6 +625,9 @@ KasFlex intentionally fails loudly rather than taking convenient shortcuts:
 - checker-disabled plans are labelled **not verified**;
 - measured replay and operational calibration are reported separately; a completed
   comparison never silently becomes an operational approval.
+
+Found a security problem? Please report it privately, as described in
+[SECURITY.md](SECURITY.md).
 
 ---
 

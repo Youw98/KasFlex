@@ -31,7 +31,7 @@ async function ensureAdmin() {
   const password = window.prompt("Admin password");
   if (!password) return false;
   const response = await fetch("/api/admin/login", {
-    method: "POST", headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json", "X-KasFlex-Visitor": tabId() },
     body: JSON.stringify({ password }),
   });
   if (!response.ok) return false;
@@ -40,9 +40,19 @@ async function ensureAdmin() {
   return true;
 }
 
+/* A random id for this tab, so wrong passwords pause only this tab's logins. */
+function tabId() {
+  try {
+    let id = sessionStorage.getItem("kasflex.visitor");
+    if (!id) { id = crypto.randomUUID(); sessionStorage.setItem("kasflex.visitor", id); }
+    return id;
+  } catch { return ""; }
+}
+
 async function api(path, body, retried = false) {
   const headers = body === undefined ? {} : { "Content-Type": "application/json" };
   if (adminToken()) headers["X-KasFlex-Admin"] = adminToken();
+  if (tabId()) headers["X-KasFlex-Visitor"] = tabId();
   const options = body === undefined
     ? { headers }
     : { method: "POST", headers, body: JSON.stringify(body) };

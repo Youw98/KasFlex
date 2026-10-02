@@ -230,6 +230,7 @@ dialog::backdrop{background:#10201988;backdrop-filter:blur(4px)}
 .chat-panel{position:fixed;right:22px;bottom:22px;z-index:31;width:min(420px,calc(100vw - 32px));height:min(600px,calc(100vh - 110px));background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 30px 80px #0003;display:flex;flex-direction:column;overflow:hidden}
 .chat-head{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line)}
 .chat-head strong{font-size:17px}.chat-head small{color:var(--muted);flex:1;font-size:13px}.chat-head .ghost{padding:4px 11px;font-size:20px}
+.chat-notice{margin:0;padding:8px 16px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line)}
 .chat-log{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
 .bubble{max-width:88%;padding:10px 13px;border-radius:14px;font-size:15px;white-space:pre-wrap}
 .bubble.me{align-self:flex-end;background:var(--forest);color:#fff;border-bottom-right-radius:4px}

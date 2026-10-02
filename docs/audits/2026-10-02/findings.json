@@ -1,0 +1,300 @@
+[
+ {
+  "id": "KF-2026-10-02-01",
+  "title": "Started with --host 0.0.0.0, KasFlex was open to the whole network, and its Host check let attackers in while it blocked real tablets",
+  "state": "confirmed",
+  "severity": "medium",
+  "category": "security",
+  "fingerprint": "network-bind-host-spoof",
+  "location": {
+   "file": "src/kasflex/ui/server.py",
+   "endpoint": "serve(), _Handler._guard_request; kasflex ui --host"
+  },
+  "actor": "Anyone on the same network (workshop Wi-Fi, campus LAN) once the operator passes --host 0.0.0.0",
+  "path": "kasflex ui --host 0.0.0.0 -> ThreadingHTTPServer listens on all interfaces -> _guard_request only compares the Host header with {127.0.0.1, localhost, [::1], host} -> a remote client sends 'Host: 127.0.0.1' and passes",
+  "result": "Every grower endpoint is usable from the network: planning, chat (spending the stored AI key's credits), consent and research writes. The settings password is the documented default admin99, so settings, API keys and research exports are one guess away. A tablet using the machine's real address got 403, which made the set-up look protected.",
+  "evidence": "Before the fix, from 192.0.2.2: Host 192.0.2.2:port -> 403, Host 127.0.0.1 -> 200 on GET / and POST /api/memory.",
+  "fix": "serve() refuses a non-loopback address unless allow_network=True (CLI --allow-network) AND KASFLEX_ADMIN_PASSWORD is set to something other than admin99. Without network mode the handler also refuses any client address that is not loopback. In network mode any Host is accepted (devices use the machine's address) while the Origin/Fetch-Metadata checks and the password still apply. The CLI exits with code 2 and explains why; the banner warns loudly in network mode.",
+  "test": "tests/test_workshop.py::test_review_r1_other_computers_are_refused_unless_asked_for; tests/test_workshop.py::test_review_r1_cli_explains_the_refusal",
+  "siblings": "Live probe after the fix, network mode with own password, from 192.0.2.2: GET / 200, POST with foreign Origin 403, same Origin 200, admin99 login 401."
+ },
+ {
+  "id": "KF-2026-10-02-02",
+  "title": "On a shared workshop laptop, the next person inherited the previous participant's id and withdrawal key, and anonymous visitors shared remembered reasons",
+  "state": "confirmed",
+  "severity": "medium",
+  "category": "privacy",
+  "fingerprint": "shared-laptop-identity-persistence",
+  "location": {
+   "file": "src/kasflex/ui/static/demo.js",
+   "endpoint": "localStorage kasflex.demo.participant, kasflex.consent.key.<id>; participant_key() 'local'"
+  },
+  "actor": "The next participant on the same browser profile; no tools needed",
+  "path": "consentStudy() -> writeStore (localStorage) participant id + withdraw key -> next session reads them back -> overrides.participant_id is the previous person; /api/consent/withdraw accepts the stored key. Anonymous sessions all map to participant_key 'local' -> /api/memory and the plan's 'KasFlex remembers' list show earlier visitors' reasons.",
+  "result": "A participant could act as the previous one, including withdrawing their consent (which erases their research data), and anonymous visitors saw each other's free-text disagreement reasons.",
+  "evidence": "Read from demo.js/grower.js: participant id and withdrawal keys written with localStorage.setItem and read on load; workshop_api.participant_key returns 'local' for every request without a participant id.",
+  "fix": "Participant id and withdrawal keys now live in sessionStorage (this tab only), and old localStorage copies are deleted on load. New admin setting 'Shared laptop: keep each anonymous tab's reasons apart' (WorkshopState.separate_visitors): each tab sends a random X-KasFlex-Visitor id and anonymous memory is scoped to it. Default off, so a single grower on their own computer keeps their memory.",
+  "test": "tests/test_workshop.py::test_review_r4_anonymous_tabs_can_keep_their_reasons_apart; tests/test_workshop.py::test_review_r4_the_setting_reaches_the_server; tests/test_workshop.py::test_review_r4_who_is_planning_stays_with_the_tab",
+  "siblings": "grower.js (legacy page) had the same withdrawal-key storage; changed too. The admin token was already in sessionStorage."
+ },
+ {
+  "id": "KF-2026-10-02-03",
+  "title": "The chat and the AI suggestion did not say they come from an AI, nor where typed questions are sent",
+  "state": "confirmed",
+  "severity": "medium",
+  "category": "legal",
+  "fingerprint": "ai-act-art50-disclosure",
+  "location": {
+   "file": "src/kasflex/ui/static/demo.html",
+   "screen": "Chat panel; 'KasFlex suggests' tag; legacy grower 'Why' sheet"
+  },
+  "actor": "Every participant",
+  "path": "Chat panel header 'Ask KasFlex' with a model name shown only after the first answer; no statement that it is an AI or that question + plan go to an outside provider.",
+  "result": "EU AI Act art. 50(1) (applies from 2 August 2026) requires people to be told they are interacting with an AI system unless obvious. GDPR art. 13 requires telling people who receives their data; with a cloud model, typed questions and the plan go to that provider.",
+  "evidence": "demo.html chat panel and demo.en/nl.json strings before the fix; /api/chat sends the question to the configured provider (workshop_api.chat -> _explainer).",
+  "fix": "Chat panel shows 'AI assistant. Answers can be wrong: check them against the plan.' plus where questions go ('go to Anthropic Claude' or 'made on this computer; nothing is sent out'), from a new chat_destination in /api/workshop. The suggestion tag reads 'KasFlex suggests · AI'. The legacy page prefixes AI explanations. English and Dutch.",
+  "test": "tests/test_workshop.py::test_review_r5_the_chat_says_it_is_an_ai_and_where_questions_go",
+  "siblings": "axe re-run on all 9 page states after the change: 0 violations."
+ },
+ {
+  "id": "KF-2026-10-02-04",
+  "title": "The workshop scenario lock and the study version were only enforced in the page",
+  "state": "confirmed",
+  "severity": "low",
+  "category": "security",
+  "fingerprint": "workshop-lock-client-only",
+  "location": {
+   "file": "src/kasflex/ui/server.py",
+   "endpoint": "POST /api/run, /api/day-context, /api/verify, /api/demo-prepare, /api/data-download (overrides.data_source, scenario_id, date, condition)"
+  },
+  "actor": "A participant using devtools or curl; no password",
+  "path": "body.overrides.{data_source,scenario_id,date,seed,condition} -> _apply_overrides; the lock only hid the picker in demo.js",
+  "result": "A participant could plan another day or record their runs under another study condition, which breaks the comparison between participants and versions.",
+  "evidence": "Before the fix, with the workshop locked: POST /api/day-context with data_source synthetic returned 200 with data_source synthetic.",
+  "fix": "With the lock on and no settings password, do_POST overwrites day fields with the locked scenario (or the offline showcase day) and condition with the workshop version, and refuses /api/demo-prepare and /api/data-download (403). The researcher's token lifts it.",
+  "test": "tests/test_workshop.py::test_review_r2_a_locked_workshop_holds_on_the_server",
+  "siblings": "participant_id stays self-asserted; see KF-2026-10-02-10."
+ },
+ {
+  "id": "KF-2026-10-02-05",
+  "title": "NaN, Infinity or very deeply nested JSON made the server answer 500",
+  "state": "confirmed",
+  "severity": "low",
+  "category": "reliability",
+  "fingerprint": "json-nonfinite-recursion",
+  "location": {
+   "file": "src/kasflex/ui/server.py",
+   "endpoint": "_Handler._body (all POST endpoints)"
+  },
+  "actor": "Any local client",
+  "path": "json.loads accepts NaN/Infinity by default -> numbers reach the planner and json.dumps of the reply fails; 100k nested arrays -> RecursionError",
+  "result": "A 500 with a stack trace in the terminal instead of a clear 400; no data exposure, the server keeps running.",
+  "evidence": "Probe before the fix: goals with Infinity -> 500 'Out of range float values are not JSON compliant'; deep array -> 500 RecursionError.",
+  "fix": "_body parses with parse_constant that rejects NaN/Infinity and turns RecursionError into a 400.",
+  "test": "tests/test_workshop.py::test_review_r3_numbers_json_does_not_allow_are_a_bad_request"
+ },
+ {
+  "id": "KF-2026-10-02-06",
+  "title": "GitHub Actions: write token for every job, actions referenced by movable tags",
+  "state": "hardening",
+  "priority": "medium",
+  "category": "security",
+  "fingerprint": "ci-permissions-pinning",
+  "location": {
+   "file": ".github/workflows/release.yml"
+  },
+  "fix": "ci.yml and release.yml default to contents: read; only the release job gets contents: write. All actions pinned to commit SHAs (tag in a comment); Dependabot keeps them current. CI also syntax-checks admin.js now."
+ },
+ {
+  "id": "KF-2026-10-02-07",
+  "title": "No published way to report a vulnerability",
+  "state": "hardening",
+  "priority": "low",
+  "category": "legal",
+  "fingerprint": "security-policy",
+  "location": {
+   "file": "SECURITY.md"
+  },
+  "fix": "SECURITY.md added: supported versions, private reporting via GitHub advisories, response times, scope. Good practice now and in line with the EU Cyber Resilience Act's coordinated-disclosure expectations."
+ },
+ {
+  "id": "KF-2026-10-02-08",
+  "title": "Research stores were created world-readable on shared POSIX computers",
+  "state": "hardening",
+  "priority": "medium",
+  "category": "privacy",
+  "fingerprint": "research-store-permissions",
+  "location": {
+   "file": "src/kasflex/ui/server.py",
+   "endpoint": "UiServer.__post_init__ (results/)"
+  },
+  "fix": "The results directory (consent, reasons, chats, reviews) is set to 0700 on start. .env was already 0600.",
+  "test": "tests/test_workshop.py::test_review_r6_research_data_is_private_to_this_account"
+ },
+ {
+  "id": "KF-2026-10-02-09",
+  "title": "The data extra allowed urllib3 and idna versions with published advisories",
+  "state": "hardening",
+  "priority": "low",
+  "category": "security",
+  "fingerprint": "dependency-floors",
+  "location": {
+   "file": "pyproject.toml"
+  },
+  "fix": "Floors urllib3>=2.8.0 and idna>=3.15 added to the data extra (pip-audit: PYSEC-2026-141/142/4175-4177, PYSEC-2026-215). Core dependencies (numpy, pyyaml) had no advisories."
+ },
+ {
+  "id": "KF-2026-10-02-10",
+  "title": "Participant ids were typed by the participant",
+  "state": "hardening",
+  "category": "privacy",
+  "fingerprint": "self-asserted-participant",
+  "location": {
+   "file": "src/kasflex/ui/static/demo.js",
+   "screen": "Consent dialog"
+  },
+  "priority": "medium",
+  "fix": "Follow-up: the admin page makes random participant codes (P-XXXXXX, no look-alike characters) to print and hand out. With 'Only accept these codes' on, the server refuses any other participant id (403) in every request, stores the code in its printed form, and refuses to switch the option on while no codes exist. Codes are visible with the settings password only.",
+  "test": "tests/test_workshop.py::test_review_r8_only_issued_codes_are_accepted_when_asked; tests/test_workshop.py::test_review_r8_codes_are_random_and_capped"
+ },
+ {
+  "id": "KF-2026-10-02-11",
+  "title": "Cloud AI providers process participants' questions",
+  "state": "needs_validation",
+  "category": "legal",
+  "fingerprint": "cloud-llm-dpa",
+  "location": {
+   "document": "Study privacy notice / data-processing agreement"
+  },
+  "missing_fact": "The data-processing agreement with a cloud AI provider can only be signed by the institution, and the information sheet approved by its privacy officer or ethics committee. Done in code: the consent dialog now names where chat text goes before anyone agrees and asks not to type personal details; docs/privacy/PARTICIPANT_INFORMATION.md is an English/Dutch template with a pre-study checklist. Ollama needs no agreement.",
+  "test": "tests/test_workshop.py::test_review_r9_participants_learn_who_receives_chat_text_before_agreeing"
+ },
+ {
+  "id": "KF-2026-10-02-12",
+  "title": "Whether the AI Act applies to workshop use at all",
+  "state": "needs_validation",
+  "category": "legal",
+  "fingerprint": "ai-act-research-exemption",
+  "location": {
+   "document": "EU AI Act art. 2(6)"
+  },
+  "missing_fact": "Whether art. 2(6) (AI developed and put into service solely for scientific research) covers workshops with growers is a legal judgement. Verified 2 Oct 2026: art. 50 applies from 2 Aug 2026 and the Digital Omnibus did not postpone it (only Annex III high-risk, to 2 Dec 2027). KasFlex meets art. 50(1) and now also marks AI text machine-readably (art. 50(2)), so the answer does not change what the app must do."
+ },
+ {
+  "id": "KF-2026-10-02-13",
+  "title": "Five wrong passwords locked the settings login for everyone for five minutes",
+  "state": "hardening",
+  "priority": "low",
+  "category": "security",
+  "fingerprint": "global-login-lockout",
+  "location": {
+   "file": "src/kasflex/admin_auth.py",
+   "endpoint": "POST /api/admin/login"
+  },
+  "fix": "Follow-up: the pause is now per browser tab (each page sends a random tab id), so a participant guessing locks only their own tab and the researcher can still log in. A script that invents tab ids meets a shared limit of 30 wrong passwords per 5 minutes, which still caps guessing. Logged-in tokens are never affected.",
+  "test": "tests/test_workshop.py::test_review_r7_wrong_passwords_pause_only_that_tab"
+ },
+ {
+  "id": "KF-2026-10-02-14",
+  "title": "Approving a plan without the checker",
+  "state": "rejected",
+  "category": "security",
+  "fingerprint": "approval-gate-bypass",
+  "location": {
+   "endpoint": "POST /api/decision"
+  },
+  "reason": "Server refuses unverified or checker-off revisions with 409; stale revisions 409. Probed."
+ },
+ {
+  "id": "KF-2026-10-02-15",
+  "title": "Static file path traversal",
+  "state": "rejected",
+  "category": "security",
+  "fingerprint": "static-traversal",
+  "location": {
+   "file": "src/kasflex/ui/server.py",
+   "endpoint": "_static"
+  },
+  "reason": "Encoded and double-encoded ../ variants all 404; files resolved under the static directory only."
+ },
+ {
+  "id": "KF-2026-10-02-16",
+  "title": "Cross-site requests and DNS rebinding against the local app",
+  "state": "rejected",
+  "category": "security",
+  "fingerprint": "csrf-rebinding",
+  "location": {
+   "endpoint": "_guard_request"
+  },
+  "reason": "Foreign Host 403, foreign Origin / Sec-Fetch-Site cross-site 403, non-JSON content type 415 on loopback."
+ },
+ {
+  "id": "KF-2026-10-02-17",
+  "title": "Script injection in the pages",
+  "state": "rejected",
+  "category": "security",
+  "fingerprint": "xss",
+  "location": {
+   "file": "src/kasflex/ui/static/demo.js"
+  },
+  "reason": "Text is set with textContent; app.js SVG strings interpolate only numbers and schema-checked enums; strict CSP (script-src 'self')."
+ },
+ {
+  "id": "KF-2026-10-02-18",
+  "title": "SQL injection in the research stores",
+  "state": "rejected",
+  "category": "security",
+  "fingerprint": "sqli",
+  "location": {
+   "file": "src/kasflex/memory.py"
+  },
+  "reason": "All queries are parameterised; the only f-strings build CREATE TRIGGER statements from fixed table names."
+ },
+ {
+  "id": "KF-2026-10-02-19",
+  "title": "MCP server reachable from the network",
+  "state": "rejected",
+  "category": "security",
+  "fingerprint": "mcp-exposure",
+  "location": {
+   "file": "src/kasflex/mcp_server.py"
+  },
+  "reason": "stdio transport only; it is a local process of the MCP client, no socket."
+ },
+ {
+  "id": "KF-2026-10-02-20",
+  "title": "API keys readable by other accounts",
+  "state": "rejected",
+  "category": "security",
+  "fingerprint": "env-permissions",
+  "location": {
+   "file": "src/kasflex/api_connections.py"
+  },
+  "reason": ".env is written via a 0600 temporary file and renamed; .env is git-ignored; secret scan of the repository found no committed credentials."
+ },
+ {
+  "id": "KF-2026-10-02-21",
+  "title": "Word upload entity expansion (XXE)",
+  "state": "rejected",
+  "category": "security",
+  "fingerprint": "docx-xxe",
+  "location": {
+   "file": "src/kasflex/documents.py"
+  },
+  "reason": "DOCTYPE/entities are refused; covered by existing tests."
+ },
+ {
+  "id": "KF-2026-10-02-22",
+  "title": "AI-generated answers were not marked in a machine-readable way",
+  "state": "hardening",
+  "priority": "low",
+  "category": "legal",
+  "fingerprint": "ai-act-art50-2-marking",
+  "location": {
+   "file": "src/kasflex/ui/workshop_api.py",
+   "endpoint": "POST /api/chat, /api/explain"
+  },
+  "fix": "Replies carry ai_generated: true and chat bubbles a data-ai-generated attribute. Art. 50(2) applies to text from generative systems; systems on the market before 2 Aug 2026 have until 2 Dec 2026.",
+  "test": "tests/test_workshop.py::test_review_r10_ai_text_is_marked_for_machines_too"
+ }
+]

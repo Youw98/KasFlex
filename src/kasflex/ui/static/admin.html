@@ -132,7 +132,23 @@
         <button id="forget-all" type="button" class="ghost danger">Forget all</button>
       </div>
       <p id="t-memory-hint" class="hint">What participants said when they disagreed. KasFlex uses these in later plans of the same participant. Clear them between workshop groups.</p>
+      <label class="check"><input id="separate-visitors" type="checkbox"><span id="t-separate">Shared laptop: keep each anonymous tab's reasons apart</span></label>
       <div id="memory-list" class="memory-list"></div>
+    </section>
+
+    <section class="panel" id="codes-panel">
+      <div class="panel-head">
+        <h2 id="t-codes">6 · Participant codes</h2>
+        <button id="clear-codes" type="button" class="ghost danger">Remove all</button>
+      </div>
+      <p id="t-codes-hint" class="hint">Hand each participant one code. With the lock on, nobody can type someone else's id.</p>
+      <label class="check"><input id="issued-only" type="checkbox"><span id="t-issued-only">Only accept these codes</span></label>
+      <div class="active-row">
+        <label class="field"><span id="t-codes-count">How many</span><input id="codes-count" type="number" min="1" max="100" step="1" value="10"></label>
+        <button id="make-codes" type="button" class="primary dark">Make codes</button>
+        <button id="print-codes" type="button" class="ghost">Print</button>
+      </div>
+      <ul id="code-list" class="code-list" aria-label="Participant codes"></ul>
     </section>
   </main>
 

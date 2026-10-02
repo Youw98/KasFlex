@@ -12,6 +12,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import re
+from pathlib import Path
 
 import pytest
 
@@ -856,3 +857,244 @@ def test_the_browser_may_send_only_the_word_text_part():
     assert text_from_upload("notes.docx", docx_xml=xml) == "Alleen de tekst"
     with pytest.raises(ValueError):
         text_from_upload("notes.docx", docx_xml="<!DOCTYPE x [<!ENTITY a 'b'>]><x/>")
+
+
+# --- review regressions (docs/audits/2026-10-02) ------------------------------------------
+
+
+def _raw(server, path, data: bytes, headers=None):
+    import urllib.error
+    import urllib.request
+
+    request = urllib.request.Request(server.root + path, data,
+                                     {"Content-Type": "application/json", **(headers or {})})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return response.status, json.loads(response.read() or b"{}")
+    except urllib.error.HTTPError as exc:
+        return exc.code, json.loads(exc.read() or b"{}")
+
+
+def test_review_r1_other_computers_are_refused_unless_asked_for(tmp_path, monkeypatch):
+    """The Host check stops websites, not computers: a network address needs opting in."""
+    from kasflex.ui.server import _is_loopback, serve
+
+    monkeypatch.setenv("KASFLEX_HOME", str(tmp_path))
+    monkeypatch.delenv("KASFLEX_ADMIN_PASSWORD", raising=False)
+    assert _is_loopback("127.0.0.1") and _is_loopback("::1") and _is_loopback("[::1]")
+    assert _is_loopback("localhost") and not _is_loopback("0.0.0.0")
+    assert not _is_loopback("192.168.1.20")
+    with pytest.raises(ValueError, match="allow-network"):
+        serve(config_path=CONFIG, host="0.0.0.0", port=0)
+    with pytest.raises(ValueError, match="KASFLEX_ADMIN_PASSWORD"):
+        serve(config_path=CONFIG, host="0.0.0.0", port=0, allow_network=True)
+    monkeypatch.setenv("KASFLEX_ADMIN_PASSWORD", "a-workshop-only-password")
+    server = serve(config_path=CONFIG, host="0.0.0.0", port=0, allow_network=True)
+    try:
+        assert server.RequestHandlerClass.network is True
+    finally:
+        server.server_close()
+    local = serve(config_path=CONFIG, port=0)
+    try:
+        assert local.RequestHandlerClass.network is False
+    finally:
+        local.server_close()
+
+
+def test_review_r1_cli_explains_the_refusal(tmp_path, monkeypatch, capsys):
+    from kasflex.cli import main
+
+    monkeypatch.setenv("KASFLEX_HOME", str(tmp_path))
+    assert main(["ui", "--host", "0.0.0.0", "--no-browser"]) == 2
+    assert "allow-network" in capsys.readouterr().err
+
+
+def test_review_r2_a_locked_workshop_holds_on_the_server(live):
+    """Hiding the day picker is not enough: a request naming another day is overruled."""
+    token = _token(live)
+    scenario = BUILTIN[0].id
+    status, _, _ = _call(live, "/api/workshop", {"version": "ai", "scenario_id": scenario,
+                                                 "lock_scenario": True}, token)
+    assert status == 200
+    asked = {"overrides": {"data_source": "synthetic", "date": "2023-06-01", "seed": 7,
+                           "condition": "collab", "planner": "collaborative"}}
+    status, context, _ = _call(live, "/api/day-context", asked)
+    assert status == 200 and context["data_source"] == "scenario"
+    status, run, _ = _call(live, "/api/run", {**asked, "policy": {}})
+    assert status == 200 and run["data_source"] == "scenario" and run["version"] == "ai"
+    assert run["scenario"]["id"] == scenario
+    assert _call(live, "/api/demo-prepare", {"overrides": {}})[0] == 403
+    assert _call(live, "/api/data-download", {"overrides": {}})[0] == 403
+    # The researcher can still look at another day.
+    status, context, _ = _call(live, "/api/day-context", asked, token)
+    assert status == 200 and context["data_source"] == "synthetic"
+    _call(live, "/api/workshop", {"lock_scenario": False}, token)
+    status, context, _ = _call(live, "/api/day-context", asked)
+    assert context["data_source"] == "synthetic"
+
+
+def test_review_r3_numbers_json_does_not_allow_are_a_bad_request(live):
+    """NaN, Infinity and very deep nesting used to end in a 500."""
+    for body in (b'{"overrides": {}, "policy": {"goals": [{"value": NaN}]}}',
+                 b'{"overrides": {}, "policy": {"budget": Infinity}}',
+                 b"[" * 100_000 + b"]" * 100_000):
+        status, reply = _raw(live, "/api/run", body)
+        assert status == 400, (body[:40], reply)
+
+
+def test_review_r4_anonymous_tabs_can_keep_their_reasons_apart(tmp_path):
+    from kasflex.ui.workshop_api import participant_key, use_visitor
+
+    assert participant_key({}) == "local"
+    with use_visitor("3f1c2b9a-0000-4000-8000-1234567890ab"):
+        assert participant_key({}) == "visitor:3f1c2b9a-0000-4000-8000-1234567890ab"
+        assert participant_key({"participant_id": "P07"}) == "P07"
+    assert participant_key({}) == "local"
+    with use_visitor("../../etc/passwd"):  # not an id we hand out: the shared grower
+        assert participant_key({}) == "local"
+    store = WorkshopStore(tmp_path / "workshop.json")
+    assert store.get().separate_visitors is False
+    assert store.set(separate_visitors=True).separate_visitors is True
+    assert WorkshopStore(tmp_path / "workshop.json").get().separate_visitors is True
+
+
+def test_review_r4_the_setting_reaches_the_server(live):
+    token = _token(live)
+    assert _call(live, "/api/workshop", {"separate_visitors": True}, token)[1]["separate_visitors"]
+    assert _call(live, "/api/workshop")[1]["separate_visitors"] is True
+    assert _call(live, "/api/workshop", {"separate_visitors": True})[0] == 401
+
+
+def test_review_r4_who_is_planning_stays_with_the_tab():
+    js = (static_dir() / "demo.js").read_text(encoding="utf-8")
+    assert 'readStore("kasflex.demo.participant")' not in js
+    assert 'writeStore("kasflex.demo.participant"' not in js
+    assert "writeStore(keyName" not in js and "readStore(keyName" not in js
+    assert '"X-KasFlex-Visitor"' in js
+    grower = (static_dir() / "grower.js").read_text(encoding="utf-8")
+    assert "localStorage.setItem(keyName" not in grower
+    assert "localStorage.getItem(`kasflex.consent.key." not in grower
+
+
+def test_review_r5_the_chat_says_it_is_an_ai_and_where_questions_go(tmp_path, monkeypatch):
+    """EU AI Act art. 50 (from 2 Aug 2026) and GDPR transparency about recipients."""
+    html = (static_dir() / "demo.html").read_text(encoding="utf-8")
+    assert 'data-i18n="chat.ai_notice"' in html and 'id="chat-destination"' in html
+    for language in ("en", "nl"):
+        strings = json.loads((static_dir() / f"demo.{language}.json").read_text("utf-8"))
+        assert "AI" in strings["chat.ai_notice"] and "AI" in strings["recommend.tag"]
+
+    from kasflex.llm_providers import PROVIDERS
+
+    monkeypatch.setenv("KASFLEX_HOME", str(tmp_path))
+    for spec in PROVIDERS.values():
+        if spec.env_var:
+            monkeypatch.delenv(spec.env_var, raising=False)
+    server = UiServer(config_path=CONFIG)
+    assert server.chat_destination() == {"name": "", "local": True}
+    spec = PROVIDERS[server.base.llm_provider]
+    if spec.env_var:
+        monkeypatch.setenv(spec.env_var, "sk-test-not-real")
+        assert server.chat_destination() == {"name": spec.name, "local": spec.local}
+    assert "chat_destination" in server.workshop_status()
+
+
+def test_review_r6_research_data_is_private_to_this_account(tmp_path, monkeypatch):
+    import os
+    import stat
+
+    if os.name != "posix":
+        pytest.skip("POSIX permissions")
+    monkeypatch.setenv("KASFLEX_HOME", str(tmp_path))
+    UiServer(config_path=CONFIG)
+    mode = stat.S_IMODE((tmp_path / "results").stat().st_mode)
+    assert mode == 0o700, oct(mode)
+
+
+# --- review follow-up: open items closed ------------------------------------------------
+
+
+def _login(server, password, tab):
+    return _raw(server, "/api/admin/login", json.dumps({"password": password}).encode(),
+                {"X-KasFlex-Visitor": tab})
+
+
+def test_review_r7_wrong_passwords_pause_only_that_tab(live):
+    """One participant guessing must not lock the researcher out (finding 13)."""
+    from kasflex.admin_auth import MAX_FAILURES_TOTAL
+
+    guesser, researcher = "aaaaaaaa-guesser-tab", "bbbbbbbb-researcher-tab"
+    for _ in range(5):
+        assert _login(live, "wrong", guesser)[0] == 401
+    assert _login(live, "admin99", guesser)[0] == 429
+    status, reply = _login(live, "admin99", researcher)
+    assert status == 200 and reply["token"]
+    # A script inventing tab ids still meets a limit for everyone together.
+    for n in range(MAX_FAILURES_TOTAL):
+        _login(live, "wrong", f"script-tab-{n:04d}")
+    assert _login(live, "admin99", "cccccccc-fresh-tab")[0] == 429
+
+
+def test_review_r8_only_issued_codes_are_accepted_when_asked(live):
+    """A participant cannot type someone else's id once codes are required (finding 10)."""
+    token = _token(live)
+    assert _call(live, "/api/participant-codes", {"make": 3})[0] == 401
+    # Turning it on without codes would shut everyone out.
+    assert _call(live, "/api/workshop", {"issued_ids_only": True}, token)[0] == 409
+    status, made, _ = _call(live, "/api/participant-codes", {"make": 3}, token)
+    codes = made["codes"]
+    assert status == 200 and len(codes) == 3 and len(set(codes)) == 3
+    assert all(re.fullmatch(r"P-[A-HJ-NP-Z2-9]{6}", code) for code in codes)
+    assert _call(live, "/api/workshop", {"issued_ids_only": True}, token)[1]["issued_ids_only"]
+    assert "codes" not in _call(live, "/api/workshop")[1]  # never shown to participants
+
+    status, consent, _ = _call(live, "/api/consent")
+    grant = {"version": consent["version"], "scopes": {"research": True}}
+    refused = _call(live, "/api/consent", {**grant, "participant_id": "P001",
+                                           "overrides": {"participant_id": "P001"}})
+    assert refused[0] == 403 and "code" in refused[1]["error"]
+    assert _call(live, "/api/memory", {"overrides": {"participant_id": "P001"}})[0] == 403
+    typed = codes[0].lower()
+    status, granted, _ = _call(live, "/api/consent", {**grant, "participant_id": typed,
+                                                      "overrides": {"participant_id": typed}})
+    assert status == 200 and granted["withdraw_key"]
+    assert _call(live, "/api/memory", {"overrides": {"participant_id": codes[0]}})[0] == 200
+    assert _call(live, "/api/memory", {"overrides": {}})[0] == 200  # anonymous still works
+    # The researcher can still look up anyone.
+    assert _call(live, "/api/memory", {"overrides": {"participant_id": "P001"}}, token)[0] == 200
+    _call(live, "/api/participant-codes", {"clear": True}, token)
+    assert _call(live, "/api/participant-codes", {}, token)[1]["codes"] == []
+    assert _call(live, "/api/workshop")[1]["issued_ids_only"] is False
+    assert _call(live, "/api/memory", {"overrides": {"participant_id": "P001"}})[0] == 200
+
+
+def test_review_r8_codes_are_random_and_capped(tmp_path):
+    from kasflex.workshop import MAX_CODES, ParticipantCodes
+
+    store = ParticipantCodes(tmp_path / "codes.json")
+    first = store.make(50)
+    assert len(set(first)) == 50 and store.has(first[7].lower())
+    assert len(store.make(10_000)) == MAX_CODES
+    assert not store.has("P001")
+
+
+def test_review_r9_participants_learn_who_receives_chat_text_before_agreeing():
+    """GDPR art. 13 recipients, in the consent dialog itself (finding 11)."""
+    html = (static_dir() / "demo.html").read_text(encoding="utf-8")
+    dialog = html.split('id="consent-dialog"')[1].split("</dialog>")[0]
+    assert 'id="consent-ai"' in dialog
+    js = (static_dir() / "demo.js").read_text(encoding="utf-8")
+    assert '$("consent-ai").textContent' in js
+    notice = Path("docs/privacy/PARTICIPANT_INFORMATION.md").read_text(encoding="utf-8")
+    for needed in ("data-processing agreement", "verwerkersovereenkomst",
+                   "Autoriteit Persoonsgegevens", "withdraw", "consent_version"):
+        assert needed in notice, needed
+
+
+def test_review_r10_ai_text_is_marked_for_machines_too(ui, tmp_path):
+    """AI Act art. 50(2): generated text marked in a machine-readable way."""
+    run = ui.run(_scenario(BUILTIN[0].id), {})
+    reply = ui.chat({**_ref(run), "question": "Why does the CHP run tonight?"})
+    assert reply["ai_generated"] is True
+    js = (static_dir() / "demo.js").read_text(encoding="utf-8")
+    assert "dataset.aiGenerated" in js

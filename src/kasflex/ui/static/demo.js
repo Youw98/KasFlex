@@ -28,7 +28,10 @@ const state = {
   run: null,
   goals: [],
   sessionId: crypto.randomUUID(),
-  participantId: readStore("kasflex.demo.participant") || "",
+  // Who is planning stays with this tab, never with the laptop: on a shared
+  // workshop computer the next person must not inherit it.
+  participantId: readSession("kasflex.demo.participant") || "",
+  visitor: visitorId(),
   studyConsented: false,
   planShownAt: 0,
   detailExpansions: 0,
@@ -47,6 +50,21 @@ function readSession(key) { try { return sessionStorage.getItem(key); } catch { 
 function writeSession(key, value) {
   try { value ? sessionStorage.setItem(key, value) : sessionStorage.removeItem(key); } catch {}
 }
+function visitorId() {
+  let id = readSession("kasflex.visitor");
+  if (!id) { id = crypto.randomUUID(); writeSession("kasflex.visitor", id); }
+  return id;
+}
+/* Earlier versions kept the participant and their withdrawal keys in localStorage,
+   where the next person on the same laptop could find them. */
+function forgetOldIdentity() {
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key === "kasflex.demo.participant" || key.startsWith("kasflex.consent.key.")) localStorage.removeItem(key);
+    }
+  } catch {}
+}
+forgetOldIdentity();
 function readStore(key) { try { return localStorage.getItem(key); } catch { return null; } }
 function writeStore(key, value) {
   try { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch {}
@@ -55,6 +73,7 @@ function writeStore(key, value) {
 async function api(path, body) {
   const headers = body === undefined ? {} : {"Content-Type": "application/json"};
   if (state.adminToken) headers["X-KasFlex-Admin"] = state.adminToken;
+  headers["X-KasFlex-Visitor"] = state.visitor;
   const response = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
     headers,
@@ -184,6 +203,22 @@ function applyVersion() {
   if (state.version !== "collab") $("chat-panel").hidden = true;
 }
 
+/* Say where a typed question goes before anyone types one (GDPR: who receives it). */
+function renderChatDestination(destination) {
+  const outside = destination?.name && !destination.local;
+  $("chat-destination").textContent = outside
+    ? T(`Your questions and this plan go to ${destination.name}.`,
+        `Uw vragen en dit plan gaan naar ${destination.name}.`)
+    : T("Answers are made on this computer; nothing is sent out.",
+        "Antwoorden worden op deze computer gemaakt; er gaat niets naar buiten.");
+  // Said before anyone agrees, not only once they open the chat (GDPR art. 13: recipients).
+  $("consent-ai").textContent = outside
+    ? T(`The AI chat sends your questions and the plan to ${destination.name}. Do not type names or other personal details.`,
+        `De AI-chat stuurt uw vragen en het plan naar ${destination.name}. Typ geen namen of andere persoonlijke gegevens.`)
+    : T("The AI chat runs on this computer; your questions are not sent out.",
+        "De AI-chat draait op deze computer; uw vragen gaan niet naar buiten.");
+}
+
 async function loadWorkshop() {
   try {
     state.workshop = await api(`/api/workshop?lang=${state.lang}`);
@@ -192,6 +227,9 @@ async function loadWorkshop() {
   }
   const ws = state.workshop;
   state.version = ws.version || "collab";
+  renderChatDestination(ws.chat_destination);
+  // With issued codes, show what a code looks like so nobody types their name.
+  $("participant-id").placeholder = ws.issued_ids_only ? "P-7KQ4MX" : "P001";
   const select = $("scenario-select");
   select.replaceChildren();
   for (const scenario of ws.scenarios || []) {
@@ -1557,6 +1595,7 @@ async function sendChat() {
     });
     pending.className = "bubble ai";
     pending.textContent = reply.answer;
+    pending.dataset.aiGenerated = String(Boolean(reply.ai_generated));
     if (reply.sources?.length) {
       pending.append(el("small", "source", T("Source: ", "Bron: ")
         + [...new Set(reply.sources.map((source) => source.title))].join(", ")));
@@ -1648,13 +1687,13 @@ async function consentStudy() {
       version:status.version,
       scopes:{research:true, quotes:true, outcomes:true},
       overrides:{participant_id:participant},
-      withdraw_key:readStore(keyName) || "",
+      withdraw_key:readSession(keyName) || "",
     });
     // The key lets this browser withdraw or change this participant's consent later.
-    if (granted.withdraw_key) writeStore(keyName, granted.withdraw_key);
+    if (granted.withdraw_key) writeSession(keyName, granted.withdraw_key);
     state.participantId = participant;
     state.studyConsented = true;
-    writeStore("kasflex.demo.participant", participant);
+    writeSession("kasflex.demo.participant", participant);
     $("consent-dialog").close();
   } catch (error) {
     showError(error, T("Saving consent", "Toestemming opslaan"));
@@ -1664,7 +1703,7 @@ async function consentStudy() {
 function consentAnonymous() {
   state.participantId = "";
   state.studyConsented = false;
-  writeStore("kasflex.demo.participant", null);
+  writeSession("kasflex.demo.participant", null);
   $("consent-dialog").close();
 }
 
