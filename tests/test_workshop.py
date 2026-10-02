@@ -24,7 +24,7 @@ from kasflex.energy.contracts import CONTRACT_TYPES, contract_limits, describe
 from kasflex.factors import explain_factors
 from kasflex.intent import flat_plan
 from kasflex.memory import GrowerMemory
-from kasflex.reasons import apply_effects, interpret
+from kasflex.reasons import apply_effects, clean_effects, interpret, read_with_model
 from kasflex.recommend import PRIORITIES, recommend
 from kasflex.resources import static_dir
 from kasflex.scenarios import BUILTIN, Scenario, ScenarioStore, scenario_day
@@ -1098,3 +1098,71 @@ def test_review_r10_ai_text_is_marked_for_machines_too(ui, tmp_path):
     assert reply["ai_generated"] is True
     js = (static_dir() / "demo.js").read_text(encoding="utf-8")
     assert "dataset.aiGenerated" in js
+
+
+# --- an AI model reading reasons the rules miss -------------------------------
+
+
+def test_model_effects_are_checked_and_clamped():
+    cleaned = clean_effects({
+        "avoid_chp_hours": [6, 7, 7, 25, -1, "x", 7.5],
+        "battery_reserve_pct": 400,
+        "night_temp_c": "nan",
+        "priority": "maximum profit",
+        "import_caps": {"17": 1500, "30": 100, "18": -5},
+        "open_the_vents": True,
+        "prefer_stored_heat": "yes",
+    })
+    assert cleaned == {"avoid_chp_hours": [6, 7], "battery_reserve_pct": 95.0,
+                       "import_caps": {17: 1500.0}}
+    assert clean_effects("not a dict") == {}
+
+
+def test_a_model_reading_is_labelled_and_described_from_the_checked_effects():
+    reply = ('Sure: ```json\n{"effects": {"avoid_chp_hours": [9, 10, 11], '
+             '"priority": "grid"}, "applies": "always"}\n```')
+    reading = read_with_model("the gas engine is being inspected this morning", "work",
+                              "en", lambda system, prompt: reply)
+    assert reading["source"] == "ai"
+    assert reading["applies"] == "always"
+    assert reading["effects"] == {"avoid_chp_hours": [9, 10, 11], "priority": "grid"}
+    assert reading["summary"].startswith("KasFlex (AI) reads this as:")
+    assert "CHP off" in reading["summary"]
+
+
+def test_an_unusable_model_reply_leaves_the_rules_reading_in_place():
+    for reply in ("I am not sure.", '{"effects": {"teleport": 1}}', '{"effects": {}}'):
+        assert read_with_model("a feeling", "money", "en", lambda s, p, r=reply: r) is None
+
+
+def test_a_disagreement_the_rules_miss_is_read_by_the_model(ui, monkeypatch):
+    class FakeExplainer:
+        model = "fake-model"
+
+        @staticmethod
+        def call_fn(model, system, prompt):
+            if system.startswith("A grower disagreed"):
+                return '{"effects": {"avoid_chp_hours": [8, 9, 10, 11]}, "applies": "once"}'
+            return ""  # the wording rewrite: keep the deterministic text
+
+    monkeypatch.setattr(ui, "_explainer", lambda overrides: (FakeExplainer(), "en"))
+    ui.forget_remembered({"everyone": True})
+    run = ui.run({"planner": "collaborative", "data_source": "synthetic"}, {})
+    reply = ui.deliberate({**_ref(run), "dimension": "work", "response": "disagree",
+                           "reason": "the gas engine is being inspected this morning"})
+    assert "KasFlex (AI)" in reply["reason_summary"]
+    alternative = reply["alternative"]
+    assert alternative["policy"]["avoid_chp_hours"] == [8, 9, 10, 11]
+    assert "accepted" in alternative, "the alternative still goes through the checker"
+    ui.forget_remembered({"everyone": True})
+
+
+def test_without_a_model_an_unknown_reason_falls_back_to_the_part_default(ui):
+    ui.forget_remembered({"everyone": True})
+    run = ui.run({"planner": "collaborative", "data_source": "synthetic"}, {})
+    reply = ui.deliberate({**_ref(run), "dimension": "work", "response": "disagree",
+                           "reason": "the gas engine is being inspected this morning"})
+    assert "KasFlex (AI)" not in reply["reason_summary"]
+    assert "cannot yet" in reply["reason_summary"]
+    assert 9 not in (reply["alternative"]["policy"].get("avoid_chp_hours") or [])
+    ui.forget_remembered({"everyone": True})

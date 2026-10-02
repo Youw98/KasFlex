@@ -289,7 +289,7 @@ tests/                   offline test suite
 |---|---|
 | Greenhouse model accuracy | Calibrated; spring heat about 3× too high. Next: fit indoor temperature too, confirm on the 4TU Reference compartment |
 | MPC reference planner | Interface only (`controllers/mpc.py`) |
-| Free-text reasons | Rules recognise maintenance hours, staff, frost, light, buffer and grid limits (Dutch and English); other text is kept but changes nothing |
+| Free-text reasons | Rules recognise maintenance hours, staff, frost, light, buffer and grid limits (Dutch and English). With an AI model set, text the rules miss is read by the model, limited to the same effects, range-checked, labelled "KasFlex (AI)" and checked like any plan (`reasons.read_with_model`). Offline, such text is kept but changes nothing |
 | Week plan | Deliberately not: one day ahead, the week view is an estimate (ADR-0013) |
 | Parameter citations | [docs/PROVENANCE.md](docs/PROVENANCE.md) names the sources for battery, CHP, buffer and crop values, but the full references are not yet in the repository |
 

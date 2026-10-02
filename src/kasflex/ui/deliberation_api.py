@@ -22,6 +22,7 @@ from kasflex.llm_providers import (
 from kasflex.memory import STRENGTHS
 from kasflex.reasons import apply_effects
 from kasflex.reasons import interpret as interpret_reason
+from kasflex.reasons import read_with_model as read_reason_with_model
 from kasflex.ui.common import (
     ApiError,
 )
@@ -256,6 +257,23 @@ class DeliberationMixin:
                 f"€{new:,.0f} ({new - old:+,.0f}). {verdict} I will remember what you said for "
                 f"next time. Use this plan?")
 
+    def _read_reason_with_model(self, reason: str, dimension: str, language: str,
+                                overrides: dict[str, Any]) -> dict[str, Any] | None:
+        """A second reading by the configured AI model, for text the rules missed.
+
+        Returns None without a model or when the model's answer is unusable, so the
+        page works the same offline. The effects are checked in
+        :func:`kasflex.reasons.clean_effects`, and the plan they produce still goes
+        through the checker.
+        """
+        try:
+            explainer, _ = self._explainer(overrides)
+            return read_reason_with_model(
+                reason, dimension, language,
+                lambda system, prompt: explainer.call_fn(explainer.model, system, prompt))
+        except (ApiError, LlmError):
+            return None
+
     def deliberate(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Respond to one grower opinion without silently replacing the whole plan."""
 
@@ -297,6 +315,9 @@ class DeliberationMixin:
                     "Say in a few words why you disagree, so KasFlex can take it into account.",
                     422)
             reading = interpret_reason(reason, dimension, language)
+            if not reading["effects"]:
+                reading = self._read_reason_with_model(reason, dimension, language,
+                                                       overrides) or reading
             reason_summary = reading["summary"]
             policy = dict(current.get("policy") or {})
             if reading["effects"]:
@@ -342,6 +363,7 @@ class DeliberationMixin:
                 origin_revision=int(current.get("revision", 0) or 0),
                 scope={"kind": "disagreement", "dimension": dimension,
                        "effects": reading["effects"], "applies": reading["applies"],
+                       "read_by": reading.get("source", "rules"),
                        "participant": participant_key(overrides)},
             )
             remembered_id = remembered.pref_id
