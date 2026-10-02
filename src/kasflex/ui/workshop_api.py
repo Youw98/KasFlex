@@ -8,6 +8,10 @@ checker as the rest of the interface; nothing in this file plans on its own.
 from __future__ import annotations
 
 import dataclasses
+import re
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 from kasflex import i18n
@@ -31,9 +35,36 @@ GOAL_METRICS = {
 GOAL_OPS = ("<=", ">=")
 
 
+#: The anonymous visitor the current request comes from, set per request thread by
+#: the HTTP handler when the workshop keeps visitors apart (see ``use_visitor``).
+_request = threading.local()
+_VISITOR = re.compile(r"[A-Za-z0-9-]{8,40}")
+
+
+@contextmanager
+def use_visitor(visitor: str | None) -> Iterator[None]:
+    """Scope remembered reasons to one anonymous browser tab for this request.
+
+    Only a well-formed id counts; anything else falls back to the shared grower.
+    """
+    _request.visitor = visitor if visitor and _VISITOR.fullmatch(visitor) else ""
+    try:
+        yield
+    finally:
+        _request.visitor = ""
+
+
 def participant_key(overrides: dict[str, Any] | None) -> str:
-    """Whose memory this is. Without a participant id, one shared local grower."""
-    return str((overrides or {}).get("participant_id") or "local")[:64]
+    """Whose memory this is.
+
+    Without a participant id: the anonymous visitor when the workshop keeps visitors
+    apart, otherwise one shared local grower (one person on their own computer).
+    """
+    participant = str((overrides or {}).get("participant_id") or "")
+    if participant:
+        return participant[:64]
+    visitor = getattr(_request, "visitor", "")
+    return f"visitor:{visitor}" if visitor else "local"
 
 
 def clean_targets(raw: Any) -> dict[str, float | None]:
@@ -224,6 +255,8 @@ class WorkshopMixin:
             "versions": list(VERSIONS),
             "scenario_id": state.scenario_id,
             "lock_scenario": state.lock_scenario,
+            "separate_visitors": state.separate_visitors,
+            "chat_destination": self.chat_destination(),
             "scenarios": scenarios,
             "contract_types": [describe(k, language) for k in CONTRACT_TYPES],
             "builtin_ids": [s.id for s in BUILTIN],
@@ -244,6 +277,7 @@ class WorkshopMixin:
                 version=payload.get("version"),
                 scenario_id=None if scenario_id is None else str(scenario_id),
                 lock_scenario=payload.get("lock_scenario"),
+                separate_visitors=payload.get("separate_visitors"),
             )
         except ValueError as exc:
             raise ApiError(str(exc)) from exc
@@ -524,4 +558,4 @@ class WorkshopMixin:
 
 
 __all__ = ["GOAL_METRICS", "WorkshopMixin", "clean_goals", "clean_import_caps", "clean_targets",
-           "evaluate_goals", "participant_key", "scenario_check", "work_metrics"]
+           "evaluate_goals", "participant_key", "use_visitor", "scenario_check", "work_metrics"]

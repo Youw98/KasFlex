@@ -136,6 +136,7 @@ function translate() {
     "save-doc":["Add document", "Document toevoegen"],
     "t-memory-hint":["What participants said when they disagreed. KasFlex uses these in later plans of the same participant. Clear them between workshop groups.",
                      "Wat deelnemers zeiden toen ze het oneens waren. KasFlex gebruikt dit in latere plannen van dezelfde deelnemer. Wis dit tussen workshopgroepen."],
+    "t-separate":["Shared laptop: keep each anonymous tab's reasons apart", "Gedeelde laptop: redenen per anoniem tabblad apart houden"],
   };
   for (const [id, pair] of Object.entries(texts)) if ($(id)) $(id).textContent = T(...pair);
 }
@@ -183,6 +184,7 @@ function renderActive() {
   }
   select.value = state.status.scenario_id || "";
   $("lock-scenario").checked = Boolean(state.status.lock_scenario);
+  $("separate-visitors").checked = Boolean(state.status.separate_visitors);
   const active = state.status.scenarios.find((s) => s.id === state.status.scenario_id);
   $("active-note").textContent = active
     ? T(`Participants open “${active.title_text}”${state.status.lock_scenario ? " and cannot switch." : "; they can still switch."}`,
@@ -568,6 +570,9 @@ $("close-editor").addEventListener("click", () => $("editor").hidden = true);
 $("cancel-edit").addEventListener("click", () => $("editor").hidden = true);
 $("save-scenario").addEventListener("click", saveScenario);
 $("forget-all").addEventListener("click", forgetAll);
+$("separate-visitors").addEventListener("change", (event) => save({
+  separate_visitors:event.target.checked,
+}, T("Saved.", "Opgeslagen.")));
 $("save-doc").addEventListener("click", saveDocument);
 $("doc-file").addEventListener("change", loadDocumentFile);
 $("f-flaw-type").addEventListener("change", updateFlawFields);

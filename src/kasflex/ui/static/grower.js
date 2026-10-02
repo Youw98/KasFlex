@@ -383,7 +383,10 @@ function openWhy(action) {
     data_source: state.run.data_source, overrides: overrides(),
     hour: action.start,
     question: `${t("why.title")} ${action.title}`,
-  }).then((reply) => { deeper.textContent = reply.answer; })
+  }).then((reply) => {
+    // An AI wrote this text, so the page says so (EU AI Act, art. 50).
+    deeper.textContent = `${state.lang === "nl" ? "AI-uitleg, kan fout zijn" : "AI explanation, can be wrong"}: ${reply.answer}`;
+  })
     .catch(() => { deeper.textContent = ""; });   // the templated reason stands alone
 }
 
@@ -1158,13 +1161,13 @@ function askConsent(status) {
       try {
         const keyName = `kasflex.consent.key.${status.participant_id}`;
         let stored = "";
-        try { stored = localStorage.getItem(keyName) || ""; } catch { /* private mode */ }
+        try { stored = sessionStorage.getItem(keyName) || ""; } catch { /* private mode */ }
         const granted = await api("/api/consent", {
           participant_id: status.participant_id, version: status.version,
           scopes: agreed ? scopes : {}, withdraw_key: stored,
         });
         try {
-          if (granted.withdraw_key) localStorage.setItem(keyName, granted.withdraw_key);
+          if (granted.withdraw_key) sessionStorage.setItem(keyName, granted.withdraw_key);
         } catch { /* private mode */ }
       } catch (error) { showError(error); }
       sheet.close();
@@ -1210,7 +1213,7 @@ function renderConsentControls() {
         onclick: async () => {
           try {
             let key = "";
-            try { key = localStorage.getItem(`kasflex.consent.key.${status.participant_id}`) || ""; }
+            try { key = sessionStorage.getItem(`kasflex.consent.key.${status.participant_id}`) || ""; }
             catch { /* private mode */ }
             await api("/api/consent/withdraw", { participant_id: status.participant_id,
                                                 withdraw_key: key });

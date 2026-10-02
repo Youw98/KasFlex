@@ -32,6 +32,7 @@ import traceback
 from dataclasses import dataclass, field
 from datetime import date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
@@ -84,6 +85,7 @@ from kasflex.ui.workshop_api import (
     evaluate_goals,
     participant_key,
     scenario_check,
+    use_visitor,
     work_metrics,
 )
 from kasflex.uncertainty import (
@@ -242,6 +244,34 @@ class ApiError(Exception):
     def __init__(self, message: str, status: int = 400) -> None:
         super().__init__(message)
         self.status = status
+
+
+#: The offline showcase day the grower page plans when no scenario is chosen
+#: (``SHOWCASE_DATE`` and ``SHOWCASE_SEED`` in demo.js).
+SHOWCASE_DATE = "2023-01-15"
+#: A random id each browser tab sends, so a shared laptop can keep anonymous
+#: visitors' remembered reasons apart (the workshop "separate visitors" setting).
+VISITOR_HEADER = "X-KasFlex-Visitor"
+SHOWCASE_SEED = 0
+
+
+def _private_directory(directory: Path) -> None:
+    """Let only this user account open the research data (consent, reasons, chats).
+
+    On a shared computer other accounts could otherwise read the stores, which are
+    created with the default, world-readable permissions. Windows keeps a user's
+    profile private already, and chmod there cannot express this.
+    """
+    if os.name != "posix":
+        return
+    try:
+        directory.chmod(0o700)
+    except OSError:
+        pass  # not ours to change (a mounted or shared folder); the data still works
+
+
+def _reject_constant(name: str) -> Any:
+    raise ValueError(f"{name} is not a number JSON allows")
 
 
 def _get_path(obj: Any, path: str) -> Any:
@@ -517,6 +547,7 @@ class UiServer(WorkshopMixin):
 
     def __post_init__(self) -> None:
         self.file_base = ScenarioConfig.from_yaml(self.config_path)
+        _private_directory(resolve_output("results/.private").parent)
         self.gate = AdminGate()
         self.consent_keys = ConsentKeys(resolve_output("results/consent-keys.json"))
         self.site = SiteSettings(resolve_output("results/site-settings.json"))
@@ -847,6 +878,21 @@ class UiServer(WorkshopMixin):
         config = _apply_overrides(self.base, overrides or {})
         return (config.llm_provider, config.llm_model, config.llm_base_url,
                 i18n.normalise(config.language), config.llm_fold_system)
+
+    def chat_destination(self) -> dict[str, Any]:
+        """Where a chat question is sent, so the page can say so before it is asked.
+
+        ``local`` is true when nothing leaves this computer: no usable model (the
+        offline assistant answers) or a model running here.
+        """
+        provider, _, base_url, _, _ = self._model_settings({})
+        spec = PROVIDERS.get(provider)
+        if spec is None or (spec.env_var and not os.environ.get(spec.env_var)):
+            return {"name": "", "local": True}
+        if spec.base_url_env and os.environ.get(spec.base_url_env):
+            base_url = base_url or os.environ[spec.base_url_env]
+        local = spec.local and (not base_url or _is_loopback(urlsplit(base_url).hostname or ""))
+        return {"name": spec.name, "local": local}
 
     def _explainer(self, overrides: dict[str, Any]) -> tuple[PlanExplainer, str]:
         """Build an explainer, or say plainly that no model is configured.
@@ -2098,6 +2144,9 @@ class _Handler(BaseHTTPRequestHandler):
     sys_version = ""  # do not advertise the Python version
     ui: UiServer
     allowed_hosts: frozenset[str] = frozenset({"127.0.0.1", "localhost", "[::1]"})
+    #: Set when started with allow_network: any Host is accepted (devices on the
+    #: network use the machine's address); Origin and the password still apply.
+    network: bool = False
     max_body_bytes = 2_000_000
 
     def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A002
@@ -2150,9 +2199,41 @@ class _Handler(BaseHTTPRequestHandler):
         if not self.ui.gate.check(self.headers.get(ADMIN_HEADER)):
             raise ApiError("Settings are locked: enter the admin password.", 401)
 
+    #: Endpoints that fetch or prepare another day; a locked workshop has no use for them.
+    _OTHER_DAY_POSTS = frozenset({"/api/demo-prepare", "/api/data-download"})
+
+    def _enforce_workshop_lock(self, body: dict[str, Any]) -> None:
+        """Hold participants to the locked workshop day and study version.
+
+        The grower page hides the day picker when the scenario is locked, but a
+        request can still name another day or another condition. With the lock on,
+        the server overwrites those fields, so every participant plans the same
+        situation and is counted in the version the researcher chose. The settings
+        password lifts this, so the researcher can still try other days.
+        """
+        workshop = self.ui.workshop.get()
+        if not workshop.lock_scenario or self.ui.gate.check(self.headers.get(ADMIN_HEADER)):
+            return
+        if self.path in self._OTHER_DAY_POSTS:
+            raise ApiError("The workshop day is locked. Unlock it in ⚙ settings first.", 403)
+        overrides = body.get("overrides")
+        if not isinstance(overrides, dict):
+            return
+        for key in ("date", "seed", "scenario_id", "data_source"):
+            overrides.pop(key, None)
+        if workshop.scenario_id:
+            overrides.update(data_source="scenario", scenario_id=workshop.scenario_id)
+        else:
+            overrides.update(data_source="synthetic", date=SHOWCASE_DATE, seed=SHOWCASE_SEED)
+        overrides["condition"] = workshop.version
+
     def _guard_request(self, *, write: bool = False) -> None:
         """Reject DNS-rebinding and cross-site browser requests to the local app."""
-        if self._request_host() not in self.allowed_hosts:
+        # Without network mode, only this computer may connect, whatever the Host
+        # header claims (another computer can claim to be "127.0.0.1").
+        if not self.network and not _is_loopback(str(self.client_address[0])):
+            raise ApiError("KasFlex only accepts connections from this computer.", 403)
+        if not self.network and self._request_host() not in self.allowed_hosts:
             raise ApiError("This local workspace does not recognise the request host.", 403)
         if not write:
             return
@@ -2180,9 +2261,13 @@ class _Handler(BaseHTTPRequestHandler):
         if not length:
             return {}
         try:
-            data = json.loads(self.rfile.read(length))
-        except json.JSONDecodeError as exc:
+            # NaN and Infinity are not JSON, but Python accepts them; refuse them here
+            # rather than fail later when the answer cannot be encoded.
+            data = json.loads(self.rfile.read(length), parse_constant=_reject_constant)
+        except (json.JSONDecodeError, ValueError) as exc:
             raise ApiError(f"request body is not valid JSON: {exc}") from exc
+        except RecursionError as exc:
+            raise ApiError("request body is nested too deeply") from exc
         if not isinstance(data, dict):
             raise ApiError("request body must be a JSON object")
         return data
@@ -2289,6 +2374,12 @@ class _Handler(BaseHTTPRequestHandler):
                                  "The details are in the terminal running KasFlex."}, 500)
 
     def do_POST(self) -> None:  # noqa: N802
+        visitor = (self.headers.get(VISITOR_HEADER)
+                   if self.ui.workshop.get().separate_visitors else None)
+        with use_visitor(visitor):
+            self._post()
+
+    def _post(self) -> None:
         try:
             self._guard_request(write=True)
             if self.path == "/api/connections":
@@ -2305,6 +2396,7 @@ class _Handler(BaseHTTPRequestHandler):
             # server and the stored API key would be sent there with it.
             if isinstance(overrides, dict) and set(overrides) & SITE_FIELDS_SET:
                 self._require_admin()
+            self._enforce_workshop_lock(body)
             if self.path == "/api/consent/withdraw" and not self.ui.gate.check(
                     self.headers.get(ADMIN_HEADER)):
                 # A participant withdraws their own consent with the key they were
@@ -2485,17 +2577,54 @@ class _Handler(BaseHTTPRequestHandler):
                                  "The details are in the terminal running KasFlex."}, 500)
 
 
+def _is_loopback(host: str) -> bool:
+    import ipaddress  # noqa: PLC0415
+
+    name = host.strip("[]").lower()
+    if name == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(name).is_loopback
+    except ValueError:
+        return False
+
+
 def serve(
     config_path: str = "configs/scenario_westland_winter.yaml",
     host: str = "127.0.0.1",
     port: int = 8765,
     anonymous: bool = False,
+    allow_network: bool = False,
 ) -> ThreadingHTTPServer:
-    """Create the server. The caller decides whether to serve forever."""
+    """Create the server. The caller decides whether to serve forever.
+
+    Only this computer may connect unless ``allow_network`` is set. The Host-header
+    check below stops a malicious website from reaching the local app (DNS
+    rebinding); it does not stop another computer, which can send any Host header.
+    So listening on a network address is refused unless asked for explicitly, and
+    then only with a settings password other than the default.
+
+    Raises:
+        ValueError: for a network address without ``allow_network``, or with the
+            default password.
+    """
+    from kasflex.admin_auth import DEFAULT_PASSWORD, admin_password  # noqa: PLC0415
+
+    network = not _is_loopback(host)
+    if network and not allow_network:
+        raise ValueError(
+            f"Refusing to listen on {host}: other computers could use KasFlex. Use the "
+            "default 127.0.0.1, or add --allow-network (with KASFLEX_ADMIN_PASSWORD set) "
+            "if a workshop really needs tablets on the same network.")
+    if network and admin_password() == DEFAULT_PASSWORD:
+        raise ValueError(
+            "Set KASFLEX_ADMIN_PASSWORD to a password of your own before allowing "
+            "network access; the default one is published in the README.")
     ui = UiServer(config_path=config_path, anonymous=anonymous)
     allowed_hosts = {"127.0.0.1", "localhost", "[::1]", host.lower()}
     handler = type("Handler", (_Handler,), {
         "ui": ui,
         "allowed_hosts": frozenset(allowed_hosts),
+        "network": network,
     })
     return ThreadingHTTPServer((host, port), handler)

@@ -35,7 +35,10 @@ dependencies = [
 # same environment. Run GreenLight in the separate worker venv instead.
 grid = ["power-grid-model>=1.10", "power-grid-model-ds>=1.5"]
 # Dataset acquisition (online, one-off; results are cached to parquet).
-data = ["pandas>=2.0", "pyarrow>=15", "entsoe-py>=0.6", "requests>=2.32"]
+# urllib3 and idna come in through requests; the floors keep out releases with
+# published advisories (PYSEC-2026-141/142/4175-4177, PYSEC-2026-215).
+data = ["pandas>=2.0", "pyarrow>=15", "entsoe-py>=0.6", "requests>=2.32",
+        "urllib3>=2.8.0", "idna>=3.15"]
 # Language-model planners. Any subset may be installed.
 llm = ["anthropic>=0.40"]
 mcp = ["mcp>=2,<3"]

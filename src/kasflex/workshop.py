@@ -29,6 +29,9 @@ class WorkshopState:
     """Empty means the offline showcase day."""
     lock_scenario: bool = False
     """When set, participants cannot switch to another day."""
+    separate_visitors: bool = False
+    """When set, each browser tab without a participant id gets its own remembered
+    reasons, so one laptop can be shared by a workshop group."""
 
 
 class WorkshopStore:
@@ -45,10 +48,12 @@ class WorkshopStore:
             state.version = data["version"]
         state.scenario_id = str(data.get("scenario_id") or "")[:41]
         state.lock_scenario = data.get("lock_scenario") is True
+        state.separate_visitors = data.get("separate_visitors") is True
         return state
 
     def set(self, *, version: str | None = None, scenario_id: str | None = None,
-            lock_scenario: bool | None = None) -> WorkshopState:
+            lock_scenario: bool | None = None,
+            separate_visitors: bool | None = None) -> WorkshopState:
         state = self.get()
         if version is not None:
             if version not in VERSIONS:
@@ -58,6 +63,8 @@ class WorkshopStore:
             state.scenario_id = scenario_id
         if lock_scenario is not None:
             state.lock_scenario = bool(lock_scenario)
+        if separate_visitors is not None:
+            state.separate_visitors = bool(separate_visitors)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(asdict(state), indent=2) + "\n", encoding="utf-8")
         return state
