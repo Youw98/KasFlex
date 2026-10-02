@@ -971,9 +971,6 @@ def test_review_r4_who_is_planning_stays_with_the_tab():
     assert 'writeStore("kasflex.demo.participant"' not in js
     assert "writeStore(keyName" not in js and "readStore(keyName" not in js
     assert '"X-KasFlex-Visitor"' in js
-    grower = (static_dir() / "grower.js").read_text(encoding="utf-8")
-    assert "localStorage.setItem(keyName" not in grower
-    assert "localStorage.getItem(`kasflex.consent.key." not in grower
 
 
 def test_review_r5_the_chat_says_it_is_an_ai_and_where_questions_go(tmp_path, monkeypatch):

@@ -109,7 +109,6 @@ In short:
 | `/admin` | the researcher | study version, scenarios, chat documents, remembered reasons, participant codes |
 | `/advanced` (also `/research`) | the researcher | editable 24-hour plan, planner comparison, history, configuration and API keys |
 | `/setup` | the researcher | participants, reliance measurement, experiment batches, exports (CSV, JSON-LD) |
-| `/legacy-grower` | comparison only | the earlier grower screen |
 
 Changing settings, the admin page, API keys, documents and all research data need
 the password, and the server checks it, not only the page. Five wrong guesses pause that browser tab; all tabs together
