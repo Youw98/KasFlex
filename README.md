@@ -45,6 +45,18 @@ kasflex ui                         # http://127.0.0.1:8765
 
 No API key or network is needed for the default workshop scenarios.
 
+### API keys
+
+All optional. Save them under ⚙ → APIs, or put them in `.env` (copy
+[.env.example](.env.example)). Details: [docs/API_SETUP.md](docs/API_SETUP.md).
+
+| What for | Key | Where to get it |
+|---|---|---|
+| AI advice, chat and reading free-text reasons (one is enough) | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `OPENAI_COMPATIBLE_API_KEY` with `OPENAI_COMPATIBLE_BASE_URL` | [Anthropic](https://console.anthropic.com/), [OpenAI](https://platform.openai.com/api-keys), [Google AI Studio](https://aistudio.google.com/app/apikey), or your own server |
+| AI without an account or key | `OLLAMA_BASE_URL` (default `http://localhost:11434`) | [Ollama](https://ollama.com/) on your own machine |
+| Real day-ahead electricity prices | `ENTSOE_API_KEY` | [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/) account |
+| Weather | none | Open-Meteo is public |
+
 ### A session in the grower workspace
 
 1. KasFlex opens on a **workshop scenario**: a fixed day with a short story, offline.
@@ -232,8 +244,10 @@ The full workflow, including the ENTSO-E token and the GreenLight worker, is in
 ### Day to day
 
 ```bash
-make test        # pytest
-make lint        # ruff
+make test          # pytest
+make lint          # ruff
+make test-browser  # the grower page in headless Chromium, with axe-core (not in CI)
+make audit         # known vulnerabilities in the dependencies (not in CI)
 ```
 
 CI runs ruff, a JavaScript syntax check and the test suite on Python 3.11 and 3.12,

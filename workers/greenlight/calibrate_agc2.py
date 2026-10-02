@@ -43,15 +43,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 CANDIDATES = {
     "aCov": (140.0, 156.0, 180.0, 216.6),
     "aRoof": (7.2, 12.0, 17.4, 26.0, 52.2),
-    "cLeakage": (0.5e-5, 1e-5, 2e-5, 3e-5),
+    "cLeakage": (0.5e-5, 1e-5, 2e-5, 3e-5, 5e-5),
     "tauRfNir": (0.45, 0.57, 0.7, 0.85),
     "kThScr": (1.25e-4, 2.5e-4, 5e-4, 1e-3, 2e-3),
     "tauThScrFir": (0.05, 0.15, 0.3, 0.5),
 }
-#: Where the search starts: the previous calibration, gl-gym defaults elsewhere.
-START = {"aCov": 156.0, "aRoof": 17.4, "cLeakage": 1e-5, "tauRfNir": 0.57,
-         "kThScr": 5e-4, "tauThScrFir": 0.15}
-PREVIOUS = {"etaLampCool": 0.0, "aCov": 156.0, "aRoof": 17.4, "cLeakage": 1e-5}
+#: Where the search starts: the previous calibration.
+START = {"aCov": 180.0, "aRoof": 17.4, "cLeakage": 2e-5, "tauRfNir": 0.85,
+         "kThScr": 1.25e-4, "tauThScrFir": 0.05}
+PREVIOUS = {"etaLampCool": 0.0, **START}
 FIXED = {"etaLampCool": 0.0}
 PASSES = 2
 

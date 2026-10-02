@@ -45,11 +45,21 @@ STEPS_PER_HOUR = 4  # 900 s solver timestep
 X_T_AIR = 2
 X_T_PIPE = 9
 X_T_GRO_PIPE = 19
+# Floor and the five soil layers below it; their thicknesses are p[27..31], and the
+# outdoor soil temperature (weather column 6) sits mid-way through p[37] below them.
+X_T_FLOOR = 8
+X_T_SOIL = (10, 11, 12, 13, 14)
+P_SOIL_THICKNESS = (27, 28, 29, 30, 31)
+P_SOIL_OUT_THICKNESS = 37
+W_T_SOIL_OUT = 6
 # AGC2 ReadMe, Resources/Heat_cons: the dataset does not meter heat. It computes
 # pipe heat release as (t_rail - t_air) * 2.1 + (t_grow - t_air) * 0.62 [W/m2].
 # Applying the same formula to the simulated pipes compares like with like.
 AGC_RAIL_W_M2_K = 2.1
 AGC_GROW_W_M2_K = 0.62
+#: Boiler valve position above which the heating circuit counts as running. The
+#: replayed proportional controller sits at about 0.0099 exactly at setpoint.
+CIRCUIT_ON = 0.01
 
 #: GreenLight construction parameters a calibration may set, by name. gl-gym's own
 #: override registry only exposes floor area, heating, CO2 and lamp capacity; heat
@@ -92,6 +102,28 @@ def _context(env) -> StepContext:
         d=raw.weather_data,
         hour_of_day=raw.hour_of_day, day_of_year=raw.day_of_year,
     )
+
+
+def _start_soil_warm(raw, p, floor_c: float) -> None:
+    """Start the floor at ``floor_c`` and the soil on a steady profile below it.
+
+    gl-gym starts the floor at the air temperature and the top soil layer at
+    16.5 degC whatever the season. The soil takes weeks to warm, so a one-day
+    replay from that state spends its energy heating the ground: in spring, more
+    than the greenhouse itself used. A linear profile from the floor down to the
+    outdoor soil temperature is the steady state of the soil layers.
+    """
+    if not np.isfinite(floor_c):
+        raise ValueError("initial floor temperature must be finite")
+    bottom = float(raw.weather_data[0, W_T_SOIL_OUT])
+    thickness = [float(p[index]) for index in P_SOIL_THICKNESS]
+    total = sum(thickness) + float(p[P_SOIL_OUT_THICKNESS]) / 2
+    raw.x[X_T_FLOOR] = floor_c
+    depth = 0.0
+    for index, layer in zip(X_T_SOIL, thickness, strict=True):
+        middle = depth + layer / 2
+        raw.x[index] = floor_c - (floor_c - bottom) * middle / total
+        depth += layer
 
 
 def simulate_day(request: dict) -> dict:
@@ -182,6 +214,8 @@ def simulate_day(request: dict) -> dict:
             raw.x[index] = initial_temp
         raw.x[15] = np.clip(initial_rh, 0, 100) / 100 * satVp(initial_temp)
         raw.x[16] = raw.x[15]
+        if "floor_temperature_c" in initial:
+            _start_soil_warm(raw, p, float(initial["floor_temperature_c"]))
         raw.x_prev = raw.x.copy()
 
     step_index = 0
@@ -244,7 +278,12 @@ def simulate_day(request: dict) -> dict:
                 lamp_w_m2 * floor_area_m2 / 1000.0 * float(raw.dt) / 3600.0
             )
             x = np.asarray(raw.x, dtype=float)
-            pipe_w_m2 = (
+            # The AGC2 pipe sensors read 0 while a circuit is off, so Heat_cons only
+            # counts heat from running circuits. Pipes warmed by the sun and the
+            # floor give heat back in the evening without the boiler; counting that
+            # here added about 10 kWh to a spring day the dataset never sees.
+            circuit_on = u[0] > CIRCUIT_ON
+            pipe_w_m2 = circuit_on * (
                 AGC_RAIL_W_M2_K * max(0.0, x[X_T_PIPE] - x[X_T_AIR])
                 + AGC_GROW_W_M2_K * max(0.0, x[X_T_GRO_PIPE] - x[X_T_AIR])
             )

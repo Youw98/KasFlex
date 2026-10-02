@@ -277,6 +277,7 @@ def _replay_payload(
     weather: list[tuple[datetime, dict[str, str]]],
     weather_dir: Path,
     compartment: str = "Reference",
+    floor_temperature_c: float | None = None,
 ) -> dict[str, Any]:
     series = {key: _quarter_hours(climate, key) for key in CLIMATE_FIELDS}
     weather_series = {key: _quarter_hours(weather, key) for key in WEATHER_FIELDS}
@@ -319,6 +320,8 @@ def _replay_payload(
         "relative_humidity_pct": series["Rhair"][0],
         "co2_ppm": series["CO2air"][0],
     }
+    if floor_temperature_c is not None:
+        initial["floor_temperature_c"] = floor_temperature_c
     return {
         "floor_area_m2": REFERENCE_AREA_M2,
         "lamp_power_w_m2": AGC2_LAMP_POWER_W_M2,
@@ -365,6 +368,28 @@ def _replay_payload(
             },
         },
     }
+
+
+#: Days of measured air temperature that set the floor and soil at the start of a
+#: replayed day. A one-day replay that starts the soil at gl-gym's 16.5 degC spends
+#: the day warming it; in spring that alone added about 20 kWh of heat per day.
+FLOOR_HISTORY_DAYS = 7
+
+
+def floor_temperature(
+    climate: dict[date, list[tuple[datetime, dict[str, str]]]], day: date
+) -> float | None:
+    """Mean measured air temperature over the days before ``day``, if any.
+
+    Only earlier days are used, so a replayed day never sees its own measurements.
+    """
+    values = [
+        numeric(row["Tair"])
+        for offset in range(1, FLOOR_HISTORY_DAYS + 1)
+        for _timestamp, row in climate.get(day - timedelta(days=offset), [])
+    ]
+    values = [value for value in values if math.isfinite(value)]
+    return sum(values) / len(values) if values else None
 
 
 def prepare_agc2(
@@ -431,7 +456,10 @@ def prepare_agc2(
             writer = csv.DictWriter(handle, fieldnames=list(totals))
             writer.writeheader()
             writer.writerow(totals)
-        payload = _replay_payload(day, climate[day], weather[day], weather_dir, compartment)
+        payload = _replay_payload(
+            day, climate[day], weather[day], weather_dir, compartment,
+            floor_temperature(climate, day),
+        )
         (replay_dir / f"{day.isoformat()}.json").write_text(
             json.dumps(payload, indent=2, sort_keys=True) + "\n"
         )
